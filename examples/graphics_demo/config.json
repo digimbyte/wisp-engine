@@ -1,0 +1,25 @@
+{
+  "name": "Graphics Demo",
+  "version": "1.0.0",
+  "author": "Wisp Engine",
+  "description": "Demonstrates graphics capabilities of Wisp Engine",
+  "audio": {
+    "outputs": ["piezo"],
+    "sampleRate": 22050,
+    "channels": 2,
+    "streaming": false,
+    "effects": false
+  },
+  "performance": {
+    "fps": 16,
+    "ram": 32768
+  },
+  "system": {
+    "wifi": false,
+    "bluetooth": false,
+    "eeprom": false
+  },
+  "entry": {
+    "main": "main.cpp"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "Snake Classic",
+  "version": "1.0.0",
+  "author": "RetroGames",
+  "description": "Classic snake game with simple audio",
+  
+  "audio": {
+    "outputs": ["piezo"],
+    "sampleRate": 8000,
+    "channels": 2,
+    "streaming": false,
+    "effects": false,
+    "recording": false
+  },
+  
+  "performance": {
+    "fps": 8,
+    "ram": 16384,
+    "storage": 0
+  },
+  
+  "system": {
+    "wifi": false,
+    "bluetooth": false,
+    "eeprom": true
+  },
+  
+  "entry": {
+    "main": "snake.cpp"
+  }
+}

@@ -1,0 +1,352 @@
+# Pokemon-style RPG Game Data Configuration
+# This file will be compiled into ROM data for the Wisp Engine
+
+# Game Items
+items:
+  # Pokeballs
+  - id: 1
+    name: "Pokeball"
+    description: "A ball for catching Pokemon"
+    type: 1  # consumable
+    rarity: 1  # common
+    value: 200
+    properties: 1  # catch rate modifier
+
+  - id: 2
+    name: "Great Ball"
+    description: "A better ball for catching Pokemon"
+    type: 1
+    rarity: 2  # uncommon
+    value: 600
+    properties: 2
+
+  - id: 3
+    name: "Ultra Ball"
+    description: "An even better ball for catching Pokemon"
+    type: 1
+    rarity: 3  # rare
+    value: 1200
+    properties: 3
+
+  - id: 4
+    name: "Master Ball"
+    description: "The ultimate ball - never fails"
+    type: 1
+    rarity: 4  # legendary
+    value: 0  # priceless
+    properties: 255
+
+  # Healing Items
+  - id: 10
+    name: "Potion"
+    description: "Restores 20 HP"
+    type: 2  # healing
+    rarity: 1
+    value: 300
+    properties: 20  # HP restored
+
+  - id: 11
+    name: "Super Potion"
+    description: "Restores 50 HP"
+    type: 2
+    rarity: 2
+    value: 700
+    properties: 50
+
+  - id: 12
+    name: "Hyper Potion"
+    description: "Restores 200 HP"
+    type: 2
+    rarity: 3
+    value: 1200
+    properties: 200
+
+  - id: 13
+    name: "Max Potion"
+    description: "Fully restores HP"
+    type: 2
+    rarity: 3
+    value: 2500
+    properties: 999
+
+  # Status Healing
+  - id: 20
+    name: "Antidote"
+    description: "Cures poison"
+    type: 3  # status healing
+    rarity: 1
+    value: 100
+    properties: 1  # poison
+
+  - id: 21
+    name: "Paralyz Heal"
+    description: "Cures paralysis"
+    type: 3
+    rarity: 1
+    value: 200
+    properties: 2  # paralysis
+
+  - id: 22
+    name: "Awakening"
+    description: "Cures sleep"
+    type: 3
+    rarity: 1
+    value: 250
+    properties: 3  # sleep
+
+  # Stat Boosters
+  - id: 30
+    name: "Rare Candy"
+    description: "Increases Pokemon level by 1"
+    type: 4  # stat booster
+    rarity: 3
+    value: 4800
+    properties: 1  # level up
+
+  - id: 31
+    name: "Protein"
+    description: "Increases Attack"
+    type: 4
+    rarity: 2
+    value: 9800
+    properties: 2  # attack
+
+  - id: 32
+    name: "Iron"
+    description: "Increases Defense"
+    type: 4
+    rarity: 2
+    value: 9800
+    properties: 3  # defense
+
+# Game Quests
+quests:
+  - id: 1000
+    title: "Choose Your Starter Pokemon"
+    description: "Visit Professor Oak and choose your first Pokemon"
+    required_level: 1
+
+  - id: 1001
+    title: "First Gym Challenge"
+    description: "Defeat Brock at Pewter City Gym"
+    required_level: 8
+
+  - id: 1002
+    title: "Rival Battle"
+    description: "Battle your rival on Route 22"
+    required_level: 10
+
+  - id: 1003
+    title: "Second Gym Challenge"
+    description: "Defeat Misty at Cerulean City Gym"
+    required_level: 15
+
+  - id: 1004
+    title: "Team Rocket Hideout"
+    description: "Infiltrate the Team Rocket hideout"
+    required_level: 20
+
+  - id: 1005
+    title: "Elite Four Challenge"
+    description: "Challenge the Elite Four at Indigo Plateau"
+    required_level: 40
+
+  - id: 1006
+    title: "Champion Battle"
+    description: "Defeat the Pokemon Champion"
+    required_level: 45
+
+  # Side Quests
+  - id: 2000
+    title: "Find Pikachu"
+    description: "Catch a Pikachu in Viridian Forest"
+    required_level: 5
+
+  - id: 2001
+    title: "Help Professor Oak"
+    description: "Deliver Oak's package to Bill"
+    required_level: 10
+
+  - id: 2002
+    title: "Deliver Package"
+    description: "Take this package to Route 25"
+    required_level: 12
+
+# World Maps/Locations
+maps:
+  - id: 1
+    name: "Pallet Town"
+    width: 20
+    height: 15
+
+  - id: 2
+    name: "Viridian City"
+    width: 25
+    height: 20
+
+  - id: 3
+    name: "Pewter City"
+    width: 20
+    height: 18
+
+  - id: 4
+    name: "Cerulean City"
+    width: 25
+    height: 20
+
+  - id: 5
+    name: "Vermilion City"
+    width: 30
+    height: 25
+
+  - id: 6
+    name: "Celadon City"
+    width: 35
+    height: 30
+
+  - id: 7
+    name: "Fuchsia City"
+    width: 25
+    height: 20
+
+  - id: 8
+    name: "Saffron City"
+    width: 30
+    height: 30
+
+  - id: 9
+    name: "Cinnabar Island"
+    width: 20
+    height: 15
+
+  - id: 10
+    name: "Indigo Plateau"
+    width: 30
+    height: 25
+
+  # Routes
+  - id: 100
+    name: "Route 1"
+    width: 10
+    height: 30
+
+  - id: 101
+    name: "Route 2"
+    width: 10
+    height: 25
+
+  - id: 102
+    name: "Route 3"
+    width: 35
+    height: 10
+
+# Pokemon Species
+pokemon:
+  - id: 1
+    name: "Bulbasaur"
+    type1: 12  # Grass
+    type2: 4   # Poison
+    base_hp: 45
+    base_attack: 49
+    base_defense: 49
+    base_speed: 45
+
+  - id: 2
+    name: "Ivysaur"
+    type1: 12
+    type2: 4
+    base_hp: 60
+    base_attack: 62
+    base_defense: 63
+    base_speed: 60
+
+  - id: 3
+    name: "Venusaur"
+    type1: 12
+    type2: 4
+    base_hp: 80
+    base_attack: 82
+    base_defense: 83
+    base_speed: 80
+
+  - id: 4
+    name: "Charmander"
+    type1: 10  # Fire
+    type2: 0   # No second type
+    base_hp: 39
+    base_attack: 52
+    base_defense: 43
+    base_speed: 65
+
+  - id: 5
+    name: "Charmeleon"
+    type1: 10
+    type2: 0
+    base_hp: 58
+    base_attack: 64
+    base_defense: 58
+    base_speed: 80
+
+  - id: 6
+    name: "Charizard"
+    type1: 10
+    type2: 3   # Flying
+    base_hp: 78
+    base_attack: 84
+    base_defense: 78
+    base_speed: 100
+
+  - id: 7
+    name: "Squirtle"
+    type1: 11  # Water
+    type2: 0
+    base_hp: 44
+    base_attack: 48
+    base_defense: 65
+    base_speed: 43
+
+  - id: 8
+    name: "Wartortle"
+    type1: 11
+    type2: 0
+    base_hp: 59
+    base_attack: 63
+    base_defense: 80
+    base_speed: 58
+
+  - id: 9
+    name: "Blastoise"
+    type1: 11
+    type2: 0
+    base_hp: 79
+    base_attack: 83
+    base_defense: 100
+    base_speed: 78
+
+  - id: 25
+    name: "Pikachu"
+    type1: 13  # Electric
+    type2: 0
+    base_hp: 35
+    base_attack: 55
+    base_defense: 40
+    base_speed: 90
+
+  - id: 26
+    name: "Raichu"
+    type1: 13
+    type2: 0
+    base_hp: 60
+    base_attack: 90
+    base_defense: 55
+    base_speed: 110
+
+# Localized Strings
+strings:
+  welcome_message: "Welcome to the world of Pokemon!"
+  professor_oak: "Hello there! Welcome to the world of Pokemon!"
+  choose_starter: "Now choose your first Pokemon!"
+  battle_start: "A wild Pokemon appeared!"
+  battle_won: "You won the battle!"
+  level_up: "Your Pokemon leveled up!"
+  gym_victory: "You defeated the Gym Leader!"

@@ -1,0 +1,31 @@
+# WISP Application Configuration
+# See docs/wisp_file_formats.md for complete specification
+
+# Application metadata
+name: "Test App"
+version: "1.0.0"
+author: "Wisp Engine"
+description: "Test application for WISP format verification"
+
+# Audio configuration
+audio:
+  outputs: ["piezo"]      # Available: ["piezo", "i2s", "bluetooth"]
+  sampleRate: 22050       # Sample rate in Hz (8000, 16000, 22050, 44100)
+  channels: 4             # Number of audio channels (1-16)
+
+# Performance requirements
+performance:
+  fps: 60                 # Target frame rate (15, 24, 30, 60) - ESP32-C6 supports up to 60
+  ram: 131072             # RAM requirement in bytes (128KB) - Max available: 393KB
+  storage: 0              # Additional storage needed (bytes)
+
+# System features
+system:
+  wifi: false             # Enable WiFi 6 connectivity (802.11ax)
+  bluetooth: false        # Enable Bluetooth 5 LE connectivity  
+  eeprom: false           # Use EEPROM for persistent data
+
+# Entry points
+entry:
+  main: "main.wash"       # Main executable file
+  config: "config.yaml"   # Configuration file (this file)

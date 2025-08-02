@@ -1,0 +1,32 @@
+{
+  "name": "Audio Test Suite",
+  "version": "1.0.0",
+  "author": "Wisp Engine Team",
+  "description": "Test application for all audio outputs and capabilities",
+  
+  "audio": {
+    "outputs": ["all"],
+    "sampleRate": 44100,
+    "channels": 8,
+    "streaming": true,
+    "effects": true,
+    "recording": false
+  },
+  
+  "performance": {
+    "fps": 30,
+    "ram": 98304,
+    "storage": 0
+  },
+  
+  "system": {
+    "wifi": false,
+    "bluetooth": true,
+    "eeprom": true
+  },
+  
+  "entry": {
+    "main": "audio_test.cpp",
+    "config": "audio_setup.h"
+  }
+}

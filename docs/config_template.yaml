@@ -1,0 +1,81 @@
+# WISP Application Configuration Template
+# Hardware-aligned limits for ESP32-C6 (512KB HP SRAM, 160MHz CPU, 172×320 Display)
+
+# Application metadata (required)
+name: "My WISP App"         # Application name (string, max 64 chars)
+version: "1.0.0"            # Semantic version (string, format: X.Y.Z)
+author: "Developer Name"    # Author name (string, max 64 chars)
+description: "App description"  # Brief description (string, max 256 chars)
+
+# Audio configuration (optional)
+audio:
+  # Audio output devices - can specify multiple
+  outputs: ["piezo"]        # Options: ["piezo", "i2s", "bluetooth"]
+                           # - piezo: Simple beeper (always available)
+                           # - i2s: External DAC via I2S (high quality)
+                           # - bluetooth: Bluetooth A2DP streaming
+  
+  sampleRate: 22050        # Audio sample rate in Hz
+                           # Valid: 8000, 11025, 16000, 22050, 44100
+                           # Recommended: 22050 (good quality/performance balance)
+  
+  channels: 4              # Number of simultaneous audio channels
+                           # Range: 1-16, Recommended: 4-8
+
+# Performance requirements (optional)
+performance:
+  fps: 16                  # Target application frame rate
+                           # Valid: 8, 10, 12, 14, 16
+                           # Note: System runs at 24 FPS, apps should target lower rates
+                           # 16 FPS: Smooth app animation (recommended for games)
+                           # 12 FPS: Good performance (recommended for most apps)
+                           # 10 FPS: Standard apps (recommended for utilities)
+                           # 8 FPS: Battery saving mode (minimal updates)
+  
+  ram: 131072              # RAM requirement in bytes
+                           # Range: 32768-393216 (32KB-384KB available for apps)
+                           # 32KB: Minimal (text-based apps)
+                           # 64KB: Simple games
+                           # 128KB: Standard games (recommended)
+                           # 256KB: Complex games with many assets
+                           # 384KB: Maximum available
+  
+  storage: 0               # Additional persistent storage needed (bytes)
+                           # Range: 0-4194304 (0-4MB flash available)
+                           # 0: No persistent data
+                           # 1024-10240: Settings/saves (1-10KB)
+                           # 10240-102400: Asset caching (10-100KB)
+                           # 102400+: Large data files
+
+# System features (optional)
+system:
+  wifi: false              # Enable WiFi 6 (802.11ax) connectivity
+                           # true: Enables multiplayer, cloud saves (+40KB RAM)
+                           # false: Offline only (recommended for simple apps)
+  
+  bluetooth: false         # Enable Bluetooth 5 LE connectivity
+                           # true: Device communication, controllers (+20KB RAM)
+                           # false: No wireless communication
+  
+  eeprom: false            # Use EEPROM for persistent data
+                           # true: Save settings between power cycles
+                           # false: Settings reset on restart
+
+# Entry points (required)
+entry:
+  main: "main.wash"        # Main executable file (.wash for compiled, .ash for source)
+  config: "config.yaml"    # Configuration file (this file)
+
+# Memory usage estimation:
+# - Base system: ~128KB
+# - Display buffer: ~110KB (single) or ~220KB (double buffering)
+# - App specified RAM: as configured above
+# - WiFi stack: +40KB if enabled
+# - Bluetooth: +20KB if enabled
+# Total should not exceed 512KB HP SRAM
+
+# Performance guidelines:
+# 60 FPS + Full RAM (384KB): High-end games, smooth animation
+# 30 FPS + Medium RAM (256KB): Balanced games and applications  
+# 24 FPS + Lower RAM (128KB): Simple games, visual novels
+# 15 FPS + Minimal RAM (64KB): Utility apps, tools

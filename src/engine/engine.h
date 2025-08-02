@@ -1,0 +1,96 @@
+// Wisp Engine - Main Header
+// Organized micro-folder architecture for ESP32-C6 embedded gaming
+#pragma once
+
+// Clean namespace definitions first
+#include "namespaces.h"
+
+// Core engine systems
+#include "core/engine.h"
+#include "core/config.h"
+#include "core/timing.h"
+#include "core/resource_manager.h"
+#include "core/debug.h"
+
+// Graphics subsystem
+#include "graphics/engine.h"
+#include "graphics/palette_system.h"
+#include "graphics/sprite_system.h"
+#include "graphics/renderer.h"
+#include "graphics/framebuffer.h"
+#include "graphics/lut_system.h"
+#include "graphics/sprite_layers.h"
+#include "graphics/particles.h"
+
+// Audio subsystem
+#include "audio/engine.h"
+
+// Physics and math
+#include "physics/engine.h"
+#include "physics/math.h"
+
+// Entity management
+#include "entities/system.h"
+
+// Database and persistence
+#include "database/partitioned_system.h"
+#include "database/save_system.h"
+
+// Application framework
+#include "app/interface.h"
+#include "app/config.h"
+#include "app/loader.h"
+#include "app/loop.h"
+#include "app/loop_manager.h"
+#include "app/curated_api.h"
+
+// Namespace integration bridge
+#include "namespace_integration.h"
+
+// Namespace for the entire engine
+namespace WispEngine {
+    // Engine initialization and management
+    class Engine {
+    public:
+        // Initialize all subsystems
+        static bool initialize();
+        
+        // Clean shutdown
+        static void shutdown();
+        
+        // Get subsystem instances
+        static GraphicsEngine* getGraphics();
+        static AudioEngine* getAudio();
+        static PhysicsEngine* getPhysics();
+        static EntitySystem* getEntities();
+        static PartitionedDatabase* getDatabase();
+        
+        // Engine state
+        static bool isInitialized();
+        static const char* getVersion();
+    };
+    
+    // Convenience aliases for common operations
+    using Vec2 = WispVec2;
+    using Color = uint8_t;  // Palette index
+    using SpriteID = uint16_t;
+    using EntityID = uint16_t;
+    using DatabaseKey = uint32_t;
+}
+
+// Version information
+#define WISP_ENGINE_VERSION_MAJOR 1
+#define WISP_ENGINE_VERSION_MINOR 0
+#define WISP_ENGINE_VERSION_PATCH 0
+#define WISP_ENGINE_VERSION "1.0.0"
+
+// Quick initialization macro for apps
+#define WISP_ENGINE_INIT() WispEngine::Engine::initialize()
+#define WISP_ENGINE_SHUTDOWN() WispEngine::Engine::shutdown()
+
+// Performance monitoring
+#ifdef WISP_DEBUG
+    #define WISP_PROFILE(name) DebugProfiler profile(name)
+#else
+    #define WISP_PROFILE(name)
+#endif

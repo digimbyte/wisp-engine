@@ -1,7 +1,10 @@
 // main_with_frame_rate_example.cpp
 // Example showing how to integrate the new frame rate management system
 
-#include <Arduino.h>
+// frame_rate_example.cpp - ESP-IDF Native Frame Rate Demo
+// ESP-IDF NATIVE - NO ARDUINO
+
+#include "src/system/esp32_common.h"  // ESP-IDF native headers
 #include "src/core/game_loop_manager.h"
 #include "src/system/app_manager.h"
 #include "src/examples/example_app_with_frame_rate.h"

@@ -1,6 +1,12 @@
 // engine/save_system.cpp
 #include "save_system.h"
 #include <type_traits>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <algorithm>
+#include "esp_vfs_fat.h"
+#include "esp_spiffs.h"
 
 // Global save system instance
 WispSaveSystem* g_SaveSystem = nullptr;
@@ -24,41 +30,59 @@ const char* getSaveResultString(WispSaveResult result) {
 
 // Initialize save system
 bool WispSaveSystem::init(bool preferSDCard) {
-    useSDCard = preferSDCard && SD.begin();
+    useSDCard = preferSDCard;
     
-    if (!useSDCard && !SPIFFS.begin()) {
-        WISP_DEBUG_ERROR("SAVE", "No storage system available");
-        return false;
+    if (useSDCard) {
+        // ESP-IDF SD card initialization would go here
+        // For now, fall back to SPIFFS
+        useSDCard = false;
+    }
+    
+    if (!useSDCard) {
+        // Initialize SPIFFS using ESP-IDF
+        esp_vfs_spiffs_conf_t conf = {
+            .base_path = "/spiffs",
+            .partition_label = NULL,
+            .max_files = 5,
+            .format_if_mount_failed = true
+        };
+        
+        esp_err_t ret = esp_vfs_spiffs_register(&conf);
+        if (ret != ESP_OK) {
+            DEBUG_ERROR("SAVE", "Failed to initialize SPIFFS");
+            return false;
+        }
     }
     
     // Create save directory if it doesn't exist
     String storage = useSDCard ? "SD" : "SPIFFS";
     
-    if (useSDCard) {
-        if (!SD.exists(saveDirectory)) {
-            SD.mkdir(saveDirectory);
+    if (!useSDCard) {
+        // For SPIFFS, ensure base path exists
+        struct stat st;
+        String fullSaveDir = "/spiffs" + saveDirectory;
+        if (stat(fullSaveDir.c_str(), &st) != 0) {
+            mkdir(fullSaveDir.c_str(), 0755);
         }
-    } else {
-        // SPIFFS doesn't need mkdir, directories are virtual
     }
     
-    WISP_DEBUG_INFO("SAVE", "Save system initialized using " + storage);
+    DEBUG_INFO_STR("SAVE", "Save system initialized using " + storage);
     return true;
 }
 
 void WispSaveSystem::setAppIdentity(const WispAppIdentity& identity) {
-    if (identity.uuid.isEmpty()) {
-        WISP_DEBUG_ERROR("SAVE", "App UUID cannot be empty");
+    if (identity.uuid.empty()) {
+        DEBUG_ERROR("SAVE", "App UUID cannot be empty");
         return;
     }
     
     // Validate UUID format (basic check for reverse domain notation)
-    if (identity.uuid.indexOf('.') < 0) {
-        WISP_DEBUG_WARNING("SAVE", "App UUID should use reverse domain notation (e.g. com.developer.gamename)");
+    if (identity.uuid.find('.') == std::string::npos) {
+        DEBUG_WARNING("SAVE", "App UUID should use reverse domain notation (e.g. com.developer.gamename)");
     }
     
     currentApp = identity;
-    WISP_DEBUG_INFO("SAVE", "App identity set: " + identity.uuid + " v" + identity.version);
+    DEBUG_INFO_STR("SAVE", "App identity set: " + identity.uuid + " v" + identity.version);
 }
 
 void WispSaveSystem::setAutoSave(bool enabled, uint32_t intervalMs) {
@@ -66,18 +90,22 @@ void WispSaveSystem::setAutoSave(bool enabled, uint32_t intervalMs) {
     autoSaveInterval = intervalMs;
     lastAutoSave = millis();
     
-    WISP_DEBUG_INFO("SAVE", String("Auto-save ") + (enabled ? "enabled" : "disabled") + 
-                     (enabled ? " (interval: " + String(intervalMs) + "ms)" : ""));
+    DEBUG_INFO("SAVE", String("Auto-save ") + (enabled ? "enabled" : "disabled") + 
+                     (enabled ? " (interval: " + std::to_string(intervalMs) + "ms)" : ""));
 }
 
 String WispSaveSystem::getSaveFilePath() const {
     // Create safe filename from UUID (replace dots and invalid chars)
     String safeUuid = currentApp.uuid;
-    safeUuid.replace(".", "_");
-    safeUuid.replace("/", "_");
-    safeUuid.replace("\\", "_");
+    std::replace(safeUuid.begin(), safeUuid.end(), '.', '_');
+    std::replace(safeUuid.begin(), safeUuid.end(), '/', '_');
+    std::replace(safeUuid.begin(), safeUuid.end(), '\\', '_');
     
-    return saveDirectory + "/" + safeUuid + ".sav";
+    if (useSDCard) {
+        return saveDirectory + "/" + safeUuid + ".sav";
+    } else {
+        return "/spiffs" + saveDirectory + "/" + safeUuid + ".sav";
+    }
 }
 
 String WispSaveSystem::getBackupFilePath() const {
@@ -104,71 +132,69 @@ uint32_t WispSaveSystem::calculateChecksum(const uint8_t* data, size_t size) con
 }
 
 bool WispSaveSystem::validateSaveFile(const String& filePath, WispSaveHeader& header) const {
-    File file;
-    
-    if (useSDCard) {
-        file = SD.open(filePath, FILE_READ);
-    } else {
-        file = SPIFFS.open(filePath, FILE_READ);
-    }
-    
+    FILE* file = fopen(filePath.c_str(), "rb");
     if (!file) {
         return false;
     }
     
     // Read header
-    if (file.readBytes((char*)&header, sizeof(WispSaveHeader)) != sizeof(WispSaveHeader)) {
-        file.close();
+    if (fread(&header, sizeof(WispSaveHeader), 1, file) != 1) {
+        fclose(file);
         return false;
     }
     
     // Validate magic number
     if (header.magic != 0x57495350) {
-        WISP_DEBUG_ERROR("SAVE", "Invalid magic number in save file");
-        file.close();
+        DEBUG_ERROR("SAVE", "Invalid magic number in save file");
+        fclose(file);
         return false;
     }
     
     // Validate app identity
     if (String(header.appUuid) != currentApp.uuid) {
-        WISP_DEBUG_ERROR("SAVE", "Save file belongs to different app: " + String(header.appUuid));
-        file.close();
+        DEBUG_ERROR_STR("SAVE", "Save file belongs to different app: " + std::string(header.appUuid));
+        fclose(file);
         return false;
     }
     
     // Validate fingerprint
     if (header.fingerprint != currentApp.generateFingerprint()) {
-        WISP_DEBUG_WARNING("SAVE", "Save file fingerprint mismatch - possible version issue");
+        DEBUG_WARNING("SAVE", "Save file fingerprint mismatch - possible version issue");
     }
     
+    // Get file size for validation
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, sizeof(WispSaveHeader), SEEK_SET);
+    
     // Validate data section size
-    if (header.dataSize > file.size() - sizeof(WispSaveHeader)) {
-        WISP_DEBUG_ERROR("SAVE", "Save file data size mismatch");
-        file.close();
+    if (header.dataSize > fileSize - sizeof(WispSaveHeader)) {
+        DEBUG_ERROR("SAVE", "Save file data size mismatch");
+        fclose(file);
         return false;
     }
     
     // Read and validate checksum
     uint8_t* buffer = (uint8_t*)malloc(header.dataSize);
     if (!buffer) {
-        WISP_DEBUG_ERROR("SAVE", "Cannot allocate memory for save data validation");
-        file.close();
+        DEBUG_ERROR("SAVE", "Cannot allocate memory for save data validation");
+        fclose(file);
         return false;
     }
     
-    if (file.readBytes((char*)buffer, header.dataSize) != header.dataSize) {
-        WISP_DEBUG_ERROR("SAVE", "Cannot read save data for validation");
+    if (fread(buffer, 1, header.dataSize, file) != header.dataSize) {
+        DEBUG_ERROR("SAVE", "Cannot read save data for validation");
         free(buffer);
-        file.close();
+        fclose(file);
         return false;
     }
     
     uint32_t calculatedChecksum = calculateChecksum(buffer, header.dataSize);
     free(buffer);
-    file.close();
+    fclose(file);
     
     if (calculatedChecksum != header.checksum) {
-        WISP_DEBUG_ERROR("SAVE", "Save file checksum mismatch - file may be corrupted");
+        DEBUG_ERROR("SAVE", "Save file checksum mismatch - file may be corrupted");
         return false;
     }
     
@@ -177,7 +203,7 @@ bool WispSaveSystem::validateSaveFile(const String& filePath, WispSaveHeader& he
 
 WispSaveResult WispSaveSystem::save() {
     if (!isInitialized()) {
-        WISP_DEBUG_ERROR("SAVE", "Save system not initialized");
+        DEBUG_ERROR("SAVE", "Save system not initialized");
         return SAVE_ERROR_NO_STORAGE;
     }
     
@@ -193,9 +219,9 @@ WispSaveResult WispSaveSystem::save() {
     if (result == SAVE_SUCCESS) {
         markAllFieldsClean();
         lastAutoSave = millis();
-        WISP_DEBUG_INFO("SAVE", "Save completed successfully");
+        DEBUG_INFO("SAVE", "Save completed successfully");
     } else {
-        WISP_DEBUG_ERROR("SAVE", "Save failed: " + String(getSaveResultString(result)));
+        DEBUG_ERROR_STR("SAVE", "Save failed: " + std::string(getSaveResultString(result)));
         
         // Try to restore from backup if save failed
         if (hasSaveFile()) {
@@ -229,7 +255,7 @@ WispSaveResult WispSaveSystem::writeSaveData(const String& filePath) const {
     // Allocate buffer for serialized data
     uint8_t* buffer = (uint8_t*)malloc(totalDataSize);
     if (!buffer) {
-        WISP_DEBUG_ERROR("SAVE", "Cannot allocate memory for save data");
+        DEBUG_ERROR("SAVE", "Cannot allocate memory for save data");
         return SAVE_ERROR_MEMORY_FULL;
     }
     
@@ -285,36 +311,30 @@ WispSaveResult WispSaveSystem::writeSaveData(const String& filePath) const {
     strncpy(header.appVersion, currentApp.version.c_str(), sizeof(header.appVersion) - 1);
     
     // Write to file
-    File file;
-    if (useSDCard) {
-        file = SD.open(filePath, FILE_WRITE);
-    } else {
-        file = SPIFFS.open(filePath, FILE_WRITE);
-    }
-    
+    FILE* file = fopen(filePath.c_str(), "wb");
     if (!file) {
         free(buffer);
-        WISP_DEBUG_ERROR("SAVE", "Cannot open file for writing: " + filePath);
+        DEBUG_ERROR("SAVE", "Cannot open file for writing: " + filePath);
         return SAVE_ERROR_WRITE_FAILED;
     }
     
     // Write header
-    if (file.write((uint8_t*)&header, sizeof(WispSaveHeader)) != sizeof(WispSaveHeader)) {
+    if (fwrite(&header, sizeof(WispSaveHeader), 1, file) != 1) {
         free(buffer);
-        file.close();
-        WISP_DEBUG_ERROR("SAVE", "Failed to write save header");
+        fclose(file);
+        DEBUG_ERROR("SAVE", "Failed to write save header");
         return SAVE_ERROR_WRITE_FAILED;
     }
     
     // Write data
-    if (file.write(buffer, totalDataSize) != totalDataSize) {
+    if (fwrite(buffer, 1, totalDataSize, file) != totalDataSize) {
         free(buffer);
-        file.close();
-        WISP_DEBUG_ERROR("SAVE", "Failed to write save data");
+        fclose(file);
+        DEBUG_ERROR("SAVE", "Failed to write save data");
         return SAVE_ERROR_WRITE_FAILED;
     }
     
-    file.close();
+    fclose(file);
     free(buffer);
     
     return SAVE_SUCCESS;
@@ -322,7 +342,7 @@ WispSaveResult WispSaveSystem::writeSaveData(const String& filePath) const {
 
 WispSaveResult WispSaveSystem::load() {
     if (!isInitialized()) {
-        WISP_DEBUG_ERROR("SAVE", "Save system not initialized");
+        DEBUG_ERROR("SAVE", "Save system not initialized");
         return SAVE_ERROR_NO_STORAGE;
     }
     
@@ -337,37 +357,31 @@ WispSaveResult WispSaveSystem::readSaveData(const String& filePath) {
         return SAVE_ERROR_INVALID_FILE;
     }
     
-    File file;
-    if (useSDCard) {
-        file = SD.open(filePath, FILE_READ);
-    } else {
-        file = SPIFFS.open(filePath, FILE_READ);
-    }
-    
+    FILE* file = fopen(filePath.c_str(), "rb");
     if (!file) {
-        WISP_DEBUG_ERROR("SAVE", "Cannot open save file for reading: " + filePath);
+        DEBUG_ERROR("SAVE", "Cannot open save file for reading: " + filePath);
         return SAVE_ERROR_READ_FAILED;
     }
     
     // Skip header
-    file.seek(sizeof(WispSaveHeader));
+    fseek(file, sizeof(WispSaveHeader), SEEK_SET);
     
     // Read and deserialize data
     uint8_t* buffer = (uint8_t*)malloc(header.dataSize);
     if (!buffer) {
-        file.close();
-        WISP_DEBUG_ERROR("SAVE", "Cannot allocate memory for save data");
+        fclose(file);
+        DEBUG_ERROR("SAVE", "Cannot allocate memory for save data");
         return SAVE_ERROR_MEMORY_FULL;
     }
     
-    if (file.readBytes((char*)buffer, header.dataSize) != header.dataSize) {
+    if (fread(buffer, 1, header.dataSize, file) != header.dataSize) {
         free(buffer);
-        file.close();
-        WISP_DEBUG_ERROR("SAVE", "Failed to read save data");
+        fclose(file);
+        DEBUG_ERROR("SAVE", "Failed to read save data");
         return SAVE_ERROR_READ_FAILED;
     }
     
-    file.close();
+    fclose(file);
     
     // Deserialize fields
     uint8_t* ptr = buffer;
@@ -385,7 +399,7 @@ WispSaveResult WispSaveSystem::readSaveData(const String& filePath) {
         ptr += sizeof(uint16_t);
         
         if (ptr + keyLen > endPtr) break;
-        String key = String((char*)ptr, keyLen);
+        String key(reinterpret_cast<const char*>(ptr), keyLen);
         ptr += keyLen;
         
         // Read data size
@@ -404,7 +418,7 @@ WispSaveResult WispSaveSystem::readSaveData(const String& filePath) {
             if (field.type == SAVE_TYPE_STRING) {
                 String* strPtr = static_cast<String*>(field.data);
                 if (strPtr) {
-                    *strPtr = String((char*)ptr, dataSize);
+                    *strPtr = String(reinterpret_cast<const char*>(ptr), dataSize);
                 }
             } else if (field.type == SAVE_TYPE_BLOB) {
                 if (dataSize <= field.size) {
@@ -418,7 +432,7 @@ WispSaveResult WispSaveSystem::readSaveData(const String& filePath) {
             
             field.isDirty = false;
         } else {
-            WISP_DEBUG_WARNING("SAVE", "Unknown or type-mismatched field in save file: " + key);
+            DEBUG_WARNING("SAVE", "Unknown or type-mismatched field in save file: " + key);
         }
         
         ptr += dataSize;
@@ -426,36 +440,36 @@ WispSaveResult WispSaveSystem::readSaveData(const String& filePath) {
     
     free(buffer);
     
-    WISP_DEBUG_INFO("SAVE", "Save file loaded successfully");
+    DEBUG_INFO("SAVE", "Save file loaded successfully");
     return SAVE_SUCCESS;
 }
 
 bool WispSaveSystem::registerStringField(const String& key, String* stringPtr, size_t maxLength) {
     if (!stringPtr || hasField(key)) {
-        WISP_DEBUG_ERROR("SAVE", "Invalid string pointer or field already exists: " + key);
+        DEBUG_ERROR("SAVE", "Invalid string pointer or field already exists: " + key);
         return false;
     }
     
     saveFields[key] = WispSaveField(key, SAVE_TYPE_STRING, stringPtr, maxLength);
-    WISP_DEBUG_INFO("SAVE", "Registered string field: " + key);
+    DEBUG_INFO("SAVE", "Registered string field: " + key);
     return true;
 }
 
 bool WispSaveSystem::registerBlobField(const String& key, void* dataPtr, size_t size) {
     if (!dataPtr || size == 0 || hasField(key)) {
-        WISP_DEBUG_ERROR("SAVE", "Invalid blob parameters or field already exists: " + key);
+        DEBUG_ERROR("SAVE", "Invalid blob parameters or field already exists: " + key);
         return false;
     }
     
     saveFields[key] = WispSaveField(key, SAVE_TYPE_BLOB, dataPtr, size);
-    WISP_DEBUG_INFO("SAVE", "Registered blob field: " + key + " (" + String(size) + " bytes)");
+    DEBUG_INFO_STR("SAVE", "Registered blob field: " + key + " (" + std::to_string(size) + " bytes)");
     return true;
 }
 
 String* WispSaveSystem::getStringField(const String& key) {
     auto it = saveFields.find(key);
     if (it == saveFields.end() || it->second.type != SAVE_TYPE_STRING) {
-        WISP_DEBUG_WARNING("SAVE", "String field not found: " + key);
+        DEBUG_WARNING("SAVE", "String field not found: " + key);
         return nullptr;
     }
     
@@ -465,7 +479,7 @@ String* WispSaveSystem::getStringField(const String& key) {
 void* WispSaveSystem::getBlobField(const String& key, size_t* outSize) {
     auto it = saveFields.find(key);
     if (it == saveFields.end() || it->second.type != SAVE_TYPE_BLOB) {
-        WISP_DEBUG_WARNING("SAVE", "Blob field not found: " + key);
+        DEBUG_WARNING("SAVE", "Blob field not found: " + key);
         return nullptr;
     }
     
@@ -485,7 +499,7 @@ bool WispSaveSystem::setStringField(const String& key, const String& value) {
     *fieldPtr = value;
     saveFields[key].isDirty = true;
     
-    WISP_DEBUG_INFO("SAVE", "String field updated: " + key);
+    DEBUG_INFO("SAVE", "String field updated: " + key);
     return true;
 }
 
@@ -493,14 +507,14 @@ bool WispSaveSystem::setBlobField(const String& key, const void* data, size_t si
     size_t maxSize;
     void* fieldPtr = getBlobField(key, &maxSize);
     if (!fieldPtr || size > maxSize) {
-        WISP_DEBUG_ERROR("SAVE", "Blob field not found or size too large: " + key);
+        DEBUG_ERROR("SAVE", "Blob field not found or size too large: " + key);
         return false;
     }
     
     memcpy(fieldPtr, data, size);
     saveFields[key].isDirty = true;
     
-    WISP_DEBUG_INFO("SAVE", "Blob field updated: " + key);
+    DEBUG_INFO("SAVE", "Blob field updated: " + key);
     return true;
 }
 
@@ -511,34 +525,26 @@ WispSaveResult WispSaveSystem::reset() {
         pair.second.isDirty = true;
     }
     
-    WISP_DEBUG_INFO("SAVE", "Save data reset to defaults");
+    DEBUG_INFO("SAVE", "Save data reset to defaults");
     return SAVE_SUCCESS;
 }
 
 bool WispSaveSystem::hasSaveFile() const {
     String filePath = getSaveFilePath();
     
-    if (useSDCard) {
-        return SD.exists(filePath);
-    } else {
-        return SPIFFS.exists(filePath);
-    }
+    struct stat st;
+    return (stat(filePath.c_str(), &st) == 0);
 }
 
 bool WispSaveSystem::deleteSaveFile() {
     String filePath = getSaveFilePath();
     
-    bool success;
-    if (useSDCard) {
-        success = SD.remove(filePath);
-    } else {
-        success = SPIFFS.remove(filePath);
-    }
+    bool success = (remove(filePath.c_str()) == 0);
     
     if (success) {
-        WISP_DEBUG_INFO("SAVE", "Save file deleted");
+        DEBUG_INFO("SAVE", "Save file deleted");
     } else {
-        WISP_DEBUG_ERROR("SAVE", "Failed to delete save file");
+        DEBUG_ERROR("SAVE", "Failed to delete save file");
     }
     
     return success;
@@ -561,7 +567,7 @@ void WispSaveSystem::update() {
         }
         
         if (needsSave) {
-            WISP_DEBUG_INFO("SAVE", "Auto-save triggered");
+            DEBUG_INFO("SAVE", "Auto-save triggered");
             save();
         }
         
@@ -573,26 +579,21 @@ void WispSaveSystem::createBackup() const {
     String savePath = getSaveFilePath();
     String backupPath = getBackupFilePath();
     
-    // Simple file copy
-    File source, dest;
-    
-    if (useSDCard) {
-        source = SD.open(savePath, FILE_READ);
-        dest = SD.open(backupPath, FILE_WRITE);
-    } else {
-        source = SPIFFS.open(savePath, FILE_READ);
-        dest = SPIFFS.open(backupPath, FILE_WRITE);
-    }
+    // Simple file copy using standard FILE operations
+    FILE* source = fopen(savePath.c_str(), "rb");
+    FILE* dest = fopen(backupPath.c_str(), "wb");
     
     if (source && dest) {
-        while (source.available()) {
-            dest.write(source.read());
+        char buffer[1024];
+        size_t bytesRead;
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+            fwrite(buffer, 1, bytesRead, dest);
         }
-        WISP_DEBUG_INFO("SAVE", "Backup created");
+        DEBUG_INFO("SAVE", "Backup created");
     }
     
-    if (source) source.close();
-    if (dest) dest.close();
+    if (source) fclose(source);
+    if (dest) fclose(dest);
 }
 
 bool WispSaveSystem::restoreFromBackup() {
@@ -600,40 +601,31 @@ bool WispSaveSystem::restoreFromBackup() {
     String backupPath = getBackupFilePath();
     
     // Check if backup exists
-    bool backupExists;
-    if (useSDCard) {
-        backupExists = SD.exists(backupPath);
-    } else {
-        backupExists = SPIFFS.exists(backupPath);
-    }
+    struct stat st;
+    bool backupExists = (stat(backupPath.c_str(), &st) == 0);
     
     if (!backupExists) {
-        WISP_DEBUG_ERROR("SAVE", "No backup file to restore from");
+        DEBUG_ERROR("SAVE", "No backup file to restore from");
         return false;
     }
     
     // Copy backup to main save file
-    File source, dest;
-    
-    if (useSDCard) {
-        source = SD.open(backupPath, FILE_READ);
-        dest = SD.open(savePath, FILE_WRITE);
-    } else {
-        source = SPIFFS.open(backupPath, FILE_READ);
-        dest = SPIFFS.open(savePath, FILE_WRITE);
-    }
+    FILE* source = fopen(backupPath.c_str(), "rb");
+    FILE* dest = fopen(savePath.c_str(), "wb");
     
     bool success = false;
     if (source && dest) {
-        while (source.available()) {
-            dest.write(source.read());
+        char buffer[1024];
+        size_t bytesRead;
+        while ((bytesRead = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+            fwrite(buffer, 1, bytesRead, dest);
         }
         success = true;
-        WISP_DEBUG_INFO("SAVE", "Backup restored");
+        DEBUG_INFO("SAVE", "Backup restored");
     }
     
-    if (source) source.close();
-    if (dest) dest.close();
+    if (source) fclose(source);
+    if (dest) fclose(dest);
     
     return success;
 }
@@ -667,62 +659,50 @@ void WispSaveSystem::markAllFieldsClean() {
 }
 
 void WispSaveSystem::printSaveStatus() const {
-    Serial.println("=== Wisp Save System Status ===");
-    Serial.print("App: ");
-    Serial.print(currentApp.uuid);
-    Serial.print(" v");
-    Serial.println(currentApp.version);
+    printf("=== Wisp Save System Status ===\n");
+    printf("App: %s v%s\n", currentApp.uuid.c_str(), currentApp.version.c_str());
     
-    Serial.print("Storage: ");
-    Serial.println(useSDCard ? "SD Card" : "SPIFFS");
+    printf("Storage: %s\n", useSDCard ? "SD Card" : "SPIFFS");
     
-    Serial.print("Auto-save: ");
-    Serial.print(autoSave ? "Enabled" : "Disabled");
+    printf("Auto-save: %s", autoSave ? "Enabled" : "Disabled");
     if (autoSave) {
-        Serial.print(" (");
-        Serial.print(autoSaveInterval);
-        Serial.print("ms)");
+        printf(" (%lu ms)", autoSaveInterval);
     }
-    Serial.println();
+    printf("\n");
     
-    Serial.print("Save file exists: ");
-    Serial.println(hasSaveFile() ? "Yes" : "No");
+    printf("Save file exists: %s\n", hasSaveFile() ? "Yes" : "No");
     
-    Serial.print("Registered fields: ");
-    Serial.println(saveFields.size());
+    printf("Registered fields: %zu\n", saveFields.size());
     
-    Serial.println("==============================");
+    printf("==============================\n");
 }
 
 void WispSaveSystem::printFieldStatus() const {
-    Serial.println("=== Save Field Status ===");
+    printf("=== Save Field Status ===\n");
     
     for (const auto& pair : saveFields) {
         const WispSaveField& field = pair.second;
-        Serial.print(field.key);
-        Serial.print(" [");
+        printf("%s [", field.key.c_str());
         
         switch (field.type) {
-            case SAVE_TYPE_BOOL: Serial.print("BOOL"); break;
-            case SAVE_TYPE_INT8: Serial.print("INT8"); break;
-            case SAVE_TYPE_UINT8: Serial.print("UINT8"); break;
-            case SAVE_TYPE_INT16: Serial.print("INT16"); break;
-            case SAVE_TYPE_UINT16: Serial.print("UINT16"); break;
-            case SAVE_TYPE_INT32: Serial.print("INT32"); break;
-            case SAVE_TYPE_UINT32: Serial.print("UINT32"); break;
-            case SAVE_TYPE_FLOAT: Serial.print("FLOAT"); break;
-            case SAVE_TYPE_STRING: Serial.print("STRING"); break;
-            case SAVE_TYPE_BLOB: Serial.print("BLOB"); break;
+            case SAVE_TYPE_BOOL: printf("BOOL"); break;
+            case SAVE_TYPE_INT8: printf("INT8"); break;
+            case SAVE_TYPE_UINT8: printf("UINT8"); break;
+            case SAVE_TYPE_INT16: printf("INT16"); break;
+            case SAVE_TYPE_UINT16: printf("UINT16"); break;
+            case SAVE_TYPE_INT32: printf("INT32"); break;
+            case SAVE_TYPE_UINT32: printf("UINT32"); break;
+            case SAVE_TYPE_FLOAT: printf("FLOAT"); break;
+            case SAVE_TYPE_STRING: printf("STRING"); break;
+            case SAVE_TYPE_BLOB: printf("BLOB"); break;
         }
         
-        Serial.print("] ");
-        Serial.print(field.isDirty ? "DIRTY" : "CLEAN");
-        Serial.print(" (");
-        Serial.print(field.size);
-        Serial.println(" bytes)");
+        printf("] %s (%zu bytes)\n", 
+               field.isDirty ? "DIRTY" : "CLEAN",
+               field.size);
     }
     
-    Serial.println("========================");
+    printf("========================\n");
 }
 
 size_t WispSaveSystem::getMemoryUsage() const {

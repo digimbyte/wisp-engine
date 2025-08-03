@@ -1,4 +1,4 @@
-#include "wisp_database_system.h"
+#include "../src/engine/database/database_system.h"
 
 // Include different app configurations
 #include "pokemon_rpg_db_config.h"

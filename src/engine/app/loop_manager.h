@@ -3,7 +3,7 @@
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include "lazy_resource_manager.h"
-#include "wisp_app_interface.h"
+#include "interface.h"
 #include "core.h"
 #include "../graphics_engine.h"
 

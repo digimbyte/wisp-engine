@@ -2,13 +2,10 @@
 // Header file with class declarations and prototypes only
 #pragma once
 
-#include "../../system/esp32_common.h"
-#include <string>
+// Use centralized engine header for namespace organization
+#include "../../wisp_engine.h"
 
-// Include board-specific debug pin definitions
-#ifdef PLATFORM_S3
-    #include "../../boards/esp32-s3_config.h"
-#elif defined(PLATFORM_C6)
+namespace WispEngine::Core {
     #include "../../boards/esp32-c6_config.h"
 #endif
 

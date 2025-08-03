@@ -2,7 +2,8 @@
 // Native ESP32 device identification, WiFi, and system management
 #pragma once
 #include "../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <Preferences.h>
+#include "nvs_flash.h"
+#include "nvs.h"
 #include <mbedtls/md5.h>
 #include <esp_system.h>
 #include <esp_spi_flash.h>
@@ -25,14 +26,14 @@ inline String generateDeviceId() {
   for (int i = 0; i < 16; ++i) sprintf(hex + i * 2, "%02X", hash[i]);
   hex[32] = '\0';
 
-  return String(hex);
+  return std::to_string(hex);
 }
 
 inline String ensureDeviceId() {
   Preferences p;
   p.begin("appcfg", false);
   String id = p.getString("device_id", "");
-  if (id.isEmpty()) {
+  if (id.empty()) {
     id = generateDeviceId();
     p.putString("device_id", id);
   }
@@ -59,7 +60,7 @@ inline String getMacAddress() {
   char buf[18];
   snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  return String(buf);
+  return std::string(buf);
 }
 
 inline uint32_t getUptimeMs() {
@@ -67,12 +68,12 @@ inline uint32_t getUptimeMs() {
 }
 
 inline size_t getFreeHeap() {
-  return ESP.getFreeHeap();
+  return esp_get_free_heap_size();
 }
 
 inline size_t getPsramSize() {
 #ifdef BOARD_HAS_PSRAM
-  return ESP.getPsramSize();
+  return esp_himem_get_phys_size();
 #else
   return 0;
 #endif
@@ -83,11 +84,14 @@ inline String getResetReason() {
 }
 
 inline void resetToFactory() {
-  Preferences p;
-  p.begin("appcfg", false);
-  p.clear();
-  p.end();
-  ESP.restart();
+  nvs_handle_t nvs_handle;
+  esp_err_t err = nvs_open("appcfg", NVS_READWRITE, &nvs_handle);
+  if (err == ESP_OK) {
+    nvs_erase_all(nvs_handle);
+    nvs_commit(nvs_handle);
+    nvs_close(nvs_handle);
+  }
+  esp_restart();
 }
 
 } // namespace DeviceManagement

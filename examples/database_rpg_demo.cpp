@@ -336,7 +336,7 @@ public:
     }
 };
 
-// Arduino setup and loop for testing
+// DO NOT USE ARDUINO IN THIS ESP-IDF PROJECT
 DatabaseRPGDemo demo;
 
 void setup() {

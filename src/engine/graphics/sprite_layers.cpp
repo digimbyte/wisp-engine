@@ -505,10 +505,9 @@ void WispSpriteLayerSystem::validateSprite(WispLayeredSprite* sprite) {
     
     // Validate sprite type matches intended layer
     if (!VALIDATE_SPRITE_TYPE(sprite, sprite->primaryLayer)) {
-        Serial.print("Warning: Sprite type ");
-        Serial.print(getSpriteTypeName(sprite->type));
-        Serial.print(" not valid for layer ");
-        Serial.println(getLayerName(sprite->primaryLayer));
+        printf("Warning: Sprite type %s not valid for layer %s\n",
+               getSpriteTypeName(sprite->type),
+               getLayerName(sprite->primaryLayer));
     }
 }
 

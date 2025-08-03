@@ -1,11 +1,11 @@
-// engine/wisp_save_system.h - ESP32-C6/S3 Save System using ESP-IDF
+// engine/save_system.h - ESP32-C6/S3 Save System using ESP-IDF
 // Persistent storage system using SPIFFS and LP-SRAM for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include <map>
 #include <vector>
 // ESP-IDF native includes - no Arduino SPIFFS or SD libs
-#include "wisp_debug_system.h"
+#include "../../utils/debug/debug_system.h"
 
 // Save data types supported by the system
 enum WispSaveDataType {
@@ -163,7 +163,7 @@ public:
     void markAllFieldsClean();
     
     // Save system status
-    bool isInitialized() const { return !currentApp.uuid.isEmpty(); }
+    bool isInitialized() const { return !currentApp.uuid.empty(); }
     const WispAppIdentity& getAppIdentity() const { return currentApp; }
     size_t getFieldCount() const { return saveFields.size(); }
 };
@@ -172,7 +172,7 @@ public:
 template<typename T>
 bool WispSaveSystem::registerField(const String& key, T* dataPtr) {
     if (!dataPtr || hasField(key)) {
-        WISP_DEBUG_ERROR("SAVE", "Invalid data pointer or field already exists: " + key);
+        DEBUG_ERROR("SAVE", "Invalid data pointer or field already exists: " + key);
         return false;
     }
     
@@ -189,12 +189,12 @@ bool WispSaveSystem::registerField(const String& key, T* dataPtr) {
     else if (std::is_same<T, uint32_t>::value) type = SAVE_TYPE_UINT32;
     else if (std::is_same<T, float>::value) type = SAVE_TYPE_FLOAT;
     else {
-        WISP_DEBUG_ERROR("SAVE", "Unsupported data type for field: " + key);
+        DEBUG_ERROR("SAVE", "Unsupported data type for field: " + key);
         return false;
     }
     
     saveFields[key] = WispSaveField(key, type, dataPtr, size);
-    WISP_DEBUG_INFO("SAVE", "Registered field: " + key);
+    DEBUG_INFO("SAVE", "Registered field: " + key);
     return true;
 }
 
@@ -202,7 +202,7 @@ template<typename T>
 T* WispSaveSystem::getField(const String& key) {
     auto it = saveFields.find(key);
     if (it == saveFields.end()) {
-        WISP_DEBUG_WARNING("SAVE", "Field not found: " + key);
+        DEBUG_WARNING("SAVE", "Field not found: " + key);
         return nullptr;
     }
     
@@ -220,7 +220,7 @@ bool WispSaveSystem::setField(const String& key, const T& value) {
     *fieldPtr = value;
     saveFields[key].isDirty = true;
     
-    WISP_DEBUG_INFO("SAVE", "Field updated: " + key);
+    DEBUG_INFO("SAVE", "Field updated: " + key);
     return true;
 }
 

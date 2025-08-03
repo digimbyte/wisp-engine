@@ -2,14 +2,42 @@
 #include "curated_api.h"
 
 // Save system integration methods
+// curated_api.cpp - Implementation of WispCuratedAPI
+#include "curated_api.h"
+#include "../database/save_system.h"
+
+// Constructor - initialize API with proper defaults
+WispCuratedAPI::WispCuratedAPI(WispEngine* eng) : 
+    engine(eng),
+    quota(),
+    frameStartTime(0),
+    updateStartTime(0),
+    renderStartTime(0),
+    errorsThisSecond(0),
+    lastErrorReset(0),
+    emergencyMode(false),
+    quotaViolated(false),
+    startTime(millis()),
+    deltaTime(0)
+{
+    // Initialize app permissions - defaults to restricted
+    appPermissions.canLaunchApps = false;      // Most apps cannot launch others
+    appPermissions.canAccessNetwork = false;   // Most apps don't need network
+    appPermissions.canAccessStorage = false;   // Most apps use curated API only
+    appPermissions.canModifySystem = false;    // Most apps cannot change system settings
+    
+    // Note: These permissions would be set based on app manifest/config
+    // For now, they remain restrictive by default for security
+}
+
 bool WispCuratedAPI::setAppIdentity(const String& uuid, const String& version, uint32_t saveFormatVersion) {
-    if (uuid.isEmpty()) {
+    if (uuid.empty()) {
         recordError("App UUID cannot be empty");
         return false;
     }
     
     // Validate UUID format (basic reverse domain notation check)
-    if (uuid.indexOf('.') < 0 || uuid.length() < 5) {
+    if (uuid.find('.') == std::string::npos || uuid.length() < 5) {
         recordError("App UUID should use reverse domain notation (e.g. com.developer.gamename)");
         return false;
     }
@@ -266,7 +294,7 @@ void WispCuratedAPI::enableAutoSave(bool enabled, uint32_t intervalMs) {
     g_SaveSystem->setAutoSave(enabled, intervalMs);
     
     if (enabled) {
-        print("Auto-save enabled (interval: " + String(intervalMs) + "ms)");
+        print("Auto-save enabled (interval: " + std::to_string(intervalMs) + "ms)");
     } else {
         print("Auto-save disabled");
     }
@@ -290,6 +318,153 @@ size_t WispCuratedAPI::getSaveFileSize() const {
     }
     
     return g_SaveSystem->getSaveFileSize();
+}
+
+// === APP MANAGEMENT SYSTEM IMPLEMENTATION ===
+// Forward declarations to external components (defined in bootloader)
+extern bool launchApp(const String& appPath);
+
+// We need access to the global app manager from bootloader
+// This is declared as extern here and defined in bootloader.cpp
+extern AppManager appManager;
+
+std::vector<String> WispCuratedAPI::getAvailableApps() {
+    std::vector<String> appNames;
+    
+    // Get available apps from the app manager
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        appNames.push_back(app.name);
+    }
+    
+    return appNames;
+}
+
+String WispCuratedAPI::getAppDescription(const String& appName) {
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        if (app.name == appName) {
+            return app.description;
+        }
+    }
+    return "Unknown";
+}
+
+String WispCuratedAPI::getAppAuthor(const String& appName) {
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        if (app.name == appName) {
+            return app.author;
+        }
+    }
+    return "Unknown";
+}
+
+String WispCuratedAPI::getAppVersion(const String& appName) {
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        if (app.name == appName) {
+            return app.version;
+        }
+    }
+    return "Unknown";
+}
+
+bool WispCuratedAPI::isAppCompatible(const String& appName) {
+    // For now, assume all discovered apps are compatible
+    // In a full implementation, this would check system requirements
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        if (app.name == appName) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool WispCuratedAPI::requestAppLaunch(const String& appName) {
+    // Security check: only certain apps can launch other apps
+    if (!canLaunchApps()) {
+        recordError("App does not have permission to launch other apps");
+        return false;
+    }
+    
+    // Find the app path
+    const auto& availableApps = appManager.getAvailableApps();
+    for (const auto& app : availableApps) {
+        if (app.name == appName) {
+            // Use the bootloader's launchApp function (bypassing direct app manager access)
+            bool result = launchApp(app.executablePath);
+            if (result) {
+                print("Launched app: " + appName);
+            } else {
+                recordError("Failed to launch app: " + appName);
+            }
+            return result;
+        }
+    }
+    
+    recordError("App not found: " + appName);
+    return false;
+}
+
+bool WispCuratedAPI::canLaunchApps() const {
+    // Only allow system apps and launchers to launch other apps
+    // This prevents random apps from launching arbitrary code
+    return appPermissions.canLaunchApps;
+}
+
+void WispCuratedAPI::setAppPermissions(bool canLaunch, bool canNetwork, bool canStorage, bool canSystem) {
+    // This function should only be called by the system/bootloader
+    // In a secure implementation, this would have additional authentication
+    appPermissions.canLaunchApps = canLaunch;
+    appPermissions.canAccessNetwork = canNetwork;
+    appPermissions.canAccessStorage = canStorage;
+    appPermissions.canModifySystem = canSystem;
+    
+    print("App permissions updated - Launch:" + String(canLaunch ? "Y" : "N") +
+          " Network:" + String(canNetwork ? "Y" : "N") +
+          " Storage:" + String(canStorage ? "Y" : "N") +
+          " System:" + String(canSystem ? "Y" : "N"));
+}
+
+// === UTILITY FUNCTIONS IMPLEMENTATION ===
+uint32_t WispCuratedAPI::getTime() const {
+    return millis() - startTime;
+}
+
+uint32_t WispCuratedAPI::getDeltaTime() const {
+    return deltaTime;
+}
+
+float WispCuratedAPI::random(float min, float max) {
+    return min + (max - min) * (rand() / (float)RAND_MAX);
+}
+
+int WispCuratedAPI::randomInt(int min, int max) {
+    return min + (rand() % (max - min + 1));
+}
+
+float WispCuratedAPI::lerp(float a, float b, float t) {
+    return a + t * (b - a);
+}
+
+float WispCuratedAPI::distance(WispVec2 a, WispVec2 b) {
+    float dx = b.x - a.x;
+    float dy = b.y - a.y;
+    return sqrt(dx * dx + dy * dy);
+}
+
+float WispCuratedAPI::angle(WispVec2 from, WispVec2 to) {
+    return atan2(to.y - from.y, to.x - from.x);
+}
+
+WispVec2 WispCuratedAPI::normalize(WispVec2 vec) {
+    float len = sqrt(vec.x * vec.x + vec.y * vec.y);
+    if (len > 0.0f) {
+        return WispVec2(vec.x / len, vec.y / len);
+    }
+    return WispVec2(0, 0);
 }
 
 // Explicit template instantiations for common types

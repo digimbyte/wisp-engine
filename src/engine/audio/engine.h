@@ -1,9 +1,10 @@
 // audio_engine.h - ESP32-C6/S3 Audio Engine using ESP-IDF native drivers
-// Native ESP32 implementation with LEDC PWM (I2S and Bluetooth disabled for basic build)
+// Native ESP32 implementation with LEDC PWM and I2S support
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include <driver/ledc.h>
-// Note: I2S and Bluetooth disabled for basic compilation
+#include <driver/i2s.h>
+#include <driver/gpio.h>
 
 #define MAX_AUDIO_CHANNELS 16
 #define AUDIO_BUFFER_SIZE 2048
@@ -77,8 +78,10 @@ public:
   bool internalDacEnabled = false;
   bool pwmEnabled = false;
   
-  // Bluetooth A2DP
+  // Bluetooth A2DP (disabled for basic compilation)
+  #ifdef AUDIO_BLUETOOTH_ENABLED
   BluetoothA2DPSink* a2dpSink = nullptr;
+  #endif
   
   // Audio buffers
   int16_t mixBuffer[AUDIO_BUFFER_SIZE * 2]; // Stereo

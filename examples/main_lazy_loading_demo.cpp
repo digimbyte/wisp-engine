@@ -1,17 +1,14 @@
 // main_lazy_loading_demo.cpp
 // Complete demonstration of the lazy loading game engine
 
-#include "src/engine/core.h"
+#include "src/engine/core/engine.h"
 #include "src/engine/game_loop_manager.h"
 #include "src/engine/lazy_resource_manager.h"
 #include "src/engine/graphics_engine.h"
 #include "examples/platformer_game_lazy.cpp"
 
-// ESP32 specific includes
-#include <Arduino.h>
-#include <LovyanGFX.hpp>
-#include <SPIFFS.h>
-#include <SD.h>
+// ESP32 specific includes - ESP-IDF NATIVE
+#include "src/system/esp32_common.h"  // ESP-IDF native headers
 
 // Display configuration for ESP32
 class LGFX : public lgfx::LGFX_Device {

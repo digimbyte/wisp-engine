@@ -257,7 +257,7 @@ class WispROMBuilderV2:
             rom_data = self.generate_rom()
             with open(filename, 'w') as f:
                 f.write(f"// Auto-generated Wisp ROM data ({len(rom_data)} bytes)\n")
-                f.write(f"#include <Arduino.h>\n\n")
+                f.write(f"#include \"esp32_common.h\"  // ESP-IDF native headers\n\n")
                 f.write(f"const uint8_t {array_name}[] PROGMEM = {{\n")
                 
                 for i in range(0, len(rom_data), 16):

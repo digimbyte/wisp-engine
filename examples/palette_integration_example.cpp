@@ -1,7 +1,8 @@
 // palette_integration_example.cpp
 // Example showing how to use converted palette data in Wisp Engine
+// ESP-IDF NATIVE - NO ARDUINO
 
-#include <Arduino.h>
+#include "src/system/esp32_common.h"  // ESP-IDF native headers
 #include "lut_palette_data.h"
 #include "src/engine/hybrid_palette_lut_system.h"
 #include "src/engine/optimized_sprite_system.h"

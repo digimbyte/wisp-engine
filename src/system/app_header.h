@@ -131,19 +131,19 @@ public:
         uint32_t calculatedCRC = calculateCRC(tempHeader);
         
         if (storedCRC != calculatedCRC) {
-            Serial.println("App header CRC mismatch");
+            ESP_LOGE("WISP", "App header CRC mismatch");
             return false;
         }
         
         // Validate frame rates
         if (header.targetFrameRate < header.minimumFrameRate) {
-            Serial.println("Invalid frame rate configuration");
+            ESP_LOGE("WISP", "Invalid frame rate configuration");
             return false;
         }
         
         // Validate memory requirements
         if (header.resources.maxMemoryKB > 512) { // 512KB max
-            Serial.println("Memory requirements too high");
+            ESP_LOGE("APP_HEADER", "Memory requirements too high");
             return false;
         }
         
@@ -185,16 +185,16 @@ public:
     
     // Print app header info
     static void printInfo(const AppHeader& header) {
-        Serial.println("=== App Header ===");
-        Serial.print("Name: "); Serial.println(header.name);
-        Serial.print("Version: "); Serial.println(header.version);
-        Serial.print("Author: "); Serial.println(header.author);
-        Serial.print("Target FPS: "); Serial.println(header.targetFrameRate);
-        Serial.print("Min FPS: "); Serial.println(header.minimumFrameRate);
-        Serial.print("Memory: "); Serial.print(header.resources.maxMemoryKB); Serial.println(" KB");
-        Serial.print("Entities: "); Serial.println(header.resources.maxEntities);
-        Serial.print("Features: 0x"); Serial.println(header.features, HEX);
-        Serial.print("Compatible: "); Serial.println(isCompatible(header) ? "Yes" : "No");
+        ESP_LOGI("APP_HEADER", "=== App Header ===");
+        ESP_LOGI("APP_HEADER", "Name: %s", header.name.c_str());
+        ESP_LOGI("APP_HEADER", "Version: %s", header.version.c_str());
+        ESP_LOGI("APP_HEADER", "Author: %s", header.author.c_str());
+        ESP_LOGI("APP_HEADER", "Target FPS: %d", header.targetFrameRate);
+        ESP_LOGI("APP_HEADER", "Min FPS: %d", header.minimumFrameRate);
+        ESP_LOGI("APP_HEADER", "Memory: %d KB", header.resources.maxMemoryKB);
+        ESP_LOGI("APP_HEADER", "Entities: %d", header.resources.maxEntities);
+        ESP_LOGI("APP_HEADER", "Features: 0x%X", header.features);
+        ESP_LOGI("APP_HEADER", "Compatible: %s", isCompatible(header) ? "Yes" : "No");
     }
     
 private:

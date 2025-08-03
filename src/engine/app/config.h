@@ -1,4 +1,4 @@
-// engine/wisp_app_config.h - Compile-time Configuration for Wisp Apps
+// engine/app/config.h - Compile-time Configuration for Wisp Apps
 #ifndef WISP_APP_CONFIG_H
 #define WISP_APP_CONFIG_H
 
@@ -113,7 +113,7 @@
 // Apps can override default quotas for their specific needs
 // Example usage in app:
 // #define WISP_APP_MAX_ENTITIES 128
-// #include "wisp_app_config.h"
+// #include "app/config.h"
 
 #ifdef WISP_APP_MAX_ENTITIES
     #undef WISP_MAX_ENTITIES
@@ -147,19 +147,19 @@
 /*
 EXAMPLE 1: Production app with standard safety
 --------------------------------------------
-#include "wisp_app_config.h"  // Uses defaults: debug=false, safety=enabled
+#include "app/config.h"  // Uses defaults: debug=false, safety=enabled
 #include "wisp_engine.h"
 
 EXAMPLE 2: Development with debugging
 -----------------------------------
 #define WISP_DEV_MODE
-#include "wisp_app_config.h"
+#include "app/config.h"
 #include "wisp_engine.h"
 
 EXAMPLE 3: Stress testing mode
 -----------------------------
 #define WISP_STRESS_TEST_MODE
-#include "wisp_app_config.h"
+#include "app/config.h"
 #include "wisp_engine.h"
 
 EXAMPLE 4: Custom configuration
@@ -167,7 +167,7 @@ EXAMPLE 4: Custom configuration
 #define WISP_APP_DEBUG_MODE true
 #define WISP_APP_SAFETY_DISABLED false
 #define WISP_APP_MAX_ENTITIES 128
-#include "wisp_app_config.h"
+#include "app/config.h"
 #include "wisp_engine.h"
 
 EXAMPLE 5: Performance-critical app
@@ -177,7 +177,7 @@ EXAMPLE 5: Performance-critical app
 #define WISP_APP_LOG_TO_SD false
 #define WISP_APP_DEBUG_PINS false
 #define WISP_APP_MAX_DRAW_CALLS 512
-#include "wisp_app_config.h"
+#include "app/config.h"
 #include "wisp_engine.h"
 */
 

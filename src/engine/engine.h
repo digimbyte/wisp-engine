@@ -10,7 +10,7 @@
 #include "core/config.h"
 #include "core/timing.h"
 #include "core/resource_manager.h"
-#include "core/debug.h"
+#include "../system/debug_esp32.h"
 
 // Graphics subsystem
 #include "graphics/engine.h"
@@ -27,7 +27,7 @@
 
 // Physics and math
 #include "physics/engine.h"
-#include "physics/math.h"
+#include "../utils/math/math.h"
 
 // Entity management
 #include "entities/system.h"

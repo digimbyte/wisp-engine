@@ -1,6 +1,6 @@
 // engine/audio/namespace_bridge.cpp - Audio namespace implementation  
-#include "../namespaces.h"
-#include "../../../src/engine/audio/engine.h" // Existing AudioEngine
+#include "../../wisp_engine.h"
+#include "engine.h" // Local audio engine
 
 namespace WispEngine {
 namespace Audio {

@@ -2,29 +2,42 @@
 // Native ESP32 settings management with NVS and mbedTLS
 #pragma once
 #include "esp32_common.h"  // Pure ESP-IDF native headers
-#include <Preferences.h>
+#include "nvs_flash.h"
+#include "nvs.h"
 #include <mbedtls/md5.h>
 
 class Settings {
 public:
-  Preferences prefs;
-  String deviceId;
+  nvs_handle_t nvs_handle;
+  std::string deviceId;
 
   void begin() {
-    prefs.begin("appcfg", false);
-    deviceId = prefs.getString("device_id", "");
-    if (deviceId.isEmpty()) {
+    esp_err_t err = nvs_open("appcfg", NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK) {
+      ESP_LOGE("Settings", "Error opening NVS: %s", esp_err_to_name(err));
+      return;
+    }
+    
+    size_t required_size = 0;
+    err = nvs_get_str(nvs_handle, "device_id", NULL, &required_size);
+    if (err == ESP_OK && required_size > 0) {
+      char* device_id_buf = (char*)malloc(required_size);
+      nvs_get_str(nvs_handle, "device_id", device_id_buf, &required_size);
+      deviceId = std::string(device_id_buf);
+      free(device_id_buf);
+    } else {
       deviceId = generateDeviceId();
-      prefs.putString("device_id", deviceId);
+      nvs_set_str(nvs_handle, "device_id", deviceId.c_str());
+      nvs_commit(nvs_handle);
     }
   }
 
   void end() {
-    prefs.end();
+    nvs_close(nvs_handle);
   }
 
   // --- HASH UTILITY ---
-  String generateDeviceId() {
+  std::string generateDeviceId() {
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
     char raw[32];
@@ -37,70 +50,112 @@ public:
     for (int i = 0; i < 16; ++i) sprintf(hex + i * 2, "%02X", hash[i]);
     hex[32] = '\0';
 
-    return String(hex);
+    return std::string(hex);
   }
 
-  String encrypt(const String& data) {
-    String out = "";
+  std::string encrypt(const std::string& data) {
+    std::string out = "";
     for (size_t i = 0; i < data.length(); ++i) {
       out += (char)(data[i] ^ deviceId[i % deviceId.length()]);
     }
     return out;
   }
 
-  String decrypt(const String& data) {
+  std::string decrypt(const std::string& data) {
     return encrypt(data); // XOR is symmetric
   }
 
   // --- WIFI ---
-  String getWiFiSSID() {
-    return decrypt(prefs.getString("wifi_ssid", ""));
+  std::string getWiFiSSID() {
+    size_t required_size = 0;
+    esp_err_t err = nvs_get_str(nvs_handle, "wifi_ssid", NULL, &required_size);
+    if (err == ESP_OK && required_size > 0) {
+      char* buf = (char*)malloc(required_size);
+      nvs_get_str(nvs_handle, "wifi_ssid", buf, &required_size);
+      std::string encrypted = std::string(buf);
+      free(buf);
+      return decrypt(encrypted);
+    }
+    return "";
   }
 
-  void setWiFiSSID(const String& ssid) {
-    prefs.putString("wifi_ssid", encrypt(ssid));
+  void setWiFiSSID(const std::string& ssid) {
+    std::string encrypted = encrypt(ssid);
+    nvs_set_str(nvs_handle, "wifi_ssid", encrypted.c_str());
+    nvs_commit(nvs_handle);
   }
 
-  String getWiFiPassword() {
-    return decrypt(prefs.getString("wifi_pass", ""));
+  std::string getWiFiPassword() {
+    size_t required_size = 0;
+    esp_err_t err = nvs_get_str(nvs_handle, "wifi_pass", NULL, &required_size);
+    if (err == ESP_OK && required_size > 0) {
+      char* buf = (char*)malloc(required_size);
+      nvs_get_str(nvs_handle, "wifi_pass", buf, &required_size);
+      std::string encrypted = std::string(buf);
+      free(buf);
+      return decrypt(encrypted);
+    }
+    return "";
   }
 
-  void setWiFiPassword(const String& password) {
-    prefs.putString("wifi_pass", encrypt(password));
+  void setWiFiPassword(const std::string& password) {
+    std::string encrypted = encrypt(password);
+    nvs_set_str(nvs_handle, "wifi_pass", encrypted.c_str());
+    nvs_commit(nvs_handle);
   }
 
   // --- BLUETOOTH ---
-  String getBluetoothName() {
-    return decrypt(prefs.getString("bt_name", "PetDevice"));
+  std::string getBluetoothName() {
+    size_t required_size = 0;
+    esp_err_t err = nvs_get_str(nvs_handle, "bt_name", NULL, &required_size);
+    if (err == ESP_OK && required_size > 0) {
+      char* buf = (char*)malloc(required_size);
+      nvs_get_str(nvs_handle, "bt_name", buf, &required_size);
+      std::string encrypted = std::string(buf);
+      free(buf);
+      return decrypt(encrypted);
+    }
+    return "PetDevice";
   }
 
-  void setBluetoothName(const String& name) {
-    prefs.putString("bt_name", encrypt(name));
+  void setBluetoothName(const std::string& name) {
+    std::string encrypted = encrypt(name);
+    nvs_set_str(nvs_handle, "bt_name", encrypted.c_str());
+    nvs_commit(nvs_handle);
   }
 
   // --- UI THEME ---
   uint16_t getThemePrimaryColor() {
-    return prefs.getUShort("theme_primary", 0xFFFF); // default white
+    uint16_t color = 0xFFFF; // default white
+    nvs_get_u16(nvs_handle, "theme_primary", &color);
+    return color;
   }
 
   void setThemePrimaryColor(uint16_t color) {
-    prefs.putUShort("theme_primary", color);
+    nvs_set_u16(nvs_handle, "theme_primary", color);
+    nvs_commit(nvs_handle);
   }
 
   uint16_t getThemeAccentColor() {
-    return prefs.getUShort("theme_accent", 0x07E0); // default green
+    uint16_t color = 0x07E0; // default green
+    nvs_get_u16(nvs_handle, "theme_accent", &color);
+    return color;
   }
 
   void setThemeAccentColor(uint16_t color) {
-    prefs.putUShort("theme_accent", color);
+    nvs_set_u16(nvs_handle, "theme_accent", color);
+    nvs_commit(nvs_handle);
   }
 
   // --- FEATURE FLAGS ---
   bool isDebugModeEnabled() {
-    return prefs.getBool("debug_mode", false);
+    uint8_t debug_mode = 0;
+    nvs_get_u8(nvs_handle, "debug_mode", &debug_mode);
+    return debug_mode != 0;
   }
 
   void setDebugMode(bool enabled) {
-    prefs.putBool("debug_mode", enabled);
+    nvs_set_u8(nvs_handle, "debug_mode", enabled ? 1 : 0);
+    nvs_commit(nvs_handle);
   }
 };

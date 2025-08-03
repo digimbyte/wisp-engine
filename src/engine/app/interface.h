@@ -1,4 +1,4 @@
-// engine/wisp_app_interface.h
+// engine/app/interface.h
 // app_interface.h - ESP32-C6/S3 App Interface using ESP-IDF
 // Curated API interface for ESP32 application development
 #pragma once

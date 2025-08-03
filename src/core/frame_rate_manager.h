@@ -59,12 +59,10 @@ public:
         
         setTargetFrameRate(currentTargetFPS);
         
-        Serial.print("Frame Rate Manager: Target ");
-        Serial.print(static_cast<uint8_t>(currentTargetFPS));
-        Serial.print(" FPS, Min ");
-        Serial.print(static_cast<uint8_t>(minimumAllowedFPS));
-        Serial.print(" FPS, Adaptive: ");
-        Serial.println(enableAdaptiveScaling ? "On" : "Off");
+        ESP_LOGI("WISP", "Frame Rate Manager: Target %d FPS, Min %d FPS, Adaptive: %s", 
+                 static_cast<uint8_t>(currentTargetFPS),
+                 static_cast<uint8_t>(minimumAllowedFPS),
+                 enableAdaptiveScaling ? "On" : "Off");
     }
     
     // Check if it's time for the next frame
@@ -139,11 +137,8 @@ public:
         currentTargetFPS = frameRate;
         frameTimeUs = AppHeaderUtils::getFrameTimeUs(frameRate);
         
-        Serial.print("Frame rate set to ");
-        Serial.print(static_cast<uint8_t>(frameRate));
-        Serial.print(" FPS (");
-        Serial.print(frameTimeUs);
-        Serial.println(" μs per frame)");
+        ESP_LOGI("WISP", "Frame rate set to %d FPS (%u μs per frame)", 
+                 static_cast<uint8_t>(frameRate), frameTimeUs);
     }
     
     // Get current performance metrics
@@ -193,22 +188,21 @@ public:
     
     // Debug output
     void printPerformanceReport() {
-        Serial.println("=== Frame Rate Performance ===");
-        Serial.print("Target FPS: "); Serial.println(static_cast<uint8_t>(currentTargetFPS));
-        Serial.print("Current FPS: "); Serial.println(averageFPS);
-        Serial.print("Target Frame Time: "); Serial.print(frameTimeUs); Serial.println(" μs");
-        Serial.print("Average Frame Time: "); Serial.print(averageFrameTime); Serial.println(" μs");
-        Serial.print("Frame Time Variance: "); Serial.println(getFrameTimeVariance());
-        Serial.print("Total Frames: "); Serial.println(totalFrames);
-        Serial.print("Dropped Frames: "); Serial.print(droppedFrames);
-        Serial.print(" ("); Serial.print(getFrameDropPercentage(), 1); Serial.println("%)");
-        Serial.print("Performance: ");
+        ESP_LOGI("WISP", "=== Frame Rate Performance ===");
+        ESP_LOGI("WISP", "Target FPS: %d", static_cast<uint8_t>(currentTargetFPS));
+        ESP_LOGI("WISP", "Current FPS: %.1f", averageFPS);
+        ESP_LOGI("WISP", "Target Frame Time: %u μs", frameTimeUs);
+        ESP_LOGI("WISP", "Average Frame Time: %u μs", averageFrameTime);
+        ESP_LOGI("WISP", "Frame Time Variance: %.2f", getFrameTimeVariance());
+        ESP_LOGI("WISP", "Total Frames: %u", totalFrames);
+        ESP_LOGI("WISP", "Dropped Frames: %u (%.1f%%)", droppedFrames, getFrameDropPercentage());
+        
         if (isPerformanceGood()) {
-            Serial.println("Good");
+            ESP_LOGI("WISP", "Performance: Good");
         } else if (isPerformancePoor()) {
-            Serial.println("Poor");
+            ESP_LOGI("WISP", "Performance: Poor");
         } else {
-            Serial.println("Moderate");
+            ESP_LOGI("WISP", "Performance: Moderate");
         }
     }
     

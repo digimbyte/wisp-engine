@@ -8,8 +8,8 @@ This example demonstrates:
 
 To compile with different modes:
 - Production: No special defines (uses defaults)
-- Development: #define WISP_DEV_MODE
-- Stress Testing: #define WISP_STRESS_TEST_MODE
+- Development: #define DEV_MODE
+- Stress Testing: #define STRESS_TEST_MODE
 */
 
 // =============================================================================
@@ -18,18 +18,18 @@ To compile with different modes:
 
 // Uncomment one of these to test different modes:
 
-// #define WISP_DEV_MODE                        // Safe development with debugging
-#define WISP_STRESS_TEST_MODE                   // Unsafe stress testing mode
-// #define WISP_PRODUCTION_MODE                 // Production mode (no debug)
+// #define DEV_MODE                        // Safe development with debugging
+#define STRESS_TEST_MODE                   // Unsafe stress testing mode
+// #define PRODUCTION_MODE                 // Production mode (no debug)
 
 // Custom quotas for this stress test app
-#define WISP_APP_MAX_ENTITIES 32                // Lower than default for testing
-#define WISP_APP_MAX_SPRITES 16                 // Lower than default for testing
+#define APP_MAX_ENTITIES 32                // Lower than default for testing
+#define APP_MAX_SPRITES 16                 // Lower than default for testing
 
 // Include configuration and engine
-#include "src/engine/wisp_app_config.h"
-#include "src/engine/wisp_app_interface.h"
-#include "src/engine/wisp_debug_system.h"
+#include "src/engine/app/config.h"
+#include "src/engine/app/interface.h"
+#include "src/utils/debug/debug_system.h"
 
 // =============================================================================
 // STRESS TEST APP IMPLEMENTATION
@@ -59,9 +59,9 @@ private:
     
 public:
     bool init() override {
-        WISP_CONFIG_SUMMARY(); // Print configuration summary
+        CONFIG_SUMMARY(); // Print configuration summary
         
-        WISP_DEBUG_INFO("STRESS_APP", "Stress test app initializing");
+        DEBUG_INFO("STRESS_APP", "Stress test app initializing");
         
         // Initialize all entities as inactive
         for (int i = 0; i < MAX_TEST_ENTITIES; i++) {
@@ -72,7 +72,7 @@ public:
         phaseStartTime = millis();
         frameCount = 0;
         
-        WISP_DEBUG_INFO("STRESS_APP", "Initialization complete - starting stress tests");
+        DEBUG_INFO("STRESS_APP", "Initialization complete - starting stress tests");
         return true;
     }
     
@@ -121,7 +121,7 @@ public:
                 // Test complete, cycle back
                 stressTestPhase = 0;
                 phaseStartTime = currentTime;
-                WISP_DEBUG_INFO("STRESS_APP", "All stress tests complete - cycling");
+                DEBUG_INFO("STRESS_APP", "All stress tests complete - cycling");
                 break;
         }
         
@@ -161,7 +161,7 @@ public:
     }
     
     void cleanup() override {
-        WISP_DEBUG_INFO("STRESS_APP", "Stress test app cleaning up");
+        DEBUG_INFO("STRESS_APP", "Stress test app cleaning up");
         
         // Log final statistics
         logFinalStats();
@@ -189,7 +189,7 @@ private:
             }
         } else {
             failedAllocations++;
-            WISP_DEBUG_WARNING("STRESS_APP", "Entity allocation blocked by quota");
+            DEBUG_WARNING("STRESS_APP", "Entity allocation blocked by quota");
         }
     }
     
@@ -201,13 +201,13 @@ private:
             // In a real app, you'd actually allocate memory here
             // For this test, we just track the quota
             successfulAllocations++;
-            WISP_DEBUG_INFO("STRESS_APP", "Memory allocation allowed: " + String(allocSize) + " bytes");
+            DEBUG_INFO("STRESS_APP", "Memory allocation allowed: " + String(allocSize) + " bytes");
             
             // Simulate freeing it immediately
             api->quota()->freeMemory(allocSize);
         } else {
             failedAllocations++;
-            WISP_DEBUG_WARNING("STRESS_APP", "Memory allocation blocked: " + String(allocSize) + " bytes");
+            DEBUG_WARNING("STRESS_APP", "Memory allocation blocked: " + String(allocSize) + " bytes");
         }
     }
     
@@ -220,7 +220,7 @@ private:
                 // This would normally result in an actual draw call
                 drawCallCount++;
             } else {
-                WISP_DEBUG_WARNING("STRESS_APP", "Draw call blocked by quota");
+                DEBUG_WARNING("STRESS_APP", "Draw call blocked by quota");
                 break;
             }
         }
@@ -237,10 +237,10 @@ private:
         }
         
         uint32_t elapsed = micros() - startTime;
-        if (elapsed > WISP_MAX_UPDATE_TIME_US) {
-            WISP_DEBUG_WARNING("STRESS_APP", 
+        if (elapsed > MAX_UPDATE_TIME_US) {
+            DEBUG_WARNING("STRESS_APP", 
                 "Performance test exceeded time limit: " + 
-                String(elapsed) + "μs > " + String(WISP_MAX_UPDATE_TIME_US) + "μs");
+                String(elapsed) + "μs > " + String(MAX_UPDATE_TIME_US) + "μs");
         }
     }
     
@@ -250,19 +250,19 @@ private:
         
         switch (errorType % 4) {
             case 0:
-                WISP_DEBUG_ERROR("STRESS_APP", "Simulated critical error");
+                DEBUG_ERROR("STRESS_APP", "Simulated critical error");
                 break;
             case 1:
-                WISP_DEBUG_WARNING("STRESS_APP", "Simulated warning condition");
+                DEBUG_WARNING("STRESS_APP", "Simulated warning condition");
                 break;
             case 2:
-                WISP_DEBUG_INFO("STRESS_APP", "Simulated info message");
+                DEBUG_INFO("STRESS_APP", "Simulated info message");
                 break;
             case 3:
                 // Test quota violation logging
                 for (int i = 0; i < 5; i++) {
                     if (!api->quota()->canAllocateEntity()) {
-                        WISP_DEBUG_ERROR("STRESS_APP", "Entity quota exhausted");
+                        DEBUG_ERROR("STRESS_APP", "Entity quota exhausted");
                         break;
                     }
                 }
@@ -306,7 +306,7 @@ private:
         gfx->setTextSize(1);
         
         int y = 60;
-        gfx->drawText(("Entities: " + String(entityCount) + "/" + String(WISP_MAX_ENTITIES)).c_str(), 
+        gfx->drawText(("Entities: " + String(entityCount) + "/" + String(MAX_ENTITIES)).c_str(), 
                      10, y, false);
         y += 15;
         
@@ -332,15 +332,15 @@ private:
         gfx->setTextSize(1);
         
         String configText = "Debug: ";
-        configText += WISP_APP_DEBUG_MODE ? "ON" : "OFF";
+        configText += APP_DEBUG_MODE ? "ON" : "OFF";
         configText += " | Safety: ";
-        configText += WISP_APP_SAFETY_DISABLED ? "OFF" : "ON";
+        configText += APP_SAFETY_DISABLED ? "OFF" : "ON";
         
         gfx->drawText(configText.c_str(), SCREEN_WIDTH / 2, SCREEN_HEIGHT - 15, true);
     }
     
     void nextPhase(const String& completedPhase) {
-        WISP_DEBUG_INFO("STRESS_APP", completedPhase + " completed");
+        DEBUG_INFO("STRESS_APP", completedPhase + " completed");
         stressTestPhase++;
         phaseStartTime = millis();
         
@@ -367,25 +367,25 @@ private:
                       " | Entities: " + String(entityCount) + 
                       " | Success: " + String(successfulAllocations) + 
                       " | Failed: " + String(failedAllocations);
-        WISP_DEBUG_INFO("STATS", stats);
+        DEBUG_INFO("STATS", stats);
         
         // Log quota usage
         api->quota()->printUsageStats();
     }
     
     void logFinalStats() {
-        WISP_DEBUG_INFO("STRESS_APP", "=== FINAL STRESS TEST RESULTS ===");
-        WISP_DEBUG_INFO("STRESS_APP", "Total frames: " + String(frameCount));
-        WISP_DEBUG_INFO("STRESS_APP", "Successful operations: " + String(successfulAllocations));
-        WISP_DEBUG_INFO("STRESS_APP", "Failed operations: " + String(failedAllocations));
-        WISP_DEBUG_INFO("STRESS_APP", "Max entities reached: " + String(entityCount));
+        DEBUG_INFO("STRESS_APP", "=== FINAL STRESS TEST RESULTS ===");
+        DEBUG_INFO("STRESS_APP", "Total frames: " + String(frameCount));
+        DEBUG_INFO("STRESS_APP", "Successful operations: " + String(successfulAllocations));
+        DEBUG_INFO("STRESS_APP", "Failed operations: " + String(failedAllocations));
+        DEBUG_INFO("STRESS_APP", "Max entities reached: " + String(entityCount));
         
         uint32_t errors, warnings;
         WispDebugSystem::getDebugStats(errors, warnings);
-        WISP_DEBUG_INFO("STRESS_APP", "Debug errors: " + String(errors));
-        WISP_DEBUG_INFO("STRESS_APP", "Debug warnings: " + String(warnings));
+        DEBUG_INFO("STRESS_APP", "Debug errors: " + String(errors));
+        DEBUG_INFO("STRESS_APP", "Debug warnings: " + String(warnings));
         
-        WISP_DEBUG_INFO("STRESS_APP", "================================");
+        DEBUG_INFO("STRESS_APP", "================================");
     }
 };
 
@@ -403,18 +403,18 @@ USAGE INSTRUCTIONS:
 ===================
 
 1. DEVELOPMENT MODE:
-   - Uncomment #define WISP_DEV_MODE
+   - Uncomment #define DEV_MODE
    - Safe testing with full debug logging
    - Quota limits enforced, violations logged
 
 2. STRESS TEST MODE:
-   - Uncomment #define WISP_STRESS_TEST_MODE  
+   - Uncomment #define STRESS_TEST_MODE  
    - DANGEROUS: Safety limits disabled
    - System may crash, but all violations logged
    - Use only for testing app robustness
 
 3. PRODUCTION MODE:
-   - Uncomment #define WISP_PRODUCTION_MODE
+   - Uncomment #define PRODUCTION_MODE
    - No debug logging, all safety enforced
    - Maximum performance
 

@@ -2,10 +2,10 @@
 #pragma once
 
 // Include the bridge implementations
-#include "core/debug.cpp"
-#include "core/timing.cpp" 
-#include "graphics/namespace_bridge.cpp"
-#include "audio/namespace_bridge.cpp"
+#include "../system/debug_esp32.h"
+#include "core/timing.h" 
+#include "graphics/namespace_bridge.h"
+#include "audio/namespace_bridge.h"
 
 // Main Engine namespace integration
 namespace WispEngine {

@@ -2,7 +2,7 @@
 // Native C++ app loader for ESP32 - loads compiled app binaries and manages lifecycle
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include "wisp_app_interface.h"
+#include "interface.h"
 
 // Native C++ app loader - loads compiled app binaries and manages lifecycle
 class NativeAppLoader {

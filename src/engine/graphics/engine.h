@@ -1,15 +1,29 @@
 // graphics_engine.h - ESP32-C6/S3 Graphics Engine using ESP-IDF with LovyanGFX
 // Native ESP32 implementation with Pure ESP32 native implementation
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+
+// Use centralized engine header for namespace organization
+#include "../../wisp_engine.h"
+#include "../../system/display_driver.h"  // Multi-board LGFX display driver
+
 #include <LovyanGFX.hpp>
 #include "renderer.h"
+#include "lut_system.h"
 #include "../../../exports/lut_palette_data.h"
 
-#define SPRITE_LUT_SIZE 64
-#define MAX_SPRITES 256
+// Implement Graphics namespace
+namespace WispEngine::Graphics {
+
+static const char* TAG = "GraphicsEngine";
+
+constexpr size_t SPRITE_LUT_SIZE = 64;
+constexpr size_t MAX_SPRITES = 256;
 // MAX_DEPTH_LAYERS defined in definitions.h (13)
-#define SCREEN_BUFFER_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT)
+
+// Map platform-defined display constants to graphics engine constants
+constexpr uint16_t SCREEN_WIDTH = DISPLAY_WIDTH;
+constexpr uint16_t SCREEN_HEIGHT = DISPLAY_HEIGHT;
+constexpr size_t SCREEN_BUFFER_SIZE = (SCREEN_WIDTH * SCREEN_HEIGHT);
 
 // Sprite data format - compact representation
 struct SpriteHeader {
@@ -91,7 +105,7 @@ public:
         // Initialize sprite array
         memset(sprites, 0, sizeof(sprites));
         
-        Serial.println("Graphics Engine initialized with Enhanced LUT support");
+        ESP_LOGI(TAG, "Graphics Engine initialized with Enhanced LUT support");
     }
     
     // Load the 64x64 color LUT from file or memory (legacy compatibility)
@@ -101,7 +115,7 @@ public:
         memcpy(colorLUT, lutData, SPRITE_LUT_SIZE * SPRITE_LUT_SIZE * 2);
         lutLoaded = true;
         
-        Serial.println("Color LUT loaded (64x64)");
+        ESP_LOGI(TAG, "Color LUT loaded (64x64)");
         return true;
     }
     
@@ -112,7 +126,7 @@ public:
         bool success = enhancedLUT.loadBaseLUT(lutData);
         if (success) {
             useEnhancedLUT = true;
-            Serial.println("Enhanced LUT loaded (64x64 with dynamic slots)");
+            ESP_LOGI(TAG, "Enhanced LUT loaded (64x64 with dynamic slots)");
         }
         return success;
     }
@@ -160,13 +174,13 @@ public:
             }
         }
         lutLoaded = true;
-        Serial.println("Test Color LUT generated");
+        ESP_LOGI(TAG, "Test Color LUT generated");
     }
     
     // Load sprite from memory data
     uint16_t loadSprite(const uint8_t* spriteData) {
         if (loadedSpriteCount >= MAX_SPRITES) {
-            Serial.println("ERROR: Maximum sprites loaded");
+            ESP_LOGE(TAG, "ERROR: Maximum sprites loaded");
             return 0xFFFF;
         }
         
@@ -189,13 +203,7 @@ public:
         
         sprite.loaded = true;
         
-        Serial.print("Sprite loaded: ");
-        Serial.print(spriteId);
-        Serial.print(" (");
-        Serial.print(sprite.header.width);
-        Serial.print("x");
-        Serial.print(sprite.header.height);
-        Serial.println(")");
+        ESP_LOGI(TAG, "Sprite loaded: %d (%dx%d)", spriteId, sprite.header.width, sprite.header.height);
         
         return spriteId;
     }
@@ -227,7 +235,7 @@ public:
         
         // Validate frame coordinates
         if (frameRow >= sprite.header.frameRows || frameCol >= sprite.header.frameCols) {
-            Serial.println("ERROR: Invalid frame coordinates for sprite");
+            ESP_LOGE(TAG, "ERROR: Invalid frame coordinates for sprite");
             return;
         }
         
@@ -392,8 +400,7 @@ public:
     // Enhanced LUT system controls
     void setUseEnhancedLUT(bool enabled) {
         useEnhancedLUT = enabled;
-        Serial.print("Enhanced LUT system: ");
-        Serial.println(enabled ? "Enabled" : "Disabled");
+        ESP_LOGI(TAG, "Enhanced LUT system: %s", enabled ? "Enabled" : "Disabled");
     }
     
     bool isUsingEnhancedLUT() const {
@@ -424,7 +431,7 @@ public:
         if (useEnhancedLUT) {
             enhancedLUT.debugPrintSlots();
         } else {
-            Serial.println("Using legacy LUT system (64x64, no dynamic slots)");
+            ESP_LOGI(TAG, "Using legacy LUT system (64x64, no dynamic slots)");
         }
     }
     
@@ -607,24 +614,11 @@ public:
         if (spriteId >= loadedSpriteCount) return;
         
         const Sprite& sprite = sprites[spriteId];
-        Serial.print("Sprite ");
-        Serial.print(spriteId);
-        Serial.print(": ");
-        Serial.print(sprite.header.width);
-        Serial.print("x");
-        Serial.print(sprite.header.height);
-        Serial.print(", Frames: ");
-        Serial.print(sprite.header.frameRows);
-        Serial.print("x");
-        Serial.print(sprite.header.frameCols);
-        Serial.print(" (");
-        Serial.print(sprite.header.frameWidth);
-        Serial.print("x");
-        Serial.print(sprite.header.frameHeight);
-        Serial.print(" each), Palette: ");
-        Serial.print(sprite.header.paletteId);
-        Serial.print(", Depth runs: ");
-        Serial.println(sprite.depthRunCount);
+        ESP_LOGI(TAG, "Sprite %d: %dx%d, Frames: %dx%d (%dx%d each), Palette: %d, Depth runs: %d", 
+                 spriteId, sprite.header.width, sprite.header.height,
+                 sprite.header.frameRows, sprite.header.frameCols,
+                 sprite.header.frameWidth, sprite.header.frameHeight,
+                 sprite.header.paletteId, sprite.depthRunCount);
     }
     
     void debugDrawDepthBuffer() {

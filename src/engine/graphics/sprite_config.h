@@ -28,7 +28,7 @@ enum MemoryProfile {
 #define DISPLAY_PIXELS           (DISPLAY_WIDTH * DISPLAY_HEIGHT)  // 55,040 pixels
 
 // System overhead estimates (conservative)
-#define ARDUINO_FRAMEWORK_KB     60    // Arduino core, heap management
+#define ESP_IDF_FRAMEWORK_KB     40    // ESP-IDF core, heap management
 #define WIFI_STACK_KB           40    // WiFi 6 stack when active
 #define BLUETOOTH_STACK_KB      20    // BLE 5 stack when active  
 #define SYSTEM_BUFFERS_KB       16    // Serial, interrupts, etc.
@@ -49,7 +49,7 @@ enum MemoryProfile {
     #define AUDIO_BUFFER_KB        4
     
     // Memory allocation
-    #define SYSTEM_OVERHEAD_KB     (ARDUINO_FRAMEWORK_KB + SYSTEM_BUFFERS_KB + SAFETY_MARGIN_KB)
+    #define SYSTEM_OVERHEAD_KB     (ESP_IDF_FRAMEWORK_KB + SYSTEM_BUFFERS_KB + SAFETY_MARGIN_KB)
     #define PALETTE_MEMORY_KB      1               // 16 colors × 4 palettes = 128 bytes
     #define GRAPHICS_MEMORY_KB     (8 + PALETTE_MEMORY_KB)  // Tile buffers + tiny palettes
     #define SPRITE_MEMORY_KB       4               // Minimal sprite management
@@ -76,7 +76,7 @@ enum MemoryProfile {
     
     // Memory allocation
     #define WIFI_MEMORY_KB         (ENABLE_WIFI ? WIFI_STACK_KB : 0)
-    #define SYSTEM_OVERHEAD_KB     (ARDUINO_FRAMEWORK_KB + SYSTEM_BUFFERS_KB + WIFI_MEMORY_KB + SAFETY_MARGIN_KB)
+    #define SYSTEM_OVERHEAD_KB     (ESP_IDF_FRAMEWORK_KB + SYSTEM_BUFFERS_KB + WIFI_MEMORY_KB + SAFETY_MARGIN_KB)
     #define STRIP_BUFFER_KB        (DISPLAY_WIDTH * 32 * 2 / 1024)  // ~22KB for 32-line strips
     #define PALETTE_MEMORY_KB      1               // 64 colors × 4 palettes = 512 bytes
     #define GRAPHICS_MEMORY_KB     (STRIP_BUFFER_KB + PALETTE_MEMORY_KB)  // Strip buffer + tiny palettes

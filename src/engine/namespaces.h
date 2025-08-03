@@ -7,7 +7,7 @@
 
 // Include the actual working implementations
 #include "../core/timekeeper.h"
-#include "core/debug_esp32.h"
+#include "../system/debug_esp32.h"
 #include "graphics/engine.h" 
 #include "audio/engine.h"
 
@@ -33,35 +33,35 @@ namespace WispEngine {
                 SAFETY_ENABLED = 1
             };
             
-            // Inline bridges to existing WispDebugSystem
+            // Inline bridges to existing DebugSystem
             inline void init(DebugMode mode, SafetyMode safety) {
                 bool enableDebug = (mode != DEBUG_MODE_DISABLED);
                 bool disableSafety = (safety == SAFETY_DISABLED);
-                WispDebugSystem::init(enableDebug, disableSafety);
+                DebugSystem::init(enableDebug, disableSafety);
             }
             
             inline void info(const char* category, const char* message) {
-                WispDebugSystem::logInfo(String(category), String(message));
+                DebugSystem::logInfo(std::string(category), std::string(message));
             }
             
             inline void warning(const char* category, const char* message) {
-                WispDebugSystem::logWarning(String(category), String(message));
+                DebugSystem::logWarning(std::string(category), std::string(message));
             }
             
             inline void error(const char* category, const char* message) {
-                WispDebugSystem::logError(String(category), String(message));
+                DebugSystem::logError(std::string(category), std::string(message));
             }
             
             inline void heartbeat() {
-                WispDebugSystem::heartbeat();
+                DebugSystem::heartbeat();
             }
             
             inline void activateEmergencyMode(const String& error) {
-                WispDebugSystem::activateEmergencyMode(error);
+                DebugSystem::activateEmergencyMode(error);
             }
             
             inline void shutdown() {
-                WispDebugSystem::shutdown();
+                DebugSystem::shutdown();
             }
         }
         

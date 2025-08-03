@@ -1,19 +1,25 @@
 // Wisp Database System Test Program
-#include "../src/engine/wisp_database_system.h"
-#include <Arduino.h>
+#include "../src/engine/database/database_system.h"
+// NOT Arduino - Native C++ for the ESP-IDF framework
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+static const char* TAG = "DATABASE_TEST";
 
 void setup() {
-    Serial.begin(115200);
-    delay(2000);
+    // Initialize ESP-IDF logging
+    esp_log_level_set("*", ESP_LOG_INFO);
+    vTaskDelay(pdMS_TO_TICKS(2000));
     
-    Serial.println("=== Wisp Database System Test ===");
+    ESP_LOGI(TAG, "=== Wisp Database System Test ===");
     
     // Test 1: Initialize database
-    Serial.println("\n--- Test 1: Database Initialization ---");
+    ESP_LOGI(TAG, "\n--- Test 1: Database Initialization ---");
     if (wispDB.initialize()) {
-        Serial.println("✓ Database initialized successfully");
+        ESP_LOGI(TAG, "✓ Database initialized successfully");
     } else {
-        Serial.println("✗ Database initialization failed");
+        ESP_LOGE(TAG, "✗ Database initialization failed");
         return;
     }
     
@@ -172,14 +178,15 @@ void setup() {
 
 void loop() {
     // Optional: Add runtime tests here
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     
     static uint32_t lastMemCheck = 0;
-    if (millis() - lastMemCheck > 30000) { // Every 30 seconds
-        Serial.println("\n--- Runtime Memory Check ---");
-        Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
-        Serial.printf("Database memory: %d bytes\n", wispDB.getMemoryUsed());
-        Serial.printf("Database entries: %d\n", wispDB.getEntryCount());
-        lastMemCheck = millis();
+    uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    if (currentTime - lastMemCheck > 30000) { // Every 30 seconds
+        ESP_LOGI(TAG, "\n--- Runtime Memory Check ---");
+        ESP_LOGI(TAG, "Free heap: %d bytes", esp_get_free_heap_size());
+        ESP_LOGI(TAG, "Database memory: %d bytes", wispDB.getMemoryUsed());
+        ESP_LOGI(TAG, "Database entries: %d", wispDB.getEntryCount());
+        lastMemCheck = currentTime;
     }
 }

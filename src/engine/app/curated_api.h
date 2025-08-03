@@ -126,6 +126,18 @@ private:
     bool emergencyMode;
     bool quotaViolated;
     
+    // App timing and lifecycle
+    uint32_t startTime;
+    uint32_t deltaTime;
+    
+    // App permissions structure
+    struct {
+        bool canLaunchApps;      // Can launch other apps
+        bool canAccessNetwork;   // Can use WiFi/Bluetooth
+        bool canAccessStorage;   // Can access SD card directly
+        bool canModifySystem;    // Can change system settings
+    } appPermissions;
+    
 public:
     WispCuratedAPI(WispEngine* eng);
     
@@ -218,6 +230,9 @@ public:
     // App launching (restricted - requires special permissions)
     bool requestAppLaunch(const String& appName);              // Request to launch an app
     bool canLaunchApps() const;                                 // Check if this app can launch others
+    
+    // Permission management (system use only)
+    void setAppPermissions(bool canLaunch, bool canNetwork, bool canStorage, bool canSystem);
     
     // === UTILITY FUNCTIONS ===
     uint32_t getTime() const;           // Milliseconds since app start

@@ -4,7 +4,7 @@
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include <vector>
 #include "engine.h"
-#include "wisp_math.h"
+#include "../../utils/math/math.h"
 
 // Sprite layer definitions (8 total layers)
 enum WispSpriteLayer {

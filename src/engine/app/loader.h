@@ -3,8 +3,8 @@
 // Application loading system with memory management for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <SD.h>
-#include <ArduinoJson.h>
+// Note: SD.h replaced with ESP-IDF native SPIFFS/SD card support
+#include "cJSON.h"  // ESP-IDF native JSON parser
 #include "audio_engine.h"
 #include "../system/wisp_asset_types.h"
 
@@ -439,7 +439,7 @@ public:
     // Check if current system can run the app
     AppLoadResult validateRequirements() {
         // Check memory requirements
-        if (ESP.getFreeHeap() < currentAppConfig.requiredRAM) {
+        if (esp_get_free_heap_size() < currentAppConfig.requiredRAM) {
             return APP_LOAD_INSUFFICIENT_MEMORY;
         }
         
@@ -482,23 +482,26 @@ public:
     }
 
 private:
-    uint8_t parseAudioOutputs(JsonVariant outputs) {
+    uint8_t parseAudioOutputs(cJSON* outputs) {
         uint8_t result = 0;
         
-        if (outputs.is<JsonArray>()) {
-            for (JsonVariant output : outputs.as<JsonArray>()) {
-                String outputStr = output.as<String>();
-                if (outputStr == "piezo") result |= AUDIO_PIEZO;
-                else if (outputStr == "i2s") result |= AUDIO_I2S_DAC;
-                else if (outputStr == "bluetooth") result |= AUDIO_BLUETOOTH;
-                else if (outputStr == "pwm") result |= AUDIO_PWM;
-                else if (outputStr == "dac") result |= AUDIO_INTERNAL_DAC;
+        if (cJSON_IsArray(outputs)) {
+            cJSON* output = NULL;
+            cJSON_ArrayForEach(output, outputs) {
+                if (cJSON_IsString(output)) {
+                    const char* outputStr = cJSON_GetStringValue(output);
+                    if (strcmp(outputStr, "piezo") == 0) result |= AUDIO_PIEZO;
+                    else if (strcmp(outputStr, "i2s") == 0) result |= AUDIO_I2S_DAC;
+                    else if (strcmp(outputStr, "bluetooth") == 0) result |= AUDIO_BLUETOOTH;
+                    else if (strcmp(outputStr, "pwm") == 0) result |= AUDIO_PWM;
+                    else if (strcmp(outputStr, "dac") == 0) result |= AUDIO_INTERNAL_DAC;
+                }
             }
-        } else if (outputs.is<String>()) {
-            String outputStr = outputs.as<String>();
-            if (outputStr == "all") result = AUDIO_ALL;
-            else if (outputStr == "piezo") result = AUDIO_PIEZO;
-            else if (outputStr == "i2s") result = AUDIO_I2S_DAC;
+        } else if (cJSON_IsString(outputs)) {
+            const char* outputStr = cJSON_GetStringValue(outputs);
+            if (strcmp(outputStr, "all") == 0) result = AUDIO_ALL;
+            else if (strcmp(outputStr, "piezo") == 0) result = AUDIO_PIEZO;
+            else if (strcmp(outputStr, "i2s") == 0) result = AUDIO_I2S_DAC;
             // ... etc
         }
         

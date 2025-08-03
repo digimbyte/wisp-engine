@@ -47,6 +47,14 @@
 #define DISPLAY_WIDTH_PX             172          // 172 pixels width
 #define DISPLAY_HEIGHT_PX            320          // 320 pixels height
 #define DISPLAY_COLOR_DEPTH_BITS     16           // RGB565 = 16 bits per pixel
+
+// Graphics engine compatibility aliases (protect against redefinition)
+#ifndef DISPLAY_WIDTH
+    #define DISPLAY_WIDTH                DISPLAY_WIDTH_PX
+#endif
+#ifndef DISPLAY_HEIGHT
+    #define DISPLAY_HEIGHT               DISPLAY_HEIGHT_PX
+#endif
 #define DISPLAY_TOTAL_COLORS         262144       // 262K colors (2^18)
 #define DISPLAY_NATIVE_ORIENTATION   "PORTRAIT"   // 172×320 portrait layout
 #define DISPLAY_PIXEL_FORMAT         "RGB565"     // Native color format
@@ -97,13 +105,48 @@
 
 // === AUDIO PIN DEFINITIONS ===
 #define AUDIO_PIEZO_PIN             21             // Built-in piezo speaker
+#define AUDIO_PWM_LEFT              20             // PWM audio left channel
+#define AUDIO_PWM_RIGHT             10             // PWM audio right channel
 #define AUDIO_I2S_BCLK              18             // I2S bit clock
 #define AUDIO_I2S_LRC               19             // I2S left/right clock  
 #define AUDIO_I2S_DIN               22             // I2S data input
 
+// === DISPLAY SPI PIN DEFINITIONS ===
+#define DISPLAY_SPI_MOSI_PIN        23             // SPI MOSI pin
+#define DISPLAY_SPI_CLK_PIN         18             // SPI Clock pin
+#define DISPLAY_SPI_CS_PIN          5              // SPI Chip Select pin
+#define DISPLAY_DC_PIN              4              // Display Data/Command pin
+#define DISPLAY_RST_PIN             21             // Display Reset pin
+#define DISPLAY_BL_PIN              3              // Display Backlight pin
+
 // === BUTTON DEFINITIONS ===
 #define BUTTON_BOOT_PIN             9              // BOOT button
 #define BUTTON_RESET_PIN            0              // RESET button (GPIO0)
+
+// === INPUT CONTROLLER PIN MAPPING ===
+// Standard gaming controller layout for ESP32-C6-LCD-1.47
+#define INPUT_LEFT_PIN              4              // Left D-Pad
+#define INPUT_RIGHT_PIN             5              // Right D-Pad  
+#define INPUT_UP_PIN                6              // Up D-Pad
+#define INPUT_DOWN_PIN              7              // Down D-Pad
+#define INPUT_A_PIN                 1              // A button (primary action)
+#define INPUT_B_PIN                 2              // B button (secondary action)
+#define INPUT_C_PIN                 3              // C button (tertiary action)
+#define INPUT_SELECT_PIN            11             // SELECT button
+#define INPUT_START_PIN             17             // START button
+
+// Pin array for InputController initialization
+static const uint8_t BUTTON_PINS[9] = {
+    INPUT_LEFT_PIN,     // 0: LEFT
+    INPUT_RIGHT_PIN,    // 1: RIGHT
+    INPUT_UP_PIN,       // 2: UP
+    INPUT_DOWN_PIN,     // 3: DOWN
+    INPUT_A_PIN,        // 4: A
+    INPUT_B_PIN,        // 5: B
+    INPUT_C_PIN,        // 6: C
+    INPUT_SELECT_PIN,   // 7: SELECT
+    INPUT_START_PIN     // 8: START
+};
 
 // === DEBUG PIN DEFINITIONS ===
 #define DEBUG_ERROR_PIN             12             // Error signal output

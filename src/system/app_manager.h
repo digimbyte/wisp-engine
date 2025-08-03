@@ -41,27 +41,26 @@ public:
     // Initialize the app manager
     bool init(AppLoader* loader, AppLoopManager* appLoop) {
         if (!loader || !appLoop) {
-            Serial.println("ERROR: Invalid references for App Manager");
+            ESP_LOGE("APP_MANAGER", "ERROR: Invalid references for App Manager");
             return false;
         }
         
         appLoader = loader;
         appLoopManager = appLoop;
         
-        Serial.println("App Manager initialized for C++ applications");
+        ESP_LOGI("APP_MANAGER", "App Manager initialized for C++ applications");
         return true;
     }
     
     // Load and start a C++ application
     bool loadApp(const String& appName) {
         if (appRunning) {
-            Serial.println("ERROR: Another app is already running");
+            ESP_LOGE("APP_MANAGER", "ERROR: Another app is already running");
             return false;
         }
         
         if (!appLoader->loadApp(appName)) {
-            Serial.print("ERROR: Failed to load app: ");
-            Serial.println(appName);
+            ESP_LOGE("APP_MANAGER", "ERROR: Failed to load app: %s", appName.c_str());
             return false;
         }
         
@@ -69,8 +68,7 @@ public:
         appInitialized = false;
         appRunning = true;
         
-        Serial.print("C++ App loaded: ");
-        Serial.println(appName);
+        ESP_LOGI("APP_MANAGER", "C++ App loaded: %s", appName.c_str());
         return true;
     }
     
@@ -89,7 +87,7 @@ public:
         appRunning = false;
         appInitialized = false;
         
-        Serial.println("App stopped");
+        ESP_LOGI("APP_MANAGER", "App stopped");
     }
     
     // Update the current application
@@ -130,18 +128,18 @@ public:
     void scanForApps() {
         availableApps.clear();
         
-        Serial.println("Scanning SD card for .wisp files...");
+        ESP_LOGI("APP_MANAGER", "Scanning SD card for .wisp files...");
         
         // Check if SD card is available
         if (!SD.begin()) {
-            Serial.println("SD card not found or failed to mount");
+            ESP_LOGE("APP_MANAGER", "SD card not found or failed to mount");
             return;
         }
         
         // Scan root directory for .wisp files
         File root = SD.open("/");
         if (!root) {
-            Serial.println("Failed to open root directory");
+            ESP_LOGE("APP_MANAGER", "Failed to open root directory");
             return;
         }
         
@@ -151,8 +149,7 @@ public:
             
             // Check if file has .wisp extension
             if (fileName.endsWith(".wisp") && !file.isDirectory()) {
-                Serial.print("Found .wisp file: ");
-                Serial.println(fileName);
+                ESP_LOGI("APP_MANAGER", "Found .wisp file: %s", fileName.c_str());
                 
                 AppInfo appInfo;
                 String fullPath = "/" + fileName;
@@ -166,8 +163,7 @@ public:
                 appInfo.autoStart = false;
                 availableApps.push_back(appInfo);
                 
-                Serial.print("Added app: ");
-                Serial.println(appInfo.name);
+                ESP_LOGI("APP_MANAGER", "Added app: %s", appInfo.name.c_str());
             }
             
             file.close();
@@ -179,15 +175,14 @@ public:
         // Also scan apps/ subdirectory if it exists
         File appsDir = SD.open("/apps");
         if (appsDir) {
-            Serial.println("Scanning /apps directory...");
+            ESP_LOGI("APP_MANAGER", "Scanning /apps directory...");
             
             File appFile = appsDir.openNextFile();
             while (appFile) {
                 String fileName = appFile.name();
                 
                 if (fileName.endsWith(".wisp") && !appFile.isDirectory()) {
-                    Serial.print("Found .wisp file in /apps: ");
-                    Serial.println(fileName);
+                    ESP_LOGI("APP_MANAGER", "Found .wisp file in /apps: %s", fileName.c_str());
                     
                     AppInfo appInfo;
                     String fullPath = "/apps/" + fileName;
@@ -200,8 +195,7 @@ public:
                     appInfo.autoStart = false;
                     availableApps.push_back(appInfo);
                     
-                    Serial.print("Added app: ");
-                    Serial.println(appInfo.name);
+                    ESP_LOGI("APP_MANAGER", "Added app: %s", appInfo.name.c_str());
                 }
                 
                 appFile.close();
@@ -211,9 +205,7 @@ public:
             appsDir.close();
         }
         
-        Serial.print("Scan complete. Found ");
-        Serial.print(availableApps.size());
-        Serial.println(" .wisp applications");
+        ESP_LOGI("APP_MANAGER", "Scan complete. Found %zu .wisp applications", availableApps.size());
     }
     
     // Get available apps
@@ -222,7 +214,7 @@ public:
     // Launch app by index
     bool launchAppByIndex(int index) {
         if (index < 0 || index >= (int)availableApps.size()) {
-            Serial.println("Invalid app index");
+            ESP_LOGE("APP_MANAGER", "Invalid app index");
             return false;
         }
         
@@ -239,7 +231,6 @@ private:
         // C++ applications are initialized through their constructors
         // and the app loop manager
         appInitialized = true;
-        Serial.print("C++ App initialized: ");
-        Serial.println(currentAppName);
+        ESP_LOGI("APP_MANAGER", "C++ App initialized: %s", currentAppName.c_str());
     }
 };

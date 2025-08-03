@@ -4,8 +4,14 @@
 #include "esp32_common.h"  // Pure ESP-IDF native headers
 #include "definitions.h"
 
-// Hardware button mapping
-extern const uint8_t BUTTON_PINS[MAX_BUTTONS];
+// Board-specific configuration includes - ESP-IDF native detection
+#if defined(CONFIG_ESP32_C6_LCD_147) || defined(CONFIG_IDF_TARGET_ESP32C6)
+    #include "../boards/esp32-c6_config.h"
+#elif defined(CONFIG_ESP32_S3_ROUND) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    #include "../boards/esp32-s3_config.h"
+#else
+    #error "Board configuration not defined. Define CONFIG_ESP32_C6_LCD_147 or CONFIG_ESP32_S3_ROUND"
+#endif
 
 class InputController {
 private:
@@ -14,13 +20,21 @@ private:
     uint8_t prevButtonStates;
     
 public:
-    InputController(const uint8_t* pins) : buttonPins(pins), buttonStates(0), prevButtonStates(0) {}
+    // Constructor uses board-specific BUTTON_PINS array
+    InputController() : buttonPins(BUTTON_PINS), buttonStates(0), prevButtonStates(0) {}
     
     bool init() {
-        // Initialize button pins as input with pullup
-        for (int i = 0; i < MAX_BUTTONS; i++) {
+        // Initialize button pins as input with pullup (ESP-IDF native)
+        for (int i = 0; i < 9; i++) {  // 9 buttons: LEFT, RIGHT, UP, DOWN, A, B, C, SELECT, START
             if (buttonPins[i] != 255) {  // 255 = not connected
-                pinMode(buttonPins[i], INPUT_PULLUP);
+                gpio_config_t io_conf = {
+                    .pin_bit_mask = (1ULL << buttonPins[i]),
+                    .mode = GPIO_MODE_INPUT,
+                    .pull_up_en = GPIO_PULLUP_ENABLE,
+                    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+                    .intr_type = GPIO_INTR_DISABLE
+                };
+                gpio_config(&io_conf);
             }
         }
         return true;
@@ -30,10 +44,10 @@ public:
         prevButtonStates = buttonStates;
         buttonStates = 0;
         
-        // Read button states (inverted because of pullup)
-        for (int i = 0; i < MAX_BUTTONS; i++) {
+        // Read button states (inverted because of pullup) - ESP-IDF native
+        for (int i = 0; i < 9; i++) {
             if (buttonPins[i] != 255) {
-                if (digitalRead(buttonPins[i]) == LOW) {
+                if (gpio_get_level((gpio_num_t)buttonPins[i]) == 0) {  // LOW = pressed
                     buttonStates |= (1 << i);
                 }
             }
@@ -54,16 +68,3 @@ public:
     
     uint8_t getButtonStates() const { return buttonStates; }
 };
-
-// Default button pin mapping (should be defined in board config)
-#ifndef BUTTON_PINS
-const uint8_t BUTTON_PINS[MAX_BUTTONS] = {
-    // Default ESP32 pin mapping - adjust for your hardware
-    32,  // BTN_UP
-    33,  // BTN_DOWN
-    25,  // BTN_LEFT
-    26,  // BTN_RIGHT
-    27,  // BTN_SELECT (A button)
-    14   // BTN_BACK (B button)
-};
-#endif

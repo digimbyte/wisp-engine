@@ -16,7 +16,7 @@
 #include "system/definitions.h"
 #include "system/app_manager.h"
 #include "system/input_controller.h"
-#include "utils/panels/menu.h"
+#include "system/ui/panels/menu.h"
 #include "core/timekeeper.h"
 
 // External libraries
@@ -141,8 +141,11 @@ void bootloaderSetup() {
     
     ESP_LOGI("WISP", "SPIFFS initialized successfully");
     
-    // Try to initialize SD card (non-breaking, optional)
-    bool sdAvailable = SD.begin();
+    // Try to initialize SD card (ESP-IDF native, non-breaking, optional)
+    bool sdAvailable = false;
+    ESP_LOGI("WISP", "Attempting SD card initialization...");
+    // TODO: Implement proper ESP-IDF SD card initialization
+    // For now, assume SD not available - use SPIFFS only
     if (sdAvailable) {
         ESP_LOGI("WISP", "SD card initialized successfully");
     } else {
@@ -197,8 +200,11 @@ void bootloaderLoop() {
         // Initialize menu system (use existing WispMenu)
         if (!menuInitialized) {
             if (WispMenu::init(&curatedAPI)) {
+                // Grant menu system permission to launch apps (it's a system component)
+                curatedAPI.setAppPermissions(true, false, false, false);
+                
                 menuInitialized = true;
-                ESP_LOGI("WISP", "Menu system initialized");
+                ESP_LOGI("WISP", "Menu system initialized with app launch permissions");
             } else {
                 ESP_LOGE("WISP", "Menu system initialization failed");
             }

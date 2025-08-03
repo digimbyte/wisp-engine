@@ -116,7 +116,7 @@ namespace LUTHelpers {
         enhancedLUT.setupColorCycle(2, fireShift2, 8);
         enhancedLUT.setupColorCycle(3, fireShift3, 8);
         
-        Serial.println("Enhanced LUT: Fire effect configured across all slots");
+        printf("Enhanced LUT: Fire effect configured across all slots\n");
     }
     
     // Setup water ripple effect
@@ -135,7 +135,7 @@ namespace LUTHelpers {
         enhancedLUT.setupColorCycle(2, waterShift2, 8);
         enhancedLUT.setupColorCycle(3, waterShift3, 8);
         
-        Serial.println("Enhanced LUT: Water effect configured across all slots");
+        printf("Enhanced LUT: Water effect configured across all slots\n");
     }
     
     // Setup different effects per slot
@@ -145,7 +145,7 @@ namespace LUTHelpers {
         enhancedLUT.setupColorCycle(2, LUTPresets::ENERGY_COLORS, LUTPresets::ENERGY_COLORS_COUNT);
         enhancedLUT.setupColorCycle(3, LUTPresets::MAGIC_COLORS, LUTPresets::MAGIC_COLORS_COUNT);
         
-        Serial.println("Enhanced LUT: Mixed effects configured (fire/water/energy/magic)");
+        printf("Enhanced LUT: Mixed effects configured (fire/water/energy/magic)\n");
     }
     
     // Setup warning indicators
@@ -153,9 +153,9 @@ namespace LUTHelpers {
         enhancedLUT.setupFlashEffect(0, 0xF800, 0xFFE0, 2);  // Red/Yellow flash
         enhancedLUT.setupFlashEffect(1, 0xF800, 0x0000, 3);  // Red/Black flash
         enhancedLUT.setupColorCycle(2, LUTPresets::WARNING_COLORS, LUTPresets::WARNING_COLORS_COUNT);
-        enhancedLUT.setupPulseEffect(3, 0xF800, 6);  // Red pulse
+        enhancedLUT.setupFlashEffect(3, 0xF800, 6);  // Red flash
         
-        Serial.println("Enhanced LUT: Warning effects configured");
+        printf("Enhanced LUT: Warning effects configured\n");
     }
     
     // Disable all slots (all transparent)
@@ -163,7 +163,7 @@ namespace LUTHelpers {
         for (uint8_t i = 0; i < 4; i++) {
             enhancedLUT.disableSlot(i);
         }
-        Serial.println("Enhanced LUT: All slots disabled (transparent)");
+        printf("Enhanced LUT: All slots disabled (transparent)\n");
     }
     
     // Test pattern for debugging
@@ -176,6 +176,6 @@ namespace LUTHelpers {
             enhancedLUT.setSlotSequence(i, singleColor, 1);  // Static colors
         }
         
-        Serial.println("Enhanced LUT: Test pattern configured (R/G/B/W)");
+        printf("Enhanced LUT: Test pattern configured (R/G/B/W)\n");
     }
 }

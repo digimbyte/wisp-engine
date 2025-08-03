@@ -49,12 +49,12 @@ public:
         // Create a simple player entity
         playerEntity = gameLoopManager->createEntity(50, 50, 10, 10);
         
-        Serial.println("=== Frame Rate Demo App Started ===");
-        Serial.println("This app demonstrates:");
-        Serial.println("- Target 30 FPS with minimum 15 FPS");
-        Serial.println("- Adaptive frame rate scaling enabled");
-        Serial.println("- Performance monitoring every 5 seconds");
-        Serial.println("- Simple moving entity for load testing");
+        ESP_LOGI("WISP", "=== Frame Rate Demo App Started ===");
+        ESP_LOGI("WISP", "This app demonstrates:");
+        ESP_LOGI("WISP", "- Target 30 FPS with minimum 15 FPS");
+        ESP_LOGI("WISP", "- Adaptive frame rate scaling enabled");
+        ESP_LOGI("WISP", "- Performance monitoring every 5 seconds");
+        ESP_LOGI("WISP", "- Simple moving entity for load testing");
     }
     
     void update() {
@@ -81,62 +81,51 @@ public:
     }
     
     void printAppPerformanceReport() {
-        Serial.println("\n=== App Performance Report ===");
+        ESP_LOGI("WISP", "\n=== App Performance Report ===");
         
         // Frame rate information
-        Serial.print("Current FPS: ");
-        Serial.println(gameLoopManager->getCurrentFPS());
-        
-        Serial.print("Target FPS: ");
-        Serial.println(gameLoopManager->getTargetFPS());
-        
-        Serial.print("Frame Drop %: ");
-        Serial.println(gameLoopManager->getFrameDropPercentage(), 2);
+        ESP_LOGI("WISP", "Current FPS: %.1f", gameLoopManager->getCurrentFPS());
+        ESP_LOGI("WISP", "Target FPS: %d", gameLoopManager->getTargetFPS());
+        ESP_LOGI("WISP", "Frame Drop %%: %.2f", gameLoopManager->getFrameDropPercentage());
         
         // Memory usage (if available)
-        Serial.print("Free Heap: ");
-        Serial.print(ESP.getFreeHeap());
-        Serial.println(" bytes");
+        ESP_LOGI("WISP", "Free Heap: %u bytes", esp_get_free_heap_size());
         
         // Entity status
         GameEntity* player = gameLoopManager->getEntity(playerEntity);
         if (player) {
-            Serial.print("Player Position: (");
-            Serial.print(player->x);
-            Serial.print(", ");
-            Serial.print(player->y);
-            Serial.println(")");
+            ESP_LOGI("WISP", "Player Position: (%d, %d)", player->x, player->y);
         }
         
-        Serial.println("============================\n");
+        ESP_LOGI("WISP", "============================\n");
     }
     
     // Test different frame rate configurations
     void testFrameRateScaling() {
-        Serial.println("Testing frame rate scaling...");
+        ESP_LOGI("WISP", "Testing frame rate scaling...");
         
         // Test high performance mode
-        Serial.println("Setting 60 FPS...");
+        ESP_LOGI("WISP", "Setting 60 FPS...");
         gameLoopManager->setTargetFrameRate(FRAMERATE_60FPS);
-        delay(3000);
+        vTaskDelay(pdMS_TO_TICKS(3000));
         
         // Test balanced mode
-        Serial.println("Setting 30 FPS...");
+        ESP_LOGI("WISP", "Setting 30 FPS...");
         gameLoopManager->setTargetFrameRate(FRAMERATE_30FPS);
-        delay(3000);
+        vTaskDelay(pdMS_TO_TICKS(3000));
         
         // Test power saving mode
-        Serial.println("Setting 15 FPS...");
+        ESP_LOGI("WISP", "Setting 15 FPS...");
         gameLoopManager->setTargetFrameRate(FRAMERATE_15FPS);
-        delay(3000);
+        vTaskDelay(pdMS_TO_TICKS(3000));
         
         // Test ultra power saving
-        Serial.println("Setting 8 FPS...");
+        ESP_LOGI("WISP", "Setting 8 FPS...");
         gameLoopManager->setTargetFrameRate(FRAMERATE_8FPS);
-        delay(3000);
+        vTaskDelay(pdMS_TO_TICKS(3000));
         
         // Back to default
-        Serial.println("Back to 30 FPS...");
+        ESP_LOGI("WISP", "Back to 30 FPS...");
         gameLoopManager->setTargetFrameRate(FRAMERATE_30FPS);
     }
     

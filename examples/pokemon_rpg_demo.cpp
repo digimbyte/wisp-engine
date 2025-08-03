@@ -1,6 +1,6 @@
 // Example Pokemon-style RPG App using Wisp Database System
 #include "../../include/wisp_app_interface.h"
-#include "../engine/wisp_database_system.h"
+#include "../src/engine/database/database_system.h"
 
 class PokemonRPGApp : public WispApp {
 private:

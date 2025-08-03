@@ -1,4 +1,4 @@
-#include "wisp_database_system.h"
+#include "../src/engine/database/database_system.h"
 #include <iostream>
 
 // Test configurations to demonstrate safety limits

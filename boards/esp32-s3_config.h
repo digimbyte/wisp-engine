@@ -55,6 +55,14 @@
 #define DISPLAY_WIDTH_PX             240          // 240 pixels width
 #define DISPLAY_HEIGHT_PX            240          // 240 pixels height
 #define DISPLAY_SHAPE                "ROUND"      // Round display format
+
+// Graphics engine compatibility aliases (protect against redefinition)  
+#ifndef DISPLAY_WIDTH
+    #define DISPLAY_WIDTH                DISPLAY_WIDTH_PX
+#endif
+#ifndef DISPLAY_HEIGHT
+    #define DISPLAY_HEIGHT               DISPLAY_HEIGHT_PX
+#endif
 #define DISPLAY_AREA_MM              32.4         // Ø32.4mm display area
 #define DISPLAY_COLOR_DEPTH_BITS     16           // RGB565 = 16 bits per pixel
 #define DISPLAY_TOTAL_COLORS         65536        // 65K colors (2^16)
@@ -117,6 +125,7 @@
 
 // === DISPLAY PIN DEFINITIONS (SPI VARIANT) ===
 #define DISPLAY_SPI_SCK_PIN         18            // SPI clock
+#define DISPLAY_SPI_CLK_PIN         18            // SPI clock (alias)
 #define DISPLAY_SPI_MOSI_PIN        19            // SPI MOSI (data)
 #define DISPLAY_SPI_CS_PIN          5             // Chip select
 #define DISPLAY_DC_PIN              16            // Data/Command select
@@ -146,6 +155,8 @@
 
 // === AUDIO PIN DEFINITIONS ===
 #define AUDIO_PIEZO_PIN             21            // Built-in piezo speaker
+#define AUDIO_PWM_LEFT              20            // PWM audio left channel
+#define AUDIO_PWM_RIGHT             23            // PWM audio right channel
 #define AUDIO_I2S_BCLK              26            // I2S bit clock
 #define AUDIO_I2S_LRC               25            // I2S left/right clock  
 #define AUDIO_I2S_DIN               22            // I2S data input
@@ -153,7 +164,33 @@
 
 // === BUTTON DEFINITIONS ===
 #define BUTTON_BOOT_PIN             0             // BOOT button
-#define BUTTON_RESET_PIN            None          // Hardware reset
+#define BUTTON_RESET_PIN            -1            // Hardware reset (no GPIO)
+
+// === INPUT CONTROLLER PIN MAPPING ===
+// Standard gaming controller layout for ESP32-S3 Round Display
+// Uses different pins to avoid conflicts with display and touch
+#define INPUT_LEFT_PIN              8             // Left D-Pad
+#define INPUT_RIGHT_PIN             3             // Right D-Pad  
+#define INPUT_UP_PIN                46            // Up D-Pad
+#define INPUT_DOWN_PIN              9             // Down D-Pad
+#define INPUT_A_PIN                 1             // A button (primary action)
+#define INPUT_B_PIN                 2             // B button (secondary action)
+#define INPUT_C_PIN                 17            // C button (tertiary action)
+#define INPUT_SELECT_PIN            18            // SELECT button
+#define INPUT_START_PIN             45            // START button
+
+// Pin array for InputController initialization
+static const uint8_t BUTTON_PINS[9] = {
+    INPUT_LEFT_PIN,     // 0: LEFT
+    INPUT_RIGHT_PIN,    // 1: RIGHT
+    INPUT_UP_PIN,       // 2: UP
+    INPUT_DOWN_PIN,     // 3: DOWN
+    INPUT_A_PIN,        // 4: A
+    INPUT_B_PIN,        // 5: B
+    INPUT_C_PIN,        // 6: C
+    INPUT_SELECT_PIN,   // 7: SELECT
+    INPUT_START_PIN     // 8: START
+};
 
 // === DEBUG PIN DEFINITIONS ===
 #define DEBUG_ERROR_PIN             12            // Error signal output

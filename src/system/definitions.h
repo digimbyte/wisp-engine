@@ -4,15 +4,33 @@
 
 // --- HARDWARE CONFIGURATION ---
 // Updated for ESP32-C6-LCD-1.47 actual specifications
+#ifndef MAX_BUTTONS
 #define MAX_BUTTONS 6
+#endif
+#ifndef MAX_PALETTES
 #define MAX_PALETTES 4
+#endif
+#ifndef PALETTE_SIZE
 #define PALETTE_SIZE 256
+#endif
+#ifndef MAX_PARTICLES
 #define MAX_PARTICLES 64
+#endif
+#ifndef MAX_PHYSICS_QUEUE
 #define MAX_PHYSICS_QUEUE 128
+#endif
+#ifndef MAX_SHAPES
 #define MAX_SHAPES 4
+#endif
+#ifndef MAX_SPRITES
 #define MAX_SPRITES 256
+#endif
+#ifndef SPRITE_LUT_SIZE
 #define SPRITE_LUT_SIZE 64
+#endif
+#ifndef MAX_DEPTH_LAYERS
 #define MAX_DEPTH_LAYERS 13
+#endif
 
 // --- BUTTON INPUT CONFIGURATION ---
 // Updated for ESP32-C6 board layout
@@ -26,15 +44,8 @@ enum Button {
   BTN_COUNT
 };
 
-// Button pin assignments for ESP32-C6 board
-static const int BUTTON_PINS[BTN_COUNT] = {
-  32, // UP (external buttons via GPIO)
-  33, // DOWN
-  25, // LEFT
-  26, // RIGHT
-  27, // A (main action)
-  9   // B (BOOT button can be used as secondary)
-};
+// Button pin assignments now defined in board-specific configs
+// See boards/esp32-c6_config.h or boards/esp32-s3_config.h
 
 // --- BUILT-IN BUTTONS ---
 #define BUTTON_BOOT_PIN   9   // Built-in BOOT button
@@ -51,8 +62,13 @@ static const int BUTTON_PINS[BTN_COUNT] = {
 
 // --- SCREEN SPECIFICATIONS ---
 // Updated for actual 1.47" display: 172×320 portrait
+// Protect against redefinition - board configs may define these
+#ifndef SCREEN_WIDTH
 #define SCREEN_WIDTH  172    // 172 pixels wide
+#endif
+#ifndef SCREEN_HEIGHT
 #define SCREEN_HEIGHT 320    // 320 pixels tall
+#endif
 
 // --- C++ APP CONFIGURATION ---
 #define APP_MAIN_FUNCTION "main"  // C++ applications use main() function

@@ -1,5 +1,5 @@
 // examples/cartridge_system_example.cpp
-#include <Arduino.h>
+// NOT Arduino - Native C++ for the ESP-IDF framework
 #include <SPIFFS.h>
 #include "../src/engine/wisp_cartridge_system.h"
 #include "../src/apps/test_cartridge_app.h"

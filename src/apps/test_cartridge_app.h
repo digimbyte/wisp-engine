@@ -3,6 +3,9 @@
 
 #include "../system/wisp_app_interface.h"
 #include "../engine/wisp_cartridge_system.h"
+#include "esp_log.h"
+
+static const char* TAG = "TEST_CARTRIDGE_APP";
 
 /**
  * Test Application for Cartridge System
@@ -37,28 +40,28 @@ public:
     
     // WispAppBase interface implementation
     bool internalInit() override {
-        Serial.println("TestCartridgeApp: Initializing...");
+        ESP_LOGI(TAG, "Initializing...");
         
         // Get cartridge system
         if (!g_CartridgeSystem) {
-            Serial.println("ERROR: No cartridge system available");
+            ESP_LOGE(TAG, "No cartridge system available");
             return false;
         }
         
         // Load required assets
         if (!g_CartridgeSystem->loadAsset("palette.wlut")) {
-            Serial.println("WARNING: Could not load palette asset");
+            ESP_LOGW(TAG, "Could not load palette asset");
         } else {
             paletteData = g_CartridgeSystem->getAssetData("palette.wlut");
         }
         
         if (!g_CartridgeSystem->loadAsset("sprite.art")) {
-            Serial.println("WARNING: Could not load sprite asset");
+            ESP_LOGW(TAG, "Could not load sprite asset");
         } else {
             spriteData = g_CartridgeSystem->getAssetData("sprite.art");
         }
         
-        Serial.println("TestCartridgeApp: Initialized successfully");
+        ESP_LOGI(TAG, "Initialized successfully");
         return true;
     }
     
@@ -66,14 +69,13 @@ public:
         frameCount++;
         
         // Update FPS counter
-        uint32_t currentTime = millis();
+        uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
         if (currentTime - lastFPSTime >= 1000) {
             currentFPS = frameCount;
             frameCount = 0;
             lastFPSTime = currentTime;
             
-            Serial.print("TestCartridgeApp FPS: ");
-            Serial.println(currentFPS);
+            ESP_LOGI(TAG, "FPS: %d", currentFPS);
         }
         
         // Update sprite position (bouncing animation)
@@ -99,27 +101,23 @@ public:
         
         // For now, just output debug info occasionally
         static uint32_t lastDebugTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
         
         if (currentTime - lastDebugTime >= 5000) {  // Every 5 seconds
-            Serial.print("TestCartridgeApp: Rendering sprite at (");
-            Serial.print((int)spriteX);
-            Serial.print(", ");
-            Serial.print((int)spriteY);
-            Serial.println(")");
+            ESP_LOGI(TAG, "Rendering sprite at (%d, %d)", (int)spriteX, (int)spriteY);
             
             // Print asset status
-            Serial.print("Assets loaded: ");
-            if (spriteData) Serial.print("sprite.art ");
-            if (paletteData) Serial.print("palette.wlut ");
-            Serial.println();
+            String assets = "Assets loaded: ";
+            if (spriteData) assets += "sprite.art ";
+            if (paletteData) assets += "palette.wlut ";
+            ESP_LOGI(TAG, "%s", assets.c_str());
             
             lastDebugTime = currentTime;
         }
     }
     
     void internalCleanup() override {
-        Serial.println("TestCartridgeApp: Cleaning up...");
+        ESP_LOGI(TAG, "Cleaning up...");
         
         // Unload assets
         if (g_CartridgeSystem) {
@@ -163,16 +161,15 @@ public:
     
     // Test-specific methods
     void printStats() const {
-        Serial.println("=== TestCartridgeApp Stats ===");
-        Serial.print("Current FPS: "); Serial.println(currentFPS);
-        Serial.print("Sprite Position: ("); Serial.print((int)spriteX);
-        Serial.print(", "); Serial.print((int)spriteY); Serial.println(")");
-        Serial.print("Velocity: ("); Serial.print(velocityX);
-        Serial.print(", "); Serial.print(velocityY); Serial.println(")");
-        Serial.print("Assets Loaded: ");
-        Serial.print(spriteData ? "sprite " : "");
-        Serial.print(paletteData ? "palette " : "");
-        Serial.println();
-        Serial.println("==============================");
+        ESP_LOGI(TAG, "=== TestCartridgeApp Stats ===");
+        ESP_LOGI(TAG, "Current FPS: %d", currentFPS);
+        ESP_LOGI(TAG, "Sprite Position: (%d, %d)", (int)spriteX, (int)spriteY);
+        ESP_LOGI(TAG, "Velocity: (%.2f, %.2f)", velocityX, velocityY);
+        
+        String assets = "Assets Loaded: ";
+        assets += spriteData ? "sprite " : "";
+        assets += paletteData ? "palette " : "";
+        ESP_LOGI(TAG, "%s", assets.c_str());
+        ESP_LOGI(TAG, "==============================");
     }
 };

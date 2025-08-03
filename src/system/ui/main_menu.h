@@ -6,7 +6,8 @@
 
 class MainMenu {
 public:
-    std::vector<String> availableApps;
+    char availableApps[20][64]; // Max 20 apps, 64 chars each
+    int appCount;
     int selectedApp = 0;
     bool inAppSelection = false;
     String statusMessage = "";

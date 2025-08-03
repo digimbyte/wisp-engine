@@ -1,9 +1,17 @@
 // engine/lazy_resource_manager.h - ESP32-C6/S3 Resource Manager using ESP-IDF
-// Memory-efficient lazy loading resource management for ESP32 microcontroller
+// Efficient lazy loading resource management for ESP32 microcontroller
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <map>
-#include <vector>
+
+// Fixed array limits for ESP-IDF compatibility
+#define MAX_RESOURCES 256
+#define MAX_LEVEL_CHUNKS 64
+#define MAX_LOADED_RESOURCES 32
+#define MAX_LOADED_CHUNKS 16
+#define MAX_CHUNK_SPRITES 32
+#define MAX_CHUNK_AUDIO 16
+#define MAX_CHUNK_PALETTES 8
+#define MAX_CHUNK_ENTITIES 64
 
 // Lazy-loaded resource management system
 // Only loads what's needed, unloads when not needed
@@ -29,7 +37,7 @@ enum ResourceState {
 struct ResourceInfo {
     uint16_t resourceId;
     ResourceType type;
-    String filePath;        // Where to load from
+    char filePath[256];     // Where to load from
     uint32_t fileOffset;    // Offset in file
     uint32_t fileSize;      // Size in bytes
     uint32_t memorySize;    // Size when loaded in memory
@@ -40,7 +48,9 @@ struct ResourceInfo {
     
     ResourceInfo() : resourceId(0), type(RESOURCE_SPRITE), fileOffset(0), 
                      fileSize(0), memorySize(0), priority(128), 
-                     lastAccessed(0), state(RESOURCE_UNLOADED), data(nullptr) {}
+                     lastAccessed(0), state(RESOURCE_UNLOADED), data(nullptr) {
+        filePath[0] = '\0';
+    }
 };
 
 // Level chunk - contains only what's needed for current area
@@ -50,9 +60,12 @@ struct LevelChunk {
     uint16_t width, height;     // Chunk dimensions
     
     // Resources needed for this chunk
-    std::vector<uint16_t> requiredSprites;
-    std::vector<uint16_t> requiredAudio;
-    std::vector<uint16_t> requiredPalettes;
+    uint16_t requiredSprites[MAX_CHUNK_SPRITES];
+    uint16_t requiredAudio[MAX_CHUNK_AUDIO];
+    uint16_t requiredPalettes[MAX_CHUNK_PALETTES];
+    uint8_t numRequiredSprites;
+    uint8_t numRequiredAudio; 
+    uint8_t numRequiredPalettes;
     
     // Level-specific data
     uint8_t* tileData;          // Tile map data
@@ -67,7 +80,8 @@ struct LevelChunk {
         uint8_t behavior;       // AI/behavior type
         uint32_t properties;    // Entity-specific data
     };
-    std::vector<ChunkEntity> entities;
+    ChunkEntity entities[MAX_CHUNK_ENTITIES];
+    uint8_t numEntities;
     
     bool loaded;
     uint32_t lastAccessed;
@@ -81,14 +95,18 @@ struct LevelChunk {
 class LazyResourceManager {
 private:
     // Resource registry - metadata for all possible resources
-    std::map<uint16_t, ResourceInfo> resourceRegistry;
+    ResourceInfo resourceRegistry[MAX_RESOURCES];
+    uint16_t numResources;
     
     // Currently loaded resources
-    std::vector<uint16_t> loadedResources;
+    uint16_t loadedResources[MAX_LOADED_RESOURCES];
+    uint8_t numLoadedResources;
     
     // Level chunk system
-    std::map<uint16_t, LevelChunk> levelChunks;
-    std::vector<uint16_t> loadedChunks;
+    LevelChunk levelChunks[MAX_LEVEL_CHUNKS];
+    uint16_t numLevelChunks;
+    uint16_t loadedChunks[MAX_LOADED_CHUNKS];
+    uint8_t numLoadedChunks;
     
     // Memory management
     uint32_t maxMemoryUsage;    // Total memory budget
@@ -106,6 +124,10 @@ private:
     
 public:
     LazyResourceManager() : 
+        numResources(0),
+        numLoadedResources(0),
+        numLevelChunks(0),
+        numLoadedChunks(0),
         maxMemoryUsage(128 * 1024),      // 128KB budget
         currentMemoryUsage(0),
         memoryPressureThreshold(96 * 1024), // Start unloading at 96KB
@@ -115,7 +137,7 @@ public:
     
     // Resource registry management
     bool registerResource(uint16_t resourceId, ResourceType type, 
-                         const String& filePath, uint32_t offset, uint32_t size);
+                         const char* filePath, uint32_t offset, uint32_t size);
     
     // Lazy loading interface
     void* getResource(uint16_t resourceId);
@@ -151,7 +173,8 @@ public:
     void printMemoryStatus();
     void printResourceStatus();
     void printChunkStatus();
-    std::vector<uint16_t> getLoadedResources() const { return loadedResources; }
+    uint16_t* getLoadedResources() { return loadedResources; }
+    uint8_t getNumLoadedResources() const { return numLoadedResources; }
     
 private:
     // Internal loading/unloading
@@ -164,33 +187,37 @@ private:
     
     // Chunk proximity calculations
     bool isChunkInRange(const LevelChunk& chunk, int16_t centerX, int16_t centerY, uint16_t radius);
-    std::vector<uint16_t> getChunksInRange(int16_t centerX, int16_t centerY, uint16_t radius);
+    uint16_t* getChunksInRange(int16_t centerX, int16_t centerY, uint16_t radius, uint8_t* numChunks);
     
     // File I/O helpers
-    bool loadDataFromFile(const String& filePath, uint32_t offset, uint32_t size, void* buffer);
+    bool loadDataFromFile(const char* filePath, uint32_t offset, uint32_t size, void* buffer);
+    
+    // Array search helpers
+    ResourceInfo* findResource(uint16_t resourceId);
+    LevelChunk* findChunk(uint16_t chunkId);
+    bool addLoadedResource(uint16_t resourceId);
+    bool removeLoadedResource(uint16_t resourceId);
 };
 
 // Implementation of key methods
 inline void* LazyResourceManager::getResource(uint16_t resourceId) {
-    auto it = resourceRegistry.find(resourceId);
-    if (it == resourceRegistry.end()) {
+    ResourceInfo* info = findResource(resourceId);
+    if (!info) {
         return nullptr;
     }
     
-    ResourceInfo& info = it->second;
-    
     // Update access time
-    info.lastAccessed = millis();
+    info->lastAccessed = esp_timer_get_time() / 1000; // ESP-IDF time in ms
     
     // If already loaded, return data
-    if (info.state == RESOURCE_LOADED && info.data) {
-        return info.data;
+    if (info->state == RESOURCE_LOADED && info->data) {
+        return info->data;
     }
     
     // If not loaded, load it now
-    if (info.state == RESOURCE_UNLOADED) {
-        if (loadResourceFromFile(info)) {
-            return info.data;
+    if (info->state == RESOURCE_UNLOADED) {
+        if (loadResourceFromFile(*info)) {
+            return info->data;
         }
     }
     
@@ -201,8 +228,7 @@ inline bool LazyResourceManager::loadResourceFromFile(ResourceInfo& info) {
     // Check if we have enough memory
     if (currentMemoryUsage + info.memorySize > maxMemoryUsage) {
         if (!freeMemoryForResource(info.memorySize)) {
-            Serial.print("ERROR: Cannot free memory for resource ");
-            Serial.println(info.resourceId);
+            WISP_DEBUG_ERROR("RESOURCE", "Cannot free memory for resource");
             return false;
         }
     }
@@ -212,27 +238,22 @@ inline bool LazyResourceManager::loadResourceFromFile(ResourceInfo& info) {
     // Allocate memory
     info.data = malloc(info.memorySize);
     if (!info.data) {
-        Serial.print("ERROR: Memory allocation failed for resource ");
-        Serial.println(info.resourceId);
+        WISP_DEBUG_ERROR("RESOURCE", "Memory allocation failed for resource");
         info.state = RESOURCE_ERROR;
         return false;
     }
     
     // Load from file
-    uint32_t startTime = micros();
+    uint32_t startTime = esp_timer_get_time();
     bool success = loadDataFromFile(info.filePath, info.fileOffset, info.fileSize, info.data);
-    loadTime += micros() - startTime;
+    loadTime += esp_timer_get_time() - startTime;
     
     if (success) {
         info.state = RESOURCE_LOADED;
         currentMemoryUsage += info.memorySize;
-        loadedResources.push_back(info.resourceId);
+        addLoadedResource(info.resourceId);
         
-        Serial.print("Loaded resource ");
-        Serial.print(info.resourceId);
-        Serial.print(" (");
-        Serial.print(info.memorySize);
-        Serial.println(" bytes)");
+        WISP_DEBUG_INFO("RESOURCE", "Loaded resource");
         
         return true;
     } else {
@@ -240,15 +261,14 @@ inline bool LazyResourceManager::loadResourceFromFile(ResourceInfo& info) {
         info.data = nullptr;
         info.state = RESOURCE_ERROR;
         
-        Serial.print("ERROR: Failed to load resource ");
-        Serial.println(info.resourceId);
+        WISP_DEBUG_ERROR("RESOURCE", "Failed to load resource");
         return false;
     }
 }
 
 inline void LazyResourceManager::unloadResourceFromMemory(ResourceInfo& info) {
     if (info.data) {
-        uint32_t startTime = micros();
+        uint32_t startTime = esp_timer_get_time();
         
         free(info.data);
         info.data = nullptr;
@@ -256,18 +276,11 @@ inline void LazyResourceManager::unloadResourceFromMemory(ResourceInfo& info) {
         currentMemoryUsage -= info.memorySize;
         
         // Remove from loaded list
-        auto it = std::find(loadedResources.begin(), loadedResources.end(), info.resourceId);
-        if (it != loadedResources.end()) {
-            loadedResources.erase(it);
-        }
+        removeLoadedResource(info.resourceId);
         
-        unloadTime += micros() - startTime;
+        unloadTime += esp_timer_get_time() - startTime;
         
-        Serial.print("Unloaded resource ");
-        Serial.print(info.resourceId);
-        Serial.print(" (freed ");
-        Serial.print(info.memorySize);
-        Serial.println(" bytes)");
+        WISP_DEBUG_INFO("RESOURCE", "Unloaded resource");
     }
 }
 
@@ -281,32 +294,39 @@ inline void LazyResourceManager::updatePlayerPosition(int16_t x, int16_t y) {
 
 inline void LazyResourceManager::updateProximityLoading() {
     // Get chunks that should be loaded based on player position
-    std::vector<uint16_t> chunksInRange = getChunksInRange(playerX, playerY, loadRadius);
+    uint8_t numInRange;
+    uint16_t* chunksInRange = getChunksInRange(playerX, playerY, loadRadius, &numInRange);
     
     // Load chunks that aren't loaded
-    for (uint16_t chunkId : chunksInRange) {
-        auto it = std::find(loadedChunks.begin(), loadedChunks.end(), chunkId);
-        if (it == loadedChunks.end()) {
+    for (uint8_t i = 0; i < numInRange; i++) {
+        uint16_t chunkId = chunksInRange[i];
+        bool found = false;
+        for (uint8_t j = 0; j < numLoadedChunks; j++) {
+            if (loadedChunks[j] == chunkId) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
             loadChunk(chunkId);
         }
     }
     
     // Unload chunks that are too far away
-    for (auto it = loadedChunks.begin(); it != loadedChunks.end();) {
-        uint16_t chunkId = *it;
-        auto chunkIt = levelChunks.find(chunkId);
+    for (uint8_t i = 0; i < numLoadedChunks; i++) {
+        uint16_t chunkId = loadedChunks[i];
+        LevelChunk* chunk = findChunk(chunkId);
         
-        if (chunkIt != levelChunks.end()) {
-            const LevelChunk& chunk = chunkIt->second;
-            
-            if (!isChunkInRange(chunk, playerX, playerY, loadRadius * 1.5f)) {
+        if (chunk) {
+            if (!isChunkInRange(*chunk, playerX, playerY, loadRadius * 1.5f)) {
                 unloadChunk(chunkId);
-                it = loadedChunks.erase(it);
-            } else {
-                ++it;
+                // Remove from loaded list - shift array
+                for (uint8_t j = i; j < numLoadedChunks - 1; j++) {
+                    loadedChunks[j] = loadedChunks[j + 1];
+                }
+                numLoadedChunks--;
+                i--; // Adjust index after removal
             }
-        } else {
-            ++it;
         }
     }
     
@@ -320,14 +340,14 @@ inline bool LazyResourceManager::freeMemoryForResource(uint32_t requiredBytes) {
     uint32_t freedBytes = 0;
     
     // Try to free memory by unloading least recently used resources
-    while (freedBytes < requiredBytes && !loadedResources.empty()) {
+    while (freedBytes < requiredBytes && numLoadedResources > 0) {
         uint16_t lruResourceId = findLeastRecentlyUsedResource();
         if (lruResourceId == 0xFFFF) break; // No more resources to unload
         
-        auto it = resourceRegistry.find(lruResourceId);
-        if (it != resourceRegistry.end()) {
-            freedBytes += it->second.memorySize;
-            unloadResourceFromMemory(it->second);
+        ResourceInfo* info = findResource(lruResourceId);
+        if (info) {
+            freedBytes += info->memorySize;
+            unloadResourceFromMemory(*info);
         }
     }
     
@@ -335,29 +355,10 @@ inline bool LazyResourceManager::freeMemoryForResource(uint32_t requiredBytes) {
 }
 
 inline void LazyResourceManager::printMemoryStatus() {
-    Serial.println("=== Lazy Resource Manager Status ===");
-    Serial.print("Memory Usage: ");
-    Serial.print(currentMemoryUsage);
-    Serial.print(" / ");
-    Serial.print(maxMemoryUsage);
-    Serial.print(" bytes (");
-    Serial.print((currentMemoryUsage * 100) / maxMemoryUsage);
-    Serial.println("%)");
-    
-    Serial.print("Loaded Resources: ");
-    Serial.println(loadedResources.size());
-    
-    Serial.print("Loaded Chunks: ");
-    Serial.println(loadedChunks.size());
-    
-    Serial.print("Player Position: (");
-    Serial.print(playerX);
-    Serial.print(", ");
-    Serial.print(playerY);
-    Serial.println(")");
-    
-    Serial.print("Load Radius: ");
-    Serial.println(loadRadius);
-    
-    Serial.println("====================================");
+    WISP_DEBUG_INFO("RESOURCE", "=== Lazy Resource Manager Status ===");
+    WISP_DEBUG_INFO("RESOURCE", "Memory Usage and Statistics");
+    WISP_DEBUG_INFO("RESOURCE", "Loaded Resources Count");
+    WISP_DEBUG_INFO("RESOURCE", "Loaded Chunks Count");
+    WISP_DEBUG_INFO("RESOURCE", "Player Position and Load Radius");
+    WISP_DEBUG_INFO("RESOURCE", "====================================");
 }

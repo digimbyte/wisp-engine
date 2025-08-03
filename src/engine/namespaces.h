@@ -41,15 +41,15 @@ namespace WispEngine {
             }
             
             inline void info(const char* category, const char* message) {
-                DebugSystem::logInfo(std::string(category), std::string(message));
+                DebugSystem::logInfo(category, message);
             }
             
             inline void warning(const char* category, const char* message) {
-                DebugSystem::logWarning(std::string(category), std::string(message));
+                DebugSystem::logWarning(category, message);
             }
             
             inline void error(const char* category, const char* message) {
-                DebugSystem::logError(std::string(category), std::string(message));
+                DebugSystem::logError(category, message);
             }
             
             inline void heartbeat() {

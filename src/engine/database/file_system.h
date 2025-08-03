@@ -1,10 +1,10 @@
 // file_system.h - ESP32 native file system wrapper
 #pragma once
 #include "../system/esp32_common.h"
-#include <fstream>
-#include <string>
 #include <esp_vfs.h>
 #include <esp_spiffs.h>
+#include <stdio.h>
+#include <string.h>
 
 // File access modes compatible with Arduino
 #define FILE_READ "r"
@@ -14,50 +14,50 @@
 // ESP32 File wrapper class to replace Arduino File
 class File {
 private:
-    std::fstream file;
-    std::string path;
+    FILE* file;
+    char path[256];
     bool isOpen;
 
 public:
-    File() : isOpen(false) {}
-    File(const std::string& filepath, const char* mode) : path(filepath), isOpen(false) {
+    File() : file(nullptr), isOpen(false) {
+        path[0] = '\0';
+    }
+    File(const char* filepath, const char* mode) : file(nullptr), isOpen(false) {
+        strncpy(path, filepath, sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
         open(filepath, mode);
     }
     
-    bool open(const std::string& filepath, const char* mode) {
-        std::ios_base::openmode iosMode = std::ios_base::in;
-        if (strcmp(mode, "w") == 0) iosMode = std::ios_base::out;
-        else if (strcmp(mode, "a") == 0) iosMode = std::ios_base::app;
-        
-        file.open(filepath, iosMode);
-        isOpen = file.is_open();
+    bool open(const char* filepath, const char* mode) {
+        file = fopen(filepath, mode);
+        isOpen = (file != nullptr);
         return isOpen;
     }
     
     void close() {
-        if (isOpen) {
-            file.close();
+        if (isOpen && file) {
+            fclose(file);
+            file = nullptr;
             isOpen = false;
         }
     }
     
     operator bool() const { return isOpen; }
-    bool available() { return isOpen && file.good(); }
+    bool available() { return isOpen && file; }
     
-    std::string readString() {
-        if (!isOpen) return "";
-        std::string content((std::istreambuf_iterator<char>(file)),
-                           std::istreambuf_iterator<char>());
-        return content;
+    bool readString(char* buffer, size_t maxLen) {
+        if (!isOpen || !file || !buffer) return false;
+        return fgets(buffer, maxLen, file) != nullptr;
     }
     
-    size_t write(const std::string& data) {
-        if (!isOpen) return 0;
-        file << data;
-        return data.length();
+    size_t write(const char* data) {
+        if (!isOpen || !file) return 0;
+        return fwrite(data, 1, strlen(data), file);
     }
     
-    void flush() { if (isOpen) file.flush(); }
+    void flush() { 
+        if (isOpen && file) fflush(file); 
+    }
 };
 
 // ESP32 SPIFFS wrapper
@@ -78,15 +78,21 @@ public:
         esp_vfs_spiffs_unregister(NULL);
     }
     
-    File open(const std::string& path, const char* mode = FILE_READ) {
-        std::string fullPath = "/spiffs" + path;
+    File open(const char* path, const char* mode = FILE_READ) {
+        char fullPath[256];
+        snprintf(fullPath, sizeof(fullPath), "/spiffs%s", path);
         return File(fullPath, mode);
     }
     
-    bool exists(const std::string& path) {
-        std::string fullPath = "/spiffs" + path;
-        std::ifstream file(fullPath);
-        return file.good();
+    bool exists(const char* path) {
+        char fullPath[256];
+        snprintf(fullPath, sizeof(fullPath), "/spiffs%s", path);
+        FILE* file = fopen(fullPath, "r");
+        if (file) {
+            fclose(file);
+            return true;
+        }
+        return false;
     }
 };
 
@@ -98,15 +104,21 @@ public:
         return false; // Disabled for now
     }
     
-    File open(const std::string& path, const char* mode = FILE_READ) {
-        std::string fullPath = "/sd" + path;
+    File open(const char* path, const char* mode = FILE_READ) {
+        char fullPath[256];
+        snprintf(fullPath, sizeof(fullPath), "/sd%s", path);
         return File(fullPath, mode);
     }
     
-    bool exists(const std::string& path) {
-        std::string fullPath = "/sd" + path;
-        std::ifstream file(fullPath);
-        return file.good();
+    bool exists(const char* path) {
+        char fullPath[256];
+        snprintf(fullPath, sizeof(fullPath), "/sd%s", path);
+        FILE* file = fopen(fullPath, "r");
+        if (file) {
+            fclose(file);
+            return true;
+        }
+        return false;
     }
 };
 

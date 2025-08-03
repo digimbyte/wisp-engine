@@ -55,7 +55,8 @@ private:
     bool isScanning = false;
     uint32_t lastScanTime = 0;
     
-    std::vector<String> availableNetworks;
+    char availableNetworks[10][64]; // Max 10 networks, 64 chars each
+    int networkCount;
     int selectedNetwork = -1;
     
     const char* menuItems[NETWORK_MENU_COUNT] = {

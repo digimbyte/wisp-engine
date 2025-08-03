@@ -154,9 +154,9 @@ struct Color {
     
     Color multiply(float factor) const {
         return Color(
-            (uint8_t)std::min(255.0f, std::max(0.0f, r * factor)),
-            (uint8_t)std::min(255.0f, std::max(0.0f, g * factor)),
-            (uint8_t)std::min(255.0f, std::max(0.0f, b * factor)),
+            (uint8_t)(255.0f < (r * factor) ? 255 : ((r * factor) < 0.0f ? 0 : (r * factor))),
+            (uint8_t)(255.0f < (g * factor) ? 255 : ((g * factor) < 0.0f ? 0 : (g * factor))),
+            (uint8_t)(255.0f < (b * factor) ? 255 : ((b * factor) < 0.0f ? 0 : (b * factor))),
             a
         );
     }

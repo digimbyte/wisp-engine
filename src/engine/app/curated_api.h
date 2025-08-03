@@ -203,8 +203,8 @@ public:
     
     // === COLLISION SYSTEM ===
     WispCollision checkCollision(EntityHandle entity1, EntityHandle entity2);
-    std::vector<EntityHandle> getEntitiesInRadius(WispVec2 center, float radius);
-    std::vector<EntityHandle> getEntitiesInRect(float x, float y, float width, float height);
+    int getEntitiesInRadius(WispVec2 center, float radius, EntityHandle* entities, int maxEntities);
+    int getEntitiesInRect(float x, float y, float width, float height, EntityHandle* entities, int maxEntities);
     bool isPointInEntity(WispVec2 point, EntityHandle entity);
     
     // === PARTICLE SYSTEM ===
@@ -221,14 +221,14 @@ public:
     
     // === APP MANAGEMENT SYSTEM ===
     // App discovery and management (for launcher/menu systems)
-    std::vector<String> getAvailableApps();                    // Get list of available app names
-    String getAppDescription(const String& appName);           // Get app description
-    String getAppAuthor(const String& appName);                // Get app author
-    String getAppVersion(const String& appName);               // Get app version
-    bool isAppCompatible(const String& appName);               // Check if app is compatible
+    int getAvailableApps(char appNames[][WISP_MAX_STRING_LENGTH], int maxApps); // Get list of available app names
+    bool getAppDescription(const char* appName, char* description, int maxLen); // Get app description
+    bool getAppAuthor(const char* appName, char* author, int maxLen);           // Get app author
+    bool getAppVersion(const char* appName, char* version, int maxLen);         // Get app version
+    bool isAppCompatible(const char* appName);                                 // Check if app is compatible
     
     // App launching (restricted - requires special permissions)
-    bool requestAppLaunch(const String& appName);              // Request to launch an app
+    bool requestAppLaunch(const char* appName);                // Request to launch an app
     bool canLaunchApps() const;                                 // Check if this app can launch others
     
     // Permission management (system use only)

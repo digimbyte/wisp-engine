@@ -9,12 +9,12 @@
 class Settings {
 public:
   nvs_handle_t nvs_handle;
-  std::string deviceId;
+  char deviceId[17]; // 16 hex chars + null terminator
 
   void begin() {
     esp_err_t err = nvs_open("appcfg", NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK) {
-      ESP_LOGE("Settings", "Error opening NVS: %s", esp_err_to_name(err));
+      WISP_DEBUG_ERROR("Settings", "Error opening NVS");
       return;
     }
     
@@ -23,7 +23,8 @@ public:
     if (err == ESP_OK && required_size > 0) {
       char* device_id_buf = (char*)malloc(required_size);
       nvs_get_str(nvs_handle, "device_id", device_id_buf, &required_size);
-      deviceId = std::string(device_id_buf);
+      strncpy(deviceId, device_id_buf, sizeof(deviceId) - 1);
+      deviceId[sizeof(deviceId) - 1] = '\0';
       free(device_id_buf);
     } else {
       deviceId = generateDeviceId();
@@ -37,7 +38,7 @@ public:
   }
 
   // --- HASH UTILITY ---
-  std::string generateDeviceId() {
+  void generateDeviceId(char* output, size_t outputSize) {
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
     char raw[32];
@@ -50,77 +51,84 @@ public:
     for (int i = 0; i < 16; ++i) sprintf(hex + i * 2, "%02X", hash[i]);
     hex[32] = '\0';
 
-    return std::string(hex);
+    snprintf(output, outputSize, "%s", hex);
   }
 
-  std::string encrypt(const std::string& data) {
-    std::string out = "";
-    for (size_t i = 0; i < data.length(); ++i) {
-      out += (char)(data[i] ^ deviceId[i % deviceId.length()]);
+  void encrypt(const char* data, char* output, size_t outputSize) {
+    size_t dataLen = strlen(data);
+    size_t deviceIdLen = strlen(deviceId);
+    size_t copyLen = (dataLen < outputSize - 1) ? dataLen : outputSize - 1;
+    
+    for (size_t i = 0; i < copyLen; ++i) {
+      output[i] = data[i] ^ deviceId[i % deviceIdLen];
     }
-    return out;
+    output[copyLen] = '\0';
   }
 
-  std::string decrypt(const std::string& data) {
-    return encrypt(data); // XOR is symmetric
+  void decrypt(const char* data, char* output, size_t outputSize) {
+    encrypt(data, output, outputSize); // XOR is symmetric
   }
 
   // --- WIFI ---
-  std::string getWiFiSSID() {
+  void getWiFiSSID(char* output, size_t outputSize) {
     size_t required_size = 0;
     esp_err_t err = nvs_get_str(nvs_handle, "wifi_ssid", NULL, &required_size);
     if (err == ESP_OK && required_size > 0) {
       char* buf = (char*)malloc(required_size);
       nvs_get_str(nvs_handle, "wifi_ssid", buf, &required_size);
-      std::string encrypted = std::string(buf);
+      decrypt(buf, output, outputSize);
       free(buf);
-      return decrypt(encrypted);
+    } else {
+      output[0] = '\0';
     }
-    return "";
   }
 
-  void setWiFiSSID(const std::string& ssid) {
-    std::string encrypted = encrypt(ssid);
-    nvs_set_str(nvs_handle, "wifi_ssid", encrypted.c_str());
+  void setWiFiSSID(const char* ssid) {
+    char encrypted[128];
+    encrypt(ssid, encrypted, sizeof(encrypted));
+    nvs_set_str(nvs_handle, "wifi_ssid", encrypted);
     nvs_commit(nvs_handle);
   }
 
-  std::string getWiFiPassword() {
+  void getWiFiPassword(char* output, size_t outputSize) {
     size_t required_size = 0;
     esp_err_t err = nvs_get_str(nvs_handle, "wifi_pass", NULL, &required_size);
     if (err == ESP_OK && required_size > 0) {
       char* buf = (char*)malloc(required_size);
       nvs_get_str(nvs_handle, "wifi_pass", buf, &required_size);
-      std::string encrypted = std::string(buf);
+      decrypt(buf, output, outputSize);
       free(buf);
-      return decrypt(encrypted);
+    } else {
+      output[0] = '\0';
     }
-    return "";
   }
 
-  void setWiFiPassword(const std::string& password) {
-    std::string encrypted = encrypt(password);
-    nvs_set_str(nvs_handle, "wifi_pass", encrypted.c_str());
+  void setWiFiPassword(const char* password) {
+    char encrypted[128];
+    encrypt(password, encrypted, sizeof(encrypted));
+    nvs_set_str(nvs_handle, "wifi_pass", encrypted);
     nvs_commit(nvs_handle);
   }
 
   // --- BLUETOOTH ---
-  std::string getBluetoothName() {
+  void getBluetoothName(char* output, size_t outputSize) {
     size_t required_size = 0;
     esp_err_t err = nvs_get_str(nvs_handle, "bt_name", NULL, &required_size);
     if (err == ESP_OK && required_size > 0) {
       char* buf = (char*)malloc(required_size);
       nvs_get_str(nvs_handle, "bt_name", buf, &required_size);
-      std::string encrypted = std::string(buf);
+      decrypt(buf, output, outputSize);
       free(buf);
-      return decrypt(encrypted);
+    } else {
+      strncpy(output, "PetDevice", outputSize - 1);
+      output[outputSize - 1] = '\0';
     }
-    return "PetDevice";
   }
 
-  void setBluetoothName(const std::string& name) {
-    std::string encrypted = encrypt(name);
-    nvs_set_str(nvs_handle, "bt_name", encrypted.c_str());
+  void setBluetoothName(const char* name) {
+    char encrypted[128];
+    encrypt(name, encrypted, sizeof(encrypted));
+    nvs_set_str(nvs_handle, "bt_name", encrypted);
     nvs_commit(nvs_handle);
   }
 

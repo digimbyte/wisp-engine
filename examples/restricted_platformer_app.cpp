@@ -6,10 +6,46 @@
 
 class RestrictedPlatformerGame : public WispAppBase {
 private:
+    // Helper functions for array management
+    void addEnemy(EntityHandle enemy) {
+        if (enemyCount < MAX_ENEMIES) {
+            enemies[enemyCount++] = enemy;
+        }
+    }
+    
+    void removeEnemy(int index) {
+        if (index < enemyCount) {
+            for (int i = index; i < enemyCount - 1; i++) {
+                enemies[i] = enemies[i + 1];
+            }
+            enemyCount--;
+        }
+    }
+    
+    void addCoin(EntityHandle coin) {
+        if (coinCount < MAX_COINS) {
+            coins[coinCount++] = coin;
+        }
+    }
+    
+    void removeCoin(int index) {
+        if (index < coinCount) {
+            for (int i = index; i < coinCount - 1; i++) {
+                coins[i] = coins[i + 1];
+            }
+            coinCount--;
+        }
+    }
+
     // Game entities (limited by quota)
+    static const int MAX_ENEMIES = 10;
+    static const int MAX_COINS = 20;
+    
     EntityHandle player;
-    std::vector<EntityHandle> enemies;
-    std::vector<EntityHandle> coins;
+    EntityHandle enemies[MAX_ENEMIES];
+    int enemyCount;
+    EntityHandle coins[MAX_COINS];
+    int coinCount;
     
     // Resources (limited by quota)
     ResourceHandle playerSprite;
@@ -47,7 +83,7 @@ public:
         score(0), lives(3), currentLevel(1),
         cameraX(0), cameraY(0),
         gameTimer(INVALID_TIMER), enemySpawnTimer(INVALID_TIMER),
-        quotaWarningShown(false) {
+        quotaWarningShown(false), enemyCount(0), coinCount(0) {
         
         setAppInfo("Restricted Platformer", "1.0", "Wisp Demo");
     }
@@ -129,7 +165,7 @@ public:
         updateCamera();
         
         // Spawn enemies if timer finished and quota allows
-        if (api->isTimerFinished(enemySpawnTimer) && enemies.size() < 8) {
+        if (api->isTimerFinished(enemySpawnTimer) && enemyCount < 8) {
             spawnEnemy();
             api->resetTimer(enemySpawnTimer);
         }

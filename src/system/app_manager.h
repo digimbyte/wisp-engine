@@ -32,7 +32,9 @@ private:
     bool appInitialized;
     
     // Available apps discovered from SD card
-    std::vector<AppInfo> availableApps;
+    static const int MAX_APPS = 50;
+    AppInfo availableApps[MAX_APPS];
+    int appCount;
     
 public:
     AppManager() : appLoader(nullptr), appLoopManager(nullptr),
@@ -41,26 +43,26 @@ public:
     // Initialize the app manager
     bool init(AppLoader* loader, AppLoopManager* appLoop) {
         if (!loader || !appLoop) {
-            ESP_LOGE("APP_MANAGER", "ERROR: Invalid references for App Manager");
+            WISP_DEBUG_ERROR("APP_MANAGER", "Invalid references for App Manager");
             return false;
         }
         
         appLoader = loader;
         appLoopManager = appLoop;
         
-        ESP_LOGI("APP_MANAGER", "App Manager initialized for C++ applications");
+        WISP_DEBUG_INFO("APP_MANAGER", "App Manager initialized for C++ applications");
         return true;
     }
     
     // Load and start a C++ application
     bool loadApp(const String& appName) {
         if (appRunning) {
-            ESP_LOGE("APP_MANAGER", "ERROR: Another app is already running");
+            WISP_DEBUG_ERROR("APP_MANAGER", "Another app is already running");
             return false;
         }
         
         if (!appLoader->loadApp(appName)) {
-            ESP_LOGE("APP_MANAGER", "ERROR: Failed to load app: %s", appName.c_str());
+            WISP_DEBUG_ERROR("APP_MANAGER", "Failed to load app");
             return false;
         }
         
@@ -68,7 +70,7 @@ public:
         appInitialized = false;
         appRunning = true;
         
-        ESP_LOGI("APP_MANAGER", "C++ App loaded: %s", appName.c_str());
+        WISP_DEBUG_INFO("APP_MANAGER", "C++ App loaded");
         return true;
     }
     
@@ -87,7 +89,7 @@ public:
         appRunning = false;
         appInitialized = false;
         
-        ESP_LOGI("APP_MANAGER", "App stopped");
+        WISP_DEBUG_INFO("APP_MANAGER", "App stopped");
     }
     
     // Update the current application
@@ -128,18 +130,18 @@ public:
     void scanForApps() {
         availableApps.clear();
         
-        ESP_LOGI("APP_MANAGER", "Scanning SD card for .wisp files...");
+        WISP_DEBUG_INFO("APP_MANAGER", "Scanning SD card for .wisp files...");
         
         // Check if SD card is available
         if (!SD.begin()) {
-            ESP_LOGE("APP_MANAGER", "SD card not found or failed to mount");
+            WISP_DEBUG_ERROR("APP_MANAGER", "SD card not found or failed to mount");
             return;
         }
         
         // Scan root directory for .wisp files
         File root = SD.open("/");
         if (!root) {
-            ESP_LOGE("APP_MANAGER", "Failed to open root directory");
+            WISP_DEBUG_ERROR("APP_MANAGER", "Failed to open root directory");
             return;
         }
         
@@ -149,7 +151,7 @@ public:
             
             // Check if file has .wisp extension
             if (fileName.endsWith(".wisp") && !file.isDirectory()) {
-                ESP_LOGI("APP_MANAGER", "Found .wisp file: %s", fileName.c_str());
+                WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file");
                 
                 AppInfo appInfo;
                 String fullPath = "/" + fileName;
@@ -163,7 +165,7 @@ public:
                 appInfo.autoStart = false;
                 availableApps.push_back(appInfo);
                 
-                ESP_LOGI("APP_MANAGER", "Added app: %s", appInfo.name.c_str());
+                WISP_DEBUG_INFO("APP_MANAGER", "Added app");
             }
             
             file.close();
@@ -175,14 +177,14 @@ public:
         // Also scan apps/ subdirectory if it exists
         File appsDir = SD.open("/apps");
         if (appsDir) {
-            ESP_LOGI("APP_MANAGER", "Scanning /apps directory...");
+            WISP_DEBUG_INFO("APP_MANAGER", "Scanning /apps directory...");
             
             File appFile = appsDir.openNextFile();
             while (appFile) {
                 String fileName = appFile.name();
                 
                 if (fileName.endsWith(".wisp") && !appFile.isDirectory()) {
-                    ESP_LOGI("APP_MANAGER", "Found .wisp file in /apps: %s", fileName.c_str());
+                    WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file in /apps");
                     
                     AppInfo appInfo;
                     String fullPath = "/apps/" + fileName;
@@ -195,7 +197,7 @@ public:
                     appInfo.autoStart = false;
                     availableApps.push_back(appInfo);
                     
-                    ESP_LOGI("APP_MANAGER", "Added app: %s", appInfo.name.c_str());
+                    WISP_DEBUG_INFO("APP_MANAGER", "Added app");
                 }
                 
                 appFile.close();
@@ -205,16 +207,19 @@ public:
             appsDir.close();
         }
         
-        ESP_LOGI("APP_MANAGER", "Scan complete. Found %zu .wisp applications", availableApps.size());
+        WISP_DEBUG_INFO("APP_MANAGER", "Scan complete");
     }
     
     // Get available apps
-    const std::vector<AppInfo>& getAvailableApps() const { return availableApps; }
+    const AppInfo* getAvailableApps(int* count) const { 
+        *count = appCount; 
+        return availableApps; 
+    }
     
     // Launch app by index
     bool launchAppByIndex(int index) {
         if (index < 0 || index >= (int)availableApps.size()) {
-            ESP_LOGE("APP_MANAGER", "Invalid app index");
+            WISP_DEBUG_ERROR("APP_MANAGER", "Invalid app index");
             return false;
         }
         
@@ -231,6 +236,6 @@ private:
         // C++ applications are initialized through their constructors
         // and the app loop manager
         appInitialized = true;
-        ESP_LOGI("APP_MANAGER", "C++ App initialized: %s", currentAppName.c_str());
+        WISP_DEBUG_INFO("APP_MANAGER", "C++ App initialized");
     }
 };

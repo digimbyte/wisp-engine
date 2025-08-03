@@ -1,42 +1,52 @@
 // debug_system.h - Debug system for ESP32-C6/S3
 #pragma once
 
-// Use the centralized engine header for proper namespace organization
-#include "../../wisp_engine.h"
+// Use pure ESP-IDF headers only
+#include "esp_log.h"
+#include <stdarg.h>
 
 // Declare this as part of the WispEngine::Utils namespace
 namespace WispEngine::Utils {
     
     class DebugSystem {
     public:
-        // Simple debug initialization using ESP_LOG
+        // Simple debug initialization using pure ESP-IDF
         static void initialize() {
-            ESP_LOGI("DEBUG", "Debug system initialized");
+            esp_log_level_set("WISP", ESP_LOG_INFO);
         }
         
         static void log(const char* tag, const char* message) {
-            ESP_LOGI(tag, "%s", message);
+            esp_log_write(ESP_LOG_INFO, tag, "%s\n", message);
         }
         
         static void error(const char* tag, const char* message) {
-            ESP_LOGE(tag, "%s", message);
+            esp_log_write(ESP_LOG_ERROR, tag, "%s\n", message);
         }
         
         static void warning(const char* tag, const char* message) {
-            ESP_LOGW(tag, "%s", message);
+            esp_log_write(ESP_LOG_WARN, tag, "%s\n", message);
         }
         
-        // Support for std::string
-        static void log(const char* tag, const std::string& message) {
-            ESP_LOGI(tag, "%s", message.c_str());
+        // ESP-IDF compatible logging with printf-style formatting
+        static void logf(const char* tag, const char* format, ...) {
+            va_list args;
+            va_start(args, format);
+            esp_log_writev(ESP_LOG_INFO, tag, format, args);
+            va_end(args);
         }
         
-        static void error(const char* tag, const std::string& message) {
-            ESP_LOGE(tag, "%s", message.c_str());
+        static void errorf(const char* tag, const char* format, ...) {
+            va_list args;
+            va_start(args, format);
+            esp_log_writev(ESP_LOG_ERROR, tag, format, args);
+            va_end(args);
         }
         
-        static void warning(const char* tag, const std::string& message) {
-            ESP_LOGW(tag, "%s", message.c_str());
+        static void warningf(const char* tag, const char* format, ...) {
+            va_list args;
+            va_start(args, format);
+            esp_log_writev(ESP_LOG_WARN, tag, format, args);
+            va_end(args);
         }
     };
 }

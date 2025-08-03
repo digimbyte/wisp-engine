@@ -214,13 +214,15 @@ public:
     
     // Resource quota violation logging
     static void logQuotaViolation(const String& resourceType, uint32_t current, uint32_t max) {
-        std::string message = resourceType + " quota exceeded: " + std::to_string(current) + "/" + std::to_string(max);
+        char message[128];
+        snprintf(message, sizeof(message), "%s quota exceeded: %u/%u", resourceType, current, max);
         logError("QUOTA", message);
     }
     
     // Performance monitoring
     static void logPerformanceWarning(const String& operation, uint32_t timeUs, uint32_t limitUs) {
-        std::string message = operation + " took " + std::to_string(timeUs) + "μs (limit: " + std::to_string(limitUs) + "μs)";
+        char message[128];
+        snprintf(message, sizeof(message), "%s took %uμs (limit: %uμs)", operation, timeUs, limitUs);
         logWarning("PERFORMANCE", message);
     }
     

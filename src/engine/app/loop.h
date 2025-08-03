@@ -3,7 +3,6 @@
 // Structured application loop with timing and state management for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <vector>
 #include "../graphics/engine.h"
 #include "../physics/engine.h"
 #include "../audio/engine.h"
@@ -101,9 +100,16 @@ public:
     InputController* input;
     
     // App state
-    std::vector<AppEntity> entities;
-    std::vector<PhysicsRegion> regions;
-    std::vector<PhysicsEvent> frameEvents;
+    static const int MAX_ENTITIES = 256;
+    static const int MAX_REGIONS = 64;
+    static const int MAX_EVENTS = 128;
+    
+    AppEntity entities[MAX_ENTITIES];
+    int entityCount;
+    PhysicsRegion regions[MAX_REGIONS];
+    int regionCount;
+    PhysicsEvent frameEvents[MAX_EVENTS];
+    int eventCount;
     
     // Timing and performance
     uint32_t frameStartTime;
@@ -132,13 +138,13 @@ public:
         currentStage = STAGE_INPUT_COLLECTION;
         targetFrameTime = 16666; // ~60 FPS in microseconds
         
-        entities.clear();
-        regions.clear();
-        frameEvents.clear();
+        entityCount = 0;
+        regionCount = 0;
+        eventCount = 0;
         
         memset(stageTimings, 0, sizeof(stageTimings));
         
-        Serial.println("App Loop initialized");
+        WISP_DEBUG_INFO("LOOP", "App Loop initialized");
     }
     
     // Main app loop - call this every frame
@@ -314,11 +320,16 @@ public:
     }
     
     void stageRenderPrepare() {
-        // Sort entities by depth for rendering
-        std::sort(entities.begin(), entities.end(), 
-                 [](const AppEntity& a, const AppEntity& b) {
-                     return a.depth > b.depth; // Back to front
-                 });
+        // Sort entities by depth for rendering (bubble sort)
+        for (uint8_t i = 0; i < numEntities - 1; i++) {
+            for (uint8_t j = 0; j < numEntities - i - 1; j++) {
+                if (entities[j].depth < entities[j + 1].depth) { // Back to front
+                    AppEntity temp = entities[j];
+                    entities[j] = entities[j + 1];
+                    entities[j + 1] = temp;
+                }
+            }
+        }
     }
     
     void stageRenderExecute() {
@@ -465,10 +476,7 @@ private:
     void processTriggerEvent(const PhysicsEvent& event) {
         // This would call into C++ to handle trigger events
         // For now, just log them
-        Serial.print("Trigger: Entity ");
-        Serial.print(event.entityId);
-        Serial.print(" -> Region ");
-        Serial.println(event.regionId);
+        WISP_DEBUG_INFO("LOOP", "Trigger: Entity -> Region");
     }
     
     int16_t max(int16_t a, int16_t b) { return (a > b) ? a : b; }

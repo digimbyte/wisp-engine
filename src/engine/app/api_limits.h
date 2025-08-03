@@ -16,6 +16,7 @@
 #define WISP_MAX_INPUT_EVENTS       16      // Maximum input events per frame
 #define WISP_MAX_TIMERS             16      // Maximum active timers
 #define WISP_MAX_ANIMATIONS         32      // Maximum concurrent animations
+#define WISP_MAX_APPS               32      // Maximum apps in system
 
 // Memory Limits (in bytes)
 #define WISP_MAX_APP_MEMORY         (64 * 1024)    // 64KB max for app data

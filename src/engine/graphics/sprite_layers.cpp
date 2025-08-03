@@ -1,6 +1,6 @@
 // engine/sprite_layers.cpp
 #include "sprite_layers.h"
-#include <algorithm>
+// Using manual sorting for ESP-IDF compatibility
 
 // Global layer system instance
 WispSpriteLayerSystem* g_LayerSystem = nullptr;
@@ -75,11 +75,16 @@ bool WispSpriteLayerSystem::removeSprite(WispLayeredSprite* sprite) {
     
     // Remove from all layers (in case it's multi-layer)
     for (int layer = 0; layer < WISP_LAYER_COUNT; layer++) {
-        auto& layerSprites = layers[layer];
-        auto it = std::find(layerSprites.begin(), layerSprites.end(), sprite);
-        if (it != layerSprites.end()) {
-            layerSprites.erase(it);
-            removed = true;
+        for (int i = 0; i < layerCounts[layer]; i++) {
+            if (layers[layer][i] == sprite) {
+                // Shift remaining elements down
+                for (int j = i; j < layerCounts[layer] - 1; j++) {
+                    layers[layer][j] = layers[layer][j + 1];
+                }
+                layerCounts[layer]--;
+                removed = true;
+                break;
+            }
         }
     }
     
@@ -494,10 +499,16 @@ bool WispSpriteLayerSystem::isInViewport(float x, float y, float width, float he
 void WispSpriteLayerSystem::sortLayer(WispSpriteLayer layer) {
     if (!VALIDATE_LAYER(layer)) return;
     
-    std::sort(layers[layer].begin(), layers[layer].end(), 
-              [](const WispLayeredSprite* a, const WispLayeredSprite* b) {
-                  return a->renderPriority < b->renderPriority;
-              });
+    // Simple bubble sort for layer sprite ordering
+    for (int i = 0; i < layers[layer].size() - 1; i++) {
+        for (int j = 0; j < layers[layer].size() - i - 1; j++) {
+            if (layers[layer][j]->renderPriority > layers[layer][j + 1]->renderPriority) {
+                WispLayeredSprite* temp = layers[layer][j];
+                layers[layer][j] = layers[layer][j + 1];
+                layers[layer][j + 1] = temp;
+            }
+        }
+    }
 }
 
 void WispSpriteLayerSystem::validateSprite(WispLayeredSprite* sprite) {

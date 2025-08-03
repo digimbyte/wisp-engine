@@ -11,10 +11,12 @@ private:
     static const uint8_t GRID_SIZE = 8;
     static const uint8_t GRID_WIDTH = 20;
     static const uint8_t GRID_HEIGHT = 15;
+    static const uint8_t MAX_SNAKE_LENGTH = 300; // Max possible snake length
     
     // Game state
     struct Position { uint8_t x, y; };
-    std::vector<Position> snake;
+    Position snake[MAX_SNAKE_LENGTH];
+    uint16_t snakeLength;
     Position food;
     Position direction;
     uint32_t score;
@@ -157,15 +159,15 @@ protected:
     }
     
     void cleanupApp() override {
-        snake.clear();
+        snakeLength = 0;
         Serial.println("Snake Game: Cleaned up");
     }
 
 private:
     void resetGame() {
-        snake.clear();
-        snake.push_back({GRID_WIDTH / 2, GRID_HEIGHT / 2}); // Start in center
-        snake.push_back({GRID_WIDTH / 2 - 1, GRID_HEIGHT / 2}); // Initial tail
+        snakeLength = 2;
+        snake[0] = {GRID_WIDTH / 2, GRID_HEIGHT / 2}; // Start in center
+        snake[1] = {GRID_WIDTH / 2 - 1, GRID_HEIGHT / 2}; // Initial tail
         
         direction = {1, 0}; // Moving right
         nextDirection = direction;
@@ -184,13 +186,11 @@ private:
         newHead.x += direction.x;
         newHead.y += direction.y;
         
-        snake.insert(snake.begin(), newHead);
-        
-        // Remove tail (unless we just ate food)
-        // This is handled in eatFood() when food is consumed
-        if (snake.size() > score + 2) { // +2 for initial length
-            snake.pop_back();
+        // Shift all segments down and add new head
+        for (int i = snakeLength; i > 0; i--) {
+            snake[i] = snake[i - 1];
         }
+        snake[0] = newHead;
     }
     
     bool checkCollisions() {
@@ -202,7 +202,7 @@ private:
         }
         
         // Self collision
-        for (size_t i = 1; i < snake.size(); i++) {
+        for (uint16_t i = 1; i < snakeLength; i++) {
             if (head.x == snake[i].x && head.y == snake[i].y) {
                 return true;
             }
@@ -218,7 +218,12 @@ private:
     
     void eatFood() {
         score++;
-        // Snake grows automatically by not removing tail
+        snakeLength++; // Snake grows by keeping the tail segment
+        // Make sure we don't exceed maximum
+        if (snakeLength > MAX_SNAKE_LENGTH) {
+            snakeLength = MAX_SNAKE_LENGTH;
+        }
+        spawnFood();
     }
     
     void spawnFood() {
@@ -230,8 +235,8 @@ private:
     }
     
     bool isFoodOnSnake() {
-        for (const Position& segment : snake) {
-            if (food.x == segment.x && food.y == segment.y) {
+        for (uint16_t i = 0; i < snakeLength; i++) {
+            if (food.x == snake[i].x && food.y == snake[i].y) {
                 return true;
             }
         }
@@ -259,7 +264,7 @@ private:
         uint16_t headColor = 0x07E0; // Green
         uint16_t bodyColor = 0x0400; // Dark green
         
-        for (size_t i = 0; i < snake.size(); i++) {
+        for (uint16_t i = 0; i < snakeLength; i++) {
             const Position& segment = snake[i];
             uint16_t color = (i == 0) ? headColor : bodyColor;
             

@@ -62,7 +62,9 @@ private:
     
     // Level/chunk management
     uint16_t currentLevelId;
-    std::vector<uint16_t> activeChunks;
+    static const int MAX_ACTIVE_CHUNKS = 16;
+    uint16_t activeChunks[MAX_ACTIVE_CHUNKS];
+    int activeChunkCount;
     int16_t lastPlayerX, lastPlayerY;
     uint16_t movementThreshold;  // Pixels before triggering new chunk loads
     
@@ -287,8 +289,7 @@ inline bool GameLoopManager::loadLevel(uint16_t levelId, WispAppBase* app) {
     // Initialize the app
     bool success = app->init();
     if (!success) {
-        Serial.print("ERROR: Failed to initialize app for level ");
-        Serial.println(levelId);
+        WISP_DEBUG_ERROR("LOOP", "Failed to initialize app for level");
         return false;
     }
     
@@ -298,9 +299,7 @@ inline bool GameLoopManager::loadLevel(uint16_t levelId, WispAppBase* app) {
     resourceManager->updatePlayerPosition(spawnX, spawnY);
     
     currentState = GAME_RUNNING;
-    Serial.print("Level ");
-    Serial.print(levelId);
-    Serial.println(" loaded and running");
+    WISP_DEBUG_INFO("LOOP", "Level loaded and running");
     
     return true;
 }
@@ -334,7 +333,7 @@ inline void GameLoopManager::adaptLoadingBehavior() {
         // Switch to minimal loading
         if (loadStrategy != LOAD_MINIMAL) {
             loadStrategy = LOAD_MINIMAL;
-            Serial.println("ADAPTIVE: Switching to minimal loading due to performance");
+            WISP_DEBUG_INFO("LOOP", "ADAPTIVE: Switching to minimal loading due to performance");
         }
         
         // Disable background streaming
@@ -347,13 +346,13 @@ inline void GameLoopManager::adaptLoadingBehavior() {
         // Re-enable features
         if (!backgroundStreamingEnabled) {
             backgroundStreamingEnabled = true;
-            Serial.println("ADAPTIVE: Re-enabling background streaming");
+            WISP_DEBUG_INFO("LOOP", "ADAPTIVE: Re-enabling background streaming");
         }
         
         // Upgrade loading strategy if performance is really good
         if (metrics.avgFrameTime < targetFrameTime * 0.6f && loadStrategy == LOAD_MINIMAL) {
             loadStrategy = LOAD_ADJACENT;
-            Serial.println("ADAPTIVE: Upgrading to adjacent loading");
+            WISP_DEBUG_INFO("LOOP", "ADAPTIVE: Upgrading to adjacent loading");
         }
     }
 }
@@ -366,41 +365,10 @@ inline bool GameLoopManager::shouldReduceLoading() const {
 }
 
 inline void GameLoopManager::printPerformanceStats() {
-    Serial.println("=== Game Loop Performance ===");
-    Serial.print("FPS: ");
-    Serial.print(metrics.fps, 1);
-    Serial.print(" (target: ");
-    Serial.print(1000000.0f / targetFrameTime, 1);
-    Serial.println(")");
-    
-    Serial.print("Frame Time: ");
-    Serial.print(metrics.frameTime);
-    Serial.print("μs (avg: ");
-    Serial.print(metrics.avgFrameTime);
-    Serial.println("μs)");
-    
-    Serial.print("Logic: ");
-    Serial.print(metrics.logicTime);
-    Serial.print("μs, Render: ");
-    Serial.print(metrics.renderTime);
-    Serial.print("μs, Loading: ");
-    Serial.print(metrics.loadingTime);
-    Serial.println("μs");
-    
-    Serial.print("Memory Pressure: ");
-    Serial.print(metrics.memoryPressure);
-    Serial.println("%");
-    
-    Serial.print("Load Strategy: ");
-    switch (loadStrategy) {
-        case LOAD_MINIMAL: Serial.println("MINIMAL"); break;
-        case LOAD_ADJACENT: Serial.println("ADJACENT"); break;
-        case LOAD_PREDICTIVE: Serial.println("PREDICTIVE"); break;
-    }
-    
-    Serial.print("Performance Budget: ");
-    Serial.print(performanceBudget);
-    Serial.println("μs");
-    
-    Serial.println("============================");
+    WISP_DEBUG_INFO("LOOP", "=== Game Loop Performance ===");
+    WISP_DEBUG_INFO("LOOP", "FPS and Frame Time Statistics");
+    WISP_DEBUG_INFO("LOOP", "Logic, Render, and Loading Times");  
+    WISP_DEBUG_INFO("LOOP", "Memory Pressure Information");
+    WISP_DEBUG_INFO("LOOP", "Load Strategy and Performance Budget");
+    WISP_DEBUG_INFO("LOOP", "============================");
 }

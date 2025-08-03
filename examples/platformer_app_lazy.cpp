@@ -57,8 +57,10 @@ private:
     GraphicsEngine* graphics;
     
     // Game state
+    static const int MAX_ENTITIES = 100;
     PlatformerEntity player;
-    std::vector<PlatformerEntity> entities;
+    PlatformerEntity entities[MAX_ENTITIES];
+    int entityCount;
     
     // Camera system
     float cameraX, cameraY;
@@ -81,7 +83,7 @@ public:
         cameraX(0), cameraY(0), cameraTargetX(0), cameraTargetY(0),
         leftPressed(false), rightPressed(false), jumpPressed(false),
         currentLevel(0), levelWidth(1280), levelHeight(240),
-        lastEntityUpdate(0), entityUpdateInterval(16) {} // 60fps entity updates
+        lastEntityUpdate(0), entityUpdateInterval(16), entityCount(0) {} // 60fps entity updates
     
     bool init() override {
         Serial.println("Initializing Platformer Game...");
@@ -161,7 +163,7 @@ public:
     
     void cleanup() override {
         Serial.println("Cleaning up Platformer Game");
-        entities.clear();
+        entityCount = 0; 
     }
     
 private:
@@ -377,14 +379,17 @@ private:
         float leftEdge = cameraX - 64;   // Load entities 64 pixels off-screen
         float rightEdge = cameraX + 320 + 64;
         
-        // Remove entities that are too far away
-        entities.erase(
-            std::remove_if(entities.begin(), entities.end(),
-                [leftEdge, rightEdge](const PlatformerEntity& e) {
-                    return e.x < leftEdge || e.x > rightEdge;
-                }),
-            entities.end()
-        );
+        // Remove entities that are too far away using manual C-style loop
+        int writeIndex = 0;
+        for (int readIndex = 0; readIndex < entityCount; readIndex++) {
+            if (!(entities[readIndex].x < leftEdge || entities[readIndex].x > rightEdge)) {
+                if (writeIndex != readIndex) {
+                    entities[writeIndex] = entities[readIndex];
+                }
+                writeIndex++;
+            }
+        }
+        entityCount = writeIndex;
         
         // Add entities that should be visible
         // (In real game, this would load from chunk data)

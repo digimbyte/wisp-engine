@@ -68,7 +68,8 @@ struct EntityComponents {
 class EntitySystem {
 private:
     EntityComponents components;
-    std::vector<uint16_t> freeEntityIds;
+    uint16_t freeEntityIds[MAX_ENTITIES];
+    uint16_t freeEntityCount;
     uint16_t nextEntityId;
     uint16_t activeEntityCount;
     

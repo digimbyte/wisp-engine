@@ -2,6 +2,7 @@
 // Color lookup table system optimized for ESP32 memory constraints
 #include "../../../exports/lut_palette_data.h"
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include <stdio.h>  // For printf
 
 // Simple stub class for compilation
 class EnhancedLUTSystem {
@@ -153,7 +154,7 @@ namespace LUTHelpers {
         enhancedLUT.setupFlashEffect(0, 0xF800, 0xFFE0, 2);  // Red/Yellow flash
         enhancedLUT.setupFlashEffect(1, 0xF800, 0x0000, 3);  // Red/Black flash
         enhancedLUT.setupColorCycle(2, LUTPresets::WARNING_COLORS, LUTPresets::WARNING_COLORS_COUNT);
-        enhancedLUT.setupFlashEffect(3, 0xF800, 6);  // Red flash
+        enhancedLUT.setupFlashEffect(3, 0xF800, 0x0000, 6);  // Red flash
         
         printf("Enhanced LUT: Warning effects configured\n");
     }

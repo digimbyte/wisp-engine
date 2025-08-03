@@ -1,12 +1,12 @@
 #include "../src/engine/database/database_system.h"
-#include <iostream>
+#include "esp_log.h"
 
 // Test configurations to demonstrate safety limits
 void testMemorySafety() {
-    std::cout << "\n=== Wisp Database Safety Tests ===\n";
+    ESP_LOGI("SAFETY", "\n=== Wisp Database Safety Tests ===");
     
     // Test 1: Validate configuration sizes
-    std::cout << "\n1. Configuration Validation Tests:\n";
+    ESP_LOGI("SAFETY", "\n1. Configuration Validation Tests:");
     
     WispPartitionConfig validConfig = {
         .romSize = 2048, .saveSize = 2048, .backupSize = 1024, .runtimeSize = 2048,
@@ -18,47 +18,47 @@ void testMemorySafety() {
         .enableCompression = false, .enableEncryption = false, .maxCacheEntries = 8, .safetyLevel = 1
     };
     
-    std::cout << "Valid config (8KB total): ";
+    ESP_LOGI("SAFETY", "Valid config (8KB total): ");
     if (WISP_VALIDATE_CONFIG(&validConfig)) {
-        std::cout << "✅ PASSED - Within 16KB limit\n";
+        ESP_LOGI("SAFETY", "✅ PASSED - Within 16KB limit");
     } else {
-        std::cout << "❌ FAILED - Should be valid\n";
+        ESP_LOGE("SAFETY", "❌ FAILED - Should be valid");
     }
     
-    std::cout << "Oversized config (24KB total): ";
+    ESP_LOGI("SAFETY", "Oversized config (24KB total): ");
     if (!WISP_VALIDATE_CONFIG(&oversizedConfig)) {
-        std::cout << "✅ PASSED - Correctly rejected oversized config\n";
+        ESP_LOGI("SAFETY", "✅ PASSED - Correctly rejected oversized config");
     } else {
-        std::cout << "❌ FAILED - Should reject oversized config\n";
+        ESP_LOGE("SAFETY", "❌ FAILED - Should reject oversized config");
     }
     
     // Test 2: Entry size validation
-    std::cout << "\n2. Entry Size Validation Tests:\n";
+    ESP_LOGI("SAFETY", "\n2. Entry Size Validation Tests:");
     
-    std::cout << "Valid entry size (100 bytes): ";
+    ESP_LOGI("SAFETY", "Valid entry size (100 bytes): ");
     if (WISP_ENTRY_SIZE_VALID(100)) {
-        std::cout << "✅ PASSED\n";
+        ESP_LOGI("SAFETY", "✅ PASSED");
     } else {
-        std::cout << "❌ FAILED\n";
+        ESP_LOGE("SAFETY", "❌ FAILED");
     }
     
-    std::cout << "Oversized entry (2048 bytes): ";
+    ESP_LOGI("SAFETY", "Oversized entry (2048 bytes): ");
     if (!WISP_ENTRY_SIZE_VALID(2048)) {
-        std::cout << "✅ PASSED - Correctly rejected oversized entry\n";
+        ESP_LOGI("SAFETY", "✅ PASSED - Correctly rejected oversized entry");
     } else {
-        std::cout << "❌ FAILED - Should reject oversized entry\n";
+        ESP_LOGE("SAFETY", "❌ FAILED - Should reject oversized entry");
     }
     
-    std::cout << "Zero size entry: ";
+    ESP_LOGI("SAFETY", "Zero size entry: ");
     if (!WISP_ENTRY_SIZE_VALID(0)) {
-        std::cout << "✅ PASSED - Correctly rejected zero size\n";
+        ESP_LOGI("SAFETY", "✅ PASSED - Correctly rejected zero size");
     } else {
-        std::cout << "❌ FAILED - Should reject zero size\n";
+        ESP_LOGE("SAFETY", "❌ FAILED - Should reject zero size");
     }
 }
 
 void testBoundsProtection() {
-    std::cout << "\n3. Bounds Protection Tests:\n";
+    ESP_LOGI("SAFETY", "\n3. Bounds Protection Tests:");
     
     // Initialize with safe configuration
     WispPartitionConfig safeConfig = {
@@ -68,26 +68,26 @@ void testBoundsProtection() {
     
     WispErrorCode result = wispDB.initialize(&safeConfig);
     if (result != WISP_SUCCESS) {
-        std::cout << "❌ Failed to initialize database: " << (int)result << std::endl;
+        ESP_LOGE("SAFETY", "❌ Failed to initialize database: %d", (int)result);
         return;
     }
     
-    std::cout << "Database initialized with 3.5KB total allocation\n";
+    ESP_LOGI("SAFETY", "Database initialized with 3.5KB total allocation");
     
     // Test writing within limits
-    std::cout << "Writing small entries: ";
+    ESP_LOGI("SAFETY", "Writing small entries: ");
     uint8_t testData[100];
     for (int i = 0; i < 100; i++) testData[i] = i;
     
     result = wispDB.set(0x01010001, testData, 100);
     if (result == WISP_SUCCESS) {
-        std::cout << "✅ PASSED\n";
+        ESP_LOGI("SAFETY", "✅ PASSED");
     } else {
-        std::cout << "❌ FAILED: " << (int)result << std::endl;
+        ESP_LOGE("SAFETY", "❌ FAILED: %d", (int)result);
     }
     
     // Test filling partition to near capacity
-    std::cout << "Filling partition to capacity:\n";
+    ESP_LOGI("SAFETY", "Filling partition to capacity:");
     uint32_t key = 0x01010002;
     int entriesWritten = 0;
     
@@ -97,34 +97,34 @@ void testBoundsProtection() {
         if (result == WISP_SUCCESS) {
             entriesWritten++;
         } else if (result == WISP_ERROR_PARTITION_FULL) {
-            std::cout << "✅ PASSED - Partition full protection triggered after " << entriesWritten << " entries\n";
+            ESP_LOGI("SAFETY", "✅ PASSED - Partition full protection triggered after %d entries", entriesWritten);
             break;
         } else {
-            std::cout << "❌ FAILED with error: " << (int)result << std::endl;
+            ESP_LOGE("SAFETY", "❌ FAILED with error: %d", (int)result);
             break;
         }
         
         // Prevent infinite loop
         if (entriesWritten > 50) {
-            std::cout << "❌ FAILED - Partition should be full by now\n";
+            ESP_LOGE("SAFETY", "❌ FAILED - Partition should be full by now");
             break;
         }
     }
     
     // Test entry count limits
-    std::cout << "Entry count limit protection: ";
+    ESP_LOGI("SAFETY", "Entry count limit protection: ");
     uint16_t freeBytes = wispDB.getPartitionFreeBytes(WISP_DB_PARTITION_SAVE);
-    std::cout << freeBytes << " bytes still available\n";
+    ESP_LOGI("SAFETY", "%d bytes still available", freeBytes);
     
     // Display memory usage
-    std::cout << "\nMemory Usage Summary:\n";
+    ESP_LOGI("SAFETY", "\nMemory Usage Summary:");
     wispDB.printMemoryMap();
     
     wispDB.cleanup();
 }
 
 void testCorruptionDetection() {
-    std::cout << "\n4. Corruption Detection Tests:\n";
+    ESP_LOGI("SAFETY", "\n4. Corruption Detection Tests:");
     
     // Initialize database
     WispPartitionConfig testConfig = {
@@ -134,7 +134,7 @@ void testCorruptionDetection() {
     
     WispErrorCode result = wispDB.initialize(&testConfig);
     if (result != WISP_SUCCESS) {
-        std::cout << "❌ Failed to initialize database\n";
+        ESP_LOGE("SAFETY", "❌ Failed to initialize database");
         return;
     }
     
@@ -144,24 +144,24 @@ void testCorruptionDetection() {
     wispDB.setU32(0x01010003, 567890);
     
     // Validate database integrity
-    std::cout << "Database validation: ";
+    ESP_LOGI("SAFETY", "Database validation: ");
     if (wispDB.validateDatabase()) {
-        std::cout << "✅ PASSED - Database integrity confirmed\n";
+        ESP_LOGI("SAFETY", "✅ PASSED - Database integrity confirmed");
     } else {
-        std::cout << "❌ FAILED - Database integrity check failed\n";
+        ESP_LOGE("SAFETY", "❌ FAILED - Database integrity check failed");
     }
     
     // Test reading back data
-    std::cout << "Data integrity check:\n";
-    std::cout << "  U8 value: " << (int)wispDB.getU8(0x01010001) << " (expected: 42)\n";
-    std::cout << "  U16 value: " << wispDB.getU16(0x01010002) << " (expected: 1234)\n";
-    std::cout << "  U32 value: " << wispDB.getU32(0x01010003) << " (expected: 567890)\n";
+    ESP_LOGI("SAFETY", "Data integrity check:");
+    ESP_LOGI("SAFETY", "  U8 value: %d (expected: 42)", (int)wispDB.getU8(0x01010001));
+    ESP_LOGI("SAFETY", "  U16 value: %d (expected: 1234)", wispDB.getU16(0x01010002));
+    ESP_LOGI("SAFETY", "  U32 value: %lu (expected: 567890)", wispDB.getU32(0x01010003));
     
     wispDB.cleanup();
 }
 
 void testMemoryEfficiency() {
-    std::cout << "\n5. Memory Efficiency Analysis:\n";
+    ESP_LOGI("SAFETY", "\n5. Memory Efficiency Analysis:");
     
     // Compare different configurations
     struct ConfigTest {
@@ -183,23 +183,23 @@ void testMemoryEfficiency() {
                            tests[i].config.backupSize + tests[i].config.runtimeSize;
             float percentage = (total * 100.0f) / WISP_DB_LP_SRAM_SIZE;
             
-            std::cout << tests[i].name << ": " << total << " bytes (" << std::fixed << std::setprecision(1) << percentage << "% of LP-SRAM)\n";
+            ESP_LOGI("SAFETY", "%s: %d bytes (%.1f%% of LP-SRAM)", tests[i].name, total, percentage);
             
             // Test actual allocation
             uint16_t usedBytes = wispDB.getTotalUsedBytes();
             uint16_t freeBytes = wispDB.getTotalFreeBytes();
-            std::cout << "  Overhead: " << (usedBytes * 100) / total << "% of allocated space\n";
-            std::cout << "  LP-SRAM free: " << freeBytes << " bytes\n";
+            ESP_LOGI("SAFETY", "  Overhead: %d%% of allocated space", (usedBytes * 100) / total);
+            ESP_LOGI("SAFETY", "  LP-SRAM free: %d bytes", freeBytes);
             
             wispDB.cleanup();
         } else {
-            std::cout << tests[i].name << ": ❌ Configuration rejected\n";
+            ESP_LOGE("SAFETY", "%s: ❌ Configuration rejected", tests[i].name);
         }
     }
 }
 
 void demonstrateAppConfigurations() {
-    std::cout << "\n6. Real App Configuration Examples:\n";
+    ESP_LOGI("SAFETY", "\n6. Real App Configuration Examples:");
     
     // Show memory usage for our example apps
     struct AppExample {
@@ -214,38 +214,35 @@ void demonstrateAppConfigurations() {
         {"IoT Sensor Hub", 2048, 5120, 1536, 4352, "Multi-sensor logging with encryption"}
     };
     
-    std::cout << "\nApp Memory Allocations:\n";
-    std::cout << "App Name          | ROM  | Save | Backup | Runtime | Total | % of LP-SRAM\n";
-    std::cout << "------------------|------|------|--------|---------|-------|-------------\n";
+    ESP_LOGI("SAFETY", "\nApp Memory Allocations:");
+    ESP_LOGI("SAFETY", "%-18s| %4s | %4s | %6s | %7s | %5s | %s", 
+             "App Name", "ROM", "Save", "Backup", "Runtime", "Total", "% of LP-SRAM");
+    ESP_LOGI("SAFETY", "------------------|------|------|--------|---------|-------|-------------");
     
     for (int i = 0; i < 3; i++) {
         uint16_t total = apps[i].rom + apps[i].save + apps[i].backup + apps[i].runtime;
         float percentage = (total * 100.0f) / WISP_DB_LP_SRAM_SIZE;
         
-        std::cout << std::left << std::setw(18) << apps[i].name << "| ";
-        std::cout << std::right << std::setw(4) << apps[i].rom << " | ";
-        std::cout << std::setw(4) << apps[i].save << " | ";
-        std::cout << std::setw(6) << apps[i].backup << " | ";
-        std::cout << std::setw(7) << apps[i].runtime << " | ";
-        std::cout << std::setw(5) << total << " | ";
-        std::cout << std::setw(6) << std::fixed << std::setprecision(1) << percentage << "%\n";
-        std::cout << "                  | " << apps[i].description << "\n";
+        ESP_LOGI("SAFETY", "%-18s| %4d | %4d | %6d | %7d | %5d | %6.1f%%", 
+                 apps[i].name, apps[i].rom, apps[i].save, apps[i].backup, 
+                 apps[i].runtime, total, percentage);
+        ESP_LOGI("SAFETY", "                  | %s", apps[i].description);
     }
     
-    std::cout << "\nSafety Analysis:\n";
-    std::cout << "✅ All configurations leave safety margin\n";
-    std::cout << "✅ Snake game uses only 14% of LP-SRAM (ultra-safe)\n";
-    std::cout << "✅ Pokemon/IoT use ~80-85% (recommended maximum)\n";
-    std::cout << "✅ No configuration exceeds 16KB limit\n";
+    ESP_LOGI("SAFETY", "\nSafety Analysis:");
+    ESP_LOGI("SAFETY", "✅ All configurations leave safety margin");
+    ESP_LOGI("SAFETY", "✅ Snake game uses only 14%% of LP-SRAM (ultra-safe)");
+    ESP_LOGI("SAFETY", "✅ Pokemon/IoT use ~80-85%% (recommended maximum)");
+    ESP_LOGI("SAFETY", "✅ No configuration exceeds 16KB limit");
 }
 
 int main() {
-    std::cout << "Wisp Database System - Safety & Bounds Protection Demo\n";
-    std::cout << "======================================================\n";
-    std::cout << "LP-SRAM Size: " << WISP_DB_LP_SRAM_SIZE << " bytes (16KB)\n";
-    std::cout << "Max Entry Size: " << WISP_DB_MAX_ENTRY_SIZE << " bytes\n";
-    std::cout << "Entry Overhead: " << sizeof(WispEntryHeader) << " bytes\n";
-    std::cout << "Partition Overhead: " << sizeof(WispPartitionHeader) << " bytes\n";
+    ESP_LOGI("SAFETY", "Wisp Database System - Safety & Bounds Protection Demo");
+    ESP_LOGI("SAFETY", "======================================================");
+    ESP_LOGI("SAFETY", "LP-SRAM Size: %d bytes (16KB)", WISP_DB_LP_SRAM_SIZE);
+    ESP_LOGI("SAFETY", "Max Entry Size: %d bytes", WISP_DB_MAX_ENTRY_SIZE);
+    ESP_LOGI("SAFETY", "Entry Overhead: %zu bytes", sizeof(WispEntryHeader));
+    ESP_LOGI("SAFETY", "Partition Overhead: %zu bytes", sizeof(WispPartitionHeader));
     
     testMemorySafety();
     testBoundsProtection();
@@ -253,15 +250,15 @@ int main() {
     testMemoryEfficiency();
     demonstrateAppConfigurations();
     
-    std::cout << "\n=== Safety Test Complete ===\n";
-    std::cout << "✅ Database system protects against:\n";
-    std::cout << "   - Memory overflow (partition and entry bounds)\n";
-    std::cout << "   - Configuration errors (compile-time + runtime validation)\n";
-    std::cout << "   - Entry size violations (max 1KB per entry)\n";
-    std::cout << "   - Index overflow (max 255 entries per partition)\n";
-    std::cout << "   - Corruption detection (checksums and validation)\n";
-    std::cout << "   - Buffer overruns (all memory operations bounds-checked)\n";
-    std::cout << "\n🎯 Result: Robust 16KB database suitable for embedded systems!\n";
+    ESP_LOGI("SAFETY", "\n=== Safety Test Complete ===");
+    ESP_LOGI("SAFETY", "✅ Database system protects against:");
+    ESP_LOGI("SAFETY", "   - Memory overflow (partition and entry bounds)");
+    ESP_LOGI("SAFETY", "   - Configuration errors (compile-time + runtime validation)");
+    ESP_LOGI("SAFETY", "   - Entry size violations (max 1KB per entry)");
+    ESP_LOGI("SAFETY", "   - Index overflow (max 255 entries per partition)");
+    ESP_LOGI("SAFETY", "   - Corruption detection (checksums and validation)");
+    ESP_LOGI("SAFETY", "   - Buffer overruns (all memory operations bounds-checked)");
+    ESP_LOGI("SAFETY", "\n🎯 Result: Robust 16KB database suitable for embedded systems!");
     
     return 0;
 }

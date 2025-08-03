@@ -2,10 +2,8 @@
 // Persistent storage system using SPIFFS and LP-SRAM for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <map>
-#include <vector>
 // ESP-IDF native includes - no Arduino SPIFFS or SD libs
-#include "../../utils/debug/debug_system.h"
+#include "../../engine/core/debug.h"
 
 // Save data types supported by the system
 enum WispSaveDataType {
@@ -23,33 +21,46 @@ enum WispSaveDataType {
 
 // Individual save field definition
 struct WispSaveField {
-    String key;                 // Field identifier (e.g. "player_level", "high_score")
+    char key[64];               // Field identifier (e.g. "player_level", "high_score")
     WispSaveDataType type;      // Data type
     void* data;                 // Pointer to actual data
     size_t size;                // Size in bytes (for strings/blobs)
     bool isDirty;               // Has been modified since last save
     
-    WispSaveField() : type(SAVE_TYPE_BOOL), data(nullptr), size(0), isDirty(false) {}
+    WispSaveField() : type(SAVE_TYPE_BOOL), data(nullptr), size(0), isDirty(false) {
+        key[0] = '\0';
+    }
     
-    WispSaveField(const String& k, WispSaveDataType t, void* d, size_t s = 0) 
-        : key(k), type(t), data(d), size(s), isDirty(false) {}
+    WispSaveField(const char* k, WispSaveDataType t, void* d, size_t s = 0) 
+        : type(t), data(d), size(s), isDirty(false) {
+        strncpy(key, k, sizeof(key) - 1);
+        key[sizeof(key) - 1] = '\0';
+    }
 };
 
 // App identity for save file fingerprinting
 struct WispAppIdentity {
-    String uuid;                // Unique app identifier (e.g. "com.developer.gamename")
-    String version;             // App version for save compatibility
+    char uuid[64];              // Unique app identifier (e.g. "com.developer.gamename")
+    char version[16];           // App version for save compatibility
     uint32_t saveFormatVersion; // Save format version for migration
     
-    WispAppIdentity() : saveFormatVersion(1) {}
-    WispAppIdentity(const String& u, const String& v, uint32_t sfv = 1) 
-        : uuid(u), version(v), saveFormatVersion(sfv) {}
+    WispAppIdentity() : saveFormatVersion(1) {
+        uuid[0] = '\0';
+        version[0] = '\0';
+    }
+    WispAppIdentity(const char* u, const char* v, uint32_t sfv = 1) 
+        : saveFormatVersion(sfv) {
+        strncpy(uuid, u, sizeof(uuid) - 1);
+        uuid[sizeof(uuid) - 1] = '\0';
+        strncpy(version, v, sizeof(version) - 1);
+        version[sizeof(version) - 1] = '\0';
+    }
     
     // Generate fingerprint for save file validation
     uint32_t generateFingerprint() const {
         uint32_t hash = 5381; // djb2 hash
-        for (char c : uuid) {
-            hash = ((hash << 5) + hash) + c;
+        for (int i = 0; uuid[i] != '\0'; i++) {
+            hash = ((hash << 5) + hash) + uuid[i]; // hash * 33 + c
         }
         return hash ^ saveFormatVersion;
     }
@@ -91,20 +102,21 @@ enum WispSaveResult {
 class WispSaveSystem {
 private:
     WispAppIdentity currentApp;
-    std::map<String, WispSaveField> saveFields;
-    String saveDirectory;
+    WispSaveField saveFields[64]; // Fixed array for save fields
+    int saveFieldCount;
+    char saveDirectory[256];
     bool useSDCard;
     bool autoSave;
     uint32_t autoSaveInterval;
     uint32_t lastAutoSave;
     
     // Internal methods
-    String getSaveFilePath() const;
-    String getBackupFilePath() const;
+    void getSaveFilePath(char* buffer, size_t bufferSize) const;
+    void getBackupFilePath(char* buffer, size_t bufferSize) const;
     uint32_t calculateChecksum(const uint8_t* data, size_t size) const;
-    bool validateSaveFile(const String& filePath, WispSaveHeader& header) const;
-    WispSaveResult writeSaveData(const String& filePath) const;
-    WispSaveResult readSaveData(const String& filePath);
+    bool validateSaveFile(const char* filePath, WispSaveHeader& header) const;
+    WispSaveResult writeSaveData(const char* filePath) const;
+    WispSaveResult readSaveData(const char* filePath);
     void createBackup() const;
     bool restoreFromBackup();
     
@@ -120,21 +132,21 @@ public:
     
     // Save field registration (must be done before loading)
     template<typename T>
-    bool registerField(const String& key, T* dataPtr);
-    bool registerStringField(const String& key, String* stringPtr, size_t maxLength = 256);
-    bool registerBlobField(const String& key, void* dataPtr, size_t size);
+    bool registerField(const char* key, T* dataPtr);
+    bool registerStringField(const char* key, char* stringPtr, size_t maxLength = 256);
+    bool registerBlobField(const char* key, void* dataPtr, size_t size);
     
     // Save field access (null-safe)
     template<typename T>
-    T* getField(const String& key);
-    String* getStringField(const String& key);
-    void* getBlobField(const String& key, size_t* outSize = nullptr);
+    T* getField(const char* key);
+    char* getStringField(const char* key);
+    void* getBlobField(const char* key, size_t* outSize = nullptr);
     
     // Save field modification (marks dirty for auto-save)
     template<typename T>
-    bool setField(const String& key, const T& value);
-    bool setStringField(const String& key, const String& value);
-    bool setBlobField(const String& key, const void* data, size_t size);
+    bool setField(const char* key, const T& value);
+    bool setStringField(const char* key, const char* value);
+    bool setBlobField(const char* key, const void* data, size_t size);
     
     // Manual save/load operations
     WispSaveResult save();
@@ -156,23 +168,23 @@ public:
     size_t getMemoryUsage() const;
     
     // Field validation
-    bool hasField(const String& key) const;
-    WispSaveDataType getFieldType(const String& key) const;
-    bool isFieldDirty(const String& key) const;
-    void markFieldClean(const String& key);
+    bool hasField(const char* key) const;
+    WispSaveDataType getFieldType(const char* key) const;
+    bool isFieldDirty(const char* key) const;
+    void markFieldClean(const char* key);
     void markAllFieldsClean();
     
     // Save system status
-    bool isInitialized() const { return !currentApp.uuid.empty(); }
+    bool isInitialized() const { return currentApp.uuid[0] != '\0'; }
     const WispAppIdentity& getAppIdentity() const { return currentApp; }
-    size_t getFieldCount() const { return saveFields.size(); }
+    size_t getFieldCount() const { return saveFieldCount; }
 };
 
 // Template implementations for type-safe field registration
 template<typename T>
-bool WispSaveSystem::registerField(const String& key, T* dataPtr) {
+bool WispSaveSystem::registerField(const char* key, T* dataPtr) {
     if (!dataPtr || hasField(key)) {
-        DEBUG_ERROR("SAVE", "Invalid data pointer or field already exists: " + key);
+        WISP_DEBUG_ERROR("SAVE", "Invalid data pointer or field already exists");
         return false;
     }
     
@@ -180,47 +192,54 @@ bool WispSaveSystem::registerField(const String& key, T* dataPtr) {
     size_t size = sizeof(T);
     
     // Determine type based on template parameter
-    if (std::is_same<T, bool>::value) type = SAVE_TYPE_BOOL;
-    else if (std::is_same<T, int8_t>::value) type = SAVE_TYPE_INT8;
-    else if (std::is_same<T, uint8_t>::value) type = SAVE_TYPE_UINT8;
-    else if (std::is_same<T, int16_t>::value) type = SAVE_TYPE_INT16;
-    else if (std::is_same<T, uint16_t>::value) type = SAVE_TYPE_UINT16;
-    else if (std::is_same<T, int32_t>::value) type = SAVE_TYPE_INT32;
-    else if (std::is_same<T, uint32_t>::value) type = SAVE_TYPE_UINT32;
-    else if (std::is_same<T, float>::value) type = SAVE_TYPE_FLOAT;
+    if (sizeof(T) == sizeof(bool)) type = SAVE_TYPE_BOOL;
+    else if (sizeof(T) == sizeof(int8_t) && (T)(-1) < 0) type = SAVE_TYPE_INT8;
+    else if (sizeof(T) == sizeof(uint8_t) && (T)(-1) > 0) type = SAVE_TYPE_UINT8;
+    else if (sizeof(T) == sizeof(int16_t) && (T)(-1) < 0) type = SAVE_TYPE_INT16;
+    else if (sizeof(T) == sizeof(uint16_t) && (T)(-1) > 0) type = SAVE_TYPE_UINT16;
+    else if (sizeof(T) == sizeof(int32_t) && (T)(-1) < 0) type = SAVE_TYPE_INT32;
+    else if (sizeof(T) == sizeof(uint32_t) && (T)(-1) > 0) type = SAVE_TYPE_UINT32;
+    else if (sizeof(T) == sizeof(float)) type = SAVE_TYPE_FLOAT;
     else {
-        DEBUG_ERROR("SAVE", "Unsupported data type for field: " + key);
+        WISP_DEBUG_ERROR("SAVE", "Unsupported data type for field");
         return false;
     }
     
-    saveFields[key] = WispSaveField(key, type, dataPtr, size);
-    DEBUG_INFO("SAVE", "Registered field: " + key);
+    saveFields[saveFieldCount] = WispSaveField(key, type, dataPtr, size);
+    saveFieldCount++;
+    WISP_DEBUG_INFO("SAVE", "Registered field");
     return true;
 }
 
 template<typename T>
-T* WispSaveSystem::getField(const String& key) {
-    auto it = saveFields.find(key);
-    if (it == saveFields.end()) {
-        DEBUG_WARNING("SAVE", "Field not found: " + key);
-        return nullptr;
+T* WispSaveSystem::getField(const char* key) {
+    for (int i = 0; i < saveFieldCount; i++) {
+        if (strcmp(saveFields[i].key, key) == 0) {
+            return static_cast<T*>(saveFields[i].data);
+        }
     }
-    
-    // Type safety check would go here in a more robust implementation
-    return static_cast<T*>(it->second.data);
+    WISP_DEBUG_WARNING("SAVE", "Field not found");
+    return nullptr;
 }
 
 template<typename T>
-bool WispSaveSystem::setField(const String& key, const T& value) {
+bool WispSaveSystem::setField(const char* key, const T& value) {
     T* fieldPtr = getField<T>(key);
     if (!fieldPtr) {
         return false;
     }
     
     *fieldPtr = value;
-    saveFields[key].isDirty = true;
     
-    DEBUG_INFO("SAVE", "Field updated: " + key);
+    // Find and mark field as dirty
+    for (int i = 0; i < saveFieldCount; i++) {
+        if (strcmp(saveFields[i].key, key) == 0) {
+            saveFields[i].isDirty = true;
+            break;
+        }
+    }
+    
+    WISP_DEBUG_INFO("SAVE", "Field updated");
     return true;
 }
 

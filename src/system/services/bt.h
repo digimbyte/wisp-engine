@@ -34,22 +34,22 @@ static String deviceName = "WispEngine";
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     switch (event) {
     case ESP_SPP_INIT_EVT:
-        ESP_LOGI(TAG, "ESP_SPP_INIT_EVT");
+        WISP_DEBUG_INFO(TAG, "ESP_SPP_INIT_EVT");
         esp_bt_dev_set_device_name(deviceName.c_str());
         esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
         esp_spp_start_srv(ESP_SPP_SEC_AUTHENTICATE, ESP_SPP_ROLE_SLAVE, 0, "WispEngine");
         break;
     case ESP_SPP_OPEN_EVT:
     case ESP_SPP_SRV_OPEN_EVT:
-        ESP_LOGI(TAG, "Bluetooth Classic client connected");
+        WISP_DEBUG_INFO(TAG, "Bluetooth Classic client connected");
         clientConnected = true;
         break;
     case ESP_SPP_CLOSE_EVT:
-        ESP_LOGI(TAG, "Bluetooth Classic client disconnected");
+        WISP_DEBUG_INFO(TAG, "Bluetooth Classic client disconnected");
         clientConnected = false;
         break;
     case ESP_SPP_DATA_IND_EVT:
-        ESP_LOGI(TAG, "Received %d bytes", param->data_ind.len);
+        WISP_DEBUG_INFO(TAG, "Received data");
         break;
     default:
         break;
@@ -68,12 +68,12 @@ inline bool beginClassic(const String& name) {
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
-        ESP_LOGE(TAG, "Initialize controller failed: %s", esp_err_to_name(ret));
+        WISP_DEBUG_ERROR(TAG, "Initialize controller failed");
         return false;
     }
 
     if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) {
-        ESP_LOGE(TAG, "Enable controller failed: %s", esp_err_to_name(ret));
+        WISP_DEBUG_ERROR(TAG, "Enable controller failed");
         return false;
     }
 

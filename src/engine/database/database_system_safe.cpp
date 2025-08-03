@@ -1,5 +1,6 @@
 #include "database_system.h"
-#include <cstring>
+#include <string.h>
+#include <utility>   // For std::pair
 #include <algorithm>
 
 // Magic numbers for partition validation
@@ -61,7 +62,7 @@ WispErrorCode WispPartitionedDB::initialize(const WispPartitionConfig* partition
     
     // Initialize cache if requested
     if (config.maxCacheEntries > 0) {
-        cacheSize = std::min((uint8_t)config.maxCacheEntries, (uint8_t)64); // Max 64 entries
+        cacheSize = (config.maxCacheEntries < 64) ? config.maxCacheEntries : 64; // Max 64 entries
         size_t cacheMemory = cacheSize * sizeof(WispCacheEntry);
         
         // Ensure cache fits in runtime partition

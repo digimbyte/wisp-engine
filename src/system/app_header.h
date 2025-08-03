@@ -85,10 +85,10 @@ namespace AppFeatures {
 class AppHeaderUtils {
 public:
     // Create default app header
-    static AppHeader createDefault(const String& appName) {
+    static AppHeader createDefault(const char* appName) {
         AppHeader header = {};
         
-        strncpy(header.name, appName.c_str(), sizeof(header.name) - 1);
+        strncpy(header.name, appName, sizeof(header.name) - 1);
         strncpy(header.version, "1.0.0", sizeof(header.version) - 1);
         strncpy(header.author, "Unknown", sizeof(header.author) - 1);
         
@@ -186,9 +186,9 @@ public:
     // Print app header info
     static void printInfo(const AppHeader& header) {
         ESP_LOGI("APP_HEADER", "=== App Header ===");
-        ESP_LOGI("APP_HEADER", "Name: %s", header.name.c_str());
-        ESP_LOGI("APP_HEADER", "Version: %s", header.version.c_str());
-        ESP_LOGI("APP_HEADER", "Author: %s", header.author.c_str());
+        ESP_LOGI("APP_HEADER", "Name: %s", header.name);
+        ESP_LOGI("APP_HEADER", "Version: %s", header.version);
+        ESP_LOGI("APP_HEADER", "Author: %s", header.author);
         ESP_LOGI("APP_HEADER", "Target FPS: %d", header.targetFrameRate);
         ESP_LOGI("APP_HEADER", "Min FPS: %d", header.minimumFrameRate);
         ESP_LOGI("APP_HEADER", "Memory: %d KB", header.resources.maxMemoryKB);

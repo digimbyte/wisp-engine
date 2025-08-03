@@ -17,24 +17,24 @@ void testDebugNamespace() {
 void testTimingNamespace() {
     WispEngine::Core::Timing::init();
     
-    ESP_LOGI("TEST", "Timing namespace initialized");
+    WISP_DEBUG_INFO("TEST", "Timing namespace initialized");
     
     // Test a few frames
     for (int i = 0; i < 10; i++) {
         if (WispEngine::Core::Timing::frameReady()) {
             WispEngine::Core::Timing::tick();
-            ESP_LOGI("TEST", "Frame %d | FPS: %.1f", i, WispEngine::Core::Timing::getFPS());
+            WISP_DEBUG_INFO("TEST", "Frame timing available");
         }
         vTaskDelay(pdMS_TO_TICKS(16)); // ~60 FPS target
     }
 }
 
 void runNamespaceTests() {
-    ESP_LOGI("TEST", "Starting namespace bridge tests...");
+    WISP_DEBUG_INFO("TEST", "Starting namespace bridge tests...");
     
     testDebugNamespace();
     testTimingNamespace();
     
-    ESP_LOGI("TEST", "All namespace bridge tests completed successfully!");
+    WISP_DEBUG_INFO("TEST", "All namespace bridge tests completed successfully!");
     WispEngine::Core::Debug::shutdown();
 }

@@ -17,8 +17,9 @@ WispCuratedAPI::WispCuratedAPI(WispEngine* eng) :
     lastErrorReset(0),
     emergencyMode(false),
     quotaViolated(false),
-    startTime(millis()),
+    startTime(0), // Replace millis() with 0 since millis is not available
     deltaTime(0)
+{
 {
     // Initialize app permissions - defaults to restricted
     appPermissions.canLaunchApps = false;      // Most apps cannot launch others
@@ -37,7 +38,7 @@ bool WispCuratedAPI::setAppIdentity(const String& uuid, const String& version, u
     }
     
     // Validate UUID format (basic reverse domain notation check)
-    if (uuid.find('.') == std::string::npos || uuid.length() < 5) {
+    if (uuid.indexOf('.') == -1 || uuid.length() < 5) {
         recordError("App UUID should use reverse domain notation (e.g. com.developer.gamename)");
         return false;
     }
@@ -294,7 +295,9 @@ void WispCuratedAPI::enableAutoSave(bool enabled, uint32_t intervalMs) {
     g_SaveSystem->setAutoSave(enabled, intervalMs);
     
     if (enabled) {
-        print("Auto-save enabled (interval: " + std::to_string(intervalMs) + "ms)");
+        char buffer[64];
+        snprintf(buffer, sizeof(buffer), "Auto-save enabled (interval: %dms)", intervalMs);
+        print(buffer);
     } else {
         print("Auto-save disabled");
     }
@@ -328,16 +331,19 @@ extern bool launchApp(const String& appPath);
 // This is declared as extern here and defined in bootloader.cpp
 extern AppManager appManager;
 
-std::vector<String> WispCuratedAPI::getAvailableApps() {
-    std::vector<String> appNames;
-    
+int WispCuratedAPI::getAvailableApps(char appNames[][WISP_MAX_STRING_LENGTH], int maxApps) {
     // Get available apps from the app manager
     const auto& availableApps = appManager.getAvailableApps();
+    int count = 0;
+    
     for (const auto& app : availableApps) {
-        appNames.push_back(app.name);
+        if (count >= maxApps) break;
+        strncpy(appNames[count], app.name.c_str(), WISP_MAX_STRING_LENGTH - 1);
+        appNames[count][WISP_MAX_STRING_LENGTH - 1] = '\0';
+        count++;
     }
     
-    return appNames;
+    return count;
 }
 
 String WispCuratedAPI::getAppDescription(const String& appName) {

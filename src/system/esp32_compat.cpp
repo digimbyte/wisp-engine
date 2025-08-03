@@ -2,7 +2,7 @@
 #include "esp32_common.h"
 
 // Global instances for Arduino compatibility
-Serial_Class Serial;
+SerialClass Serial;
 SD_Class SD;
 ESP_Class ESP;
 

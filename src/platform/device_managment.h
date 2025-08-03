@@ -26,7 +26,9 @@ inline String generateDeviceId() {
   for (int i = 0; i < 16; ++i) sprintf(hex + i * 2, "%02X", hash[i]);
   hex[32] = '\0';
 
-  return std::to_string(hex);
+  char hex[17];
+  snprintf(hex, sizeof(hex), "%016llX", chipId);
+  return hex;
 }
 
 inline String ensureDeviceId() {
@@ -60,7 +62,7 @@ inline String getMacAddress() {
   char buf[18];
   snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  return std::string(buf);
+  return buf;
 }
 
 inline uint32_t getUptimeMs() {

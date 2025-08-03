@@ -19,7 +19,9 @@ private:
             name(n), valuePtr(ptr), minValue(minVal), maxValue(maxVal), step(s), unit(u) {}
     };
     
-    std::vector<DisplaySetting> settings;
+    static const int MAX_SETTINGS = 20;
+    DisplaySetting settings[MAX_SETTINGS];
+    int settingCount;
     int selectedIndex;
     bool editMode;
     
@@ -136,7 +138,9 @@ public:
             if (!setting.unit.empty()) {
                 if (setting.unit == "%") {
                     int percent = map(*setting.valuePtr, setting.minValue, setting.maxValue, 0, 100);
-                    valueText = std::to_string(percent) + "%";
+                    char buffer[16];
+                    snprintf(buffer, sizeof(buffer), "%d%%", percent);
+                    valueText = buffer;
                 } else {
                     valueText += " " + setting.unit;
                 }
@@ -195,10 +199,13 @@ private:
     void applySettings() {
         // Apply brightness immediately
         // TODO: This would interface with the actual display system
-        api->print("Applied brightness: " + std::to_string(brightness));
+        char buffer[64];
+        snprintf(buffer, sizeof(buffer), "Applied brightness: %d", brightness);
+        api->print(buffer);
         
         // Apply color profile
-        api->print("Applied color profile: " + std::to_string(colorProfile));
+        snprintf(buffer, sizeof(buffer), "Applied color profile: %d", colorProfile);
+        api->print(buffer);
         
         // Apply VSync setting
         api->print("Applied VSync: " + String(vsyncEnabled ? "ON" : "OFF"));
@@ -206,10 +213,15 @@ private:
     
     void saveSettings() {
         // Save to persistent storage
-        api->saveData("display.brightness", std::to_string(brightness));
-        api->saveData("display.colorProfile", std::to_string(colorProfile));
-        api->saveData("display.vsync", std::to_string(vsyncEnabled));
-        api->saveData("display.screenSaver", std::to_string(screenSaver));
+        char valueStr[16];
+        snprintf(valueStr, sizeof(valueStr), "%d", brightness);
+        api->saveData("display.brightness", valueStr);
+        snprintf(valueStr, sizeof(valueStr), "%d", colorProfile);
+        api->saveData("display.colorProfile", valueStr);
+        snprintf(valueStr, sizeof(valueStr), "%d", vsyncEnabled);
+        api->saveData("display.vsync", valueStr);
+        snprintf(valueStr, sizeof(valueStr), "%d", screenSaver);
+        api->saveData("display.screenSaver", valueStr);
         
         api->print("Display settings saved");
     }

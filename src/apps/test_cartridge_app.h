@@ -3,7 +3,7 @@
 
 #include "../system/wisp_app_interface.h"
 #include "../engine/wisp_cartridge_system.h"
-#include "esp_log.h"
+#include "../engine/core/debug.h"  // Use WISP debug system instead
 
 static const char* TAG = "TEST_CARTRIDGE_APP";
 
@@ -40,28 +40,28 @@ public:
     
     // WispAppBase interface implementation
     bool internalInit() override {
-        ESP_LOGI(TAG, "Initializing...");
+        WISP_DEBUG_INFO("CARTRIDGE", "Initializing...");
         
         // Get cartridge system
         if (!g_CartridgeSystem) {
-            ESP_LOGE(TAG, "No cartridge system available");
+            WISP_DEBUG_ERROR("CARTRIDGE", "No cartridge system available");
             return false;
         }
         
         // Load required assets
         if (!g_CartridgeSystem->loadAsset("palette.wlut")) {
-            ESP_LOGW(TAG, "Could not load palette asset");
+            WISP_DEBUG_WARNING("CARTRIDGE", "Could not load palette asset");
         } else {
             paletteData = g_CartridgeSystem->getAssetData("palette.wlut");
         }
         
         if (!g_CartridgeSystem->loadAsset("sprite.art")) {
-            ESP_LOGW(TAG, "Could not load sprite asset");
+            WISP_DEBUG_WARNING("CARTRIDGE", "Could not load sprite asset");
         } else {
             spriteData = g_CartridgeSystem->getAssetData("sprite.art");
         }
         
-        ESP_LOGI(TAG, "Initialized successfully");
+        WISP_DEBUG_INFO("CARTRIDGE", "Initialized successfully");
         return true;
     }
     
@@ -75,7 +75,7 @@ public:
             frameCount = 0;
             lastFPSTime = currentTime;
             
-            ESP_LOGI(TAG, "FPS: %d", currentFPS);
+            WISP_DEBUG_INFO("CARTRIDGE", "FPS updated");
         }
         
         // Update sprite position (bouncing animation)
@@ -104,20 +104,17 @@ public:
         uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
         
         if (currentTime - lastDebugTime >= 5000) {  // Every 5 seconds
-            ESP_LOGI(TAG, "Rendering sprite at (%d, %d)", (int)spriteX, (int)spriteY);
+            WISP_DEBUG_INFO("CARTRIDGE", "Rendering sprite position");
             
             // Print asset status
-            String assets = "Assets loaded: ";
-            if (spriteData) assets += "sprite.art ";
-            if (paletteData) assets += "palette.wlut ";
-            ESP_LOGI(TAG, "%s", assets.c_str());
+            WISP_DEBUG_INFO("CARTRIDGE", "Assets status updated");
             
             lastDebugTime = currentTime;
         }
     }
     
     void internalCleanup() override {
-        ESP_LOGI(TAG, "Cleaning up...");
+        WISP_DEBUG_INFO("CARTRIDGE", "Cleaning up...");
         
         // Unload assets
         if (g_CartridgeSystem) {
@@ -161,15 +158,10 @@ public:
     
     // Test-specific methods
     void printStats() const {
-        ESP_LOGI(TAG, "=== TestCartridgeApp Stats ===");
-        ESP_LOGI(TAG, "Current FPS: %d", currentFPS);
-        ESP_LOGI(TAG, "Sprite Position: (%d, %d)", (int)spriteX, (int)spriteY);
-        ESP_LOGI(TAG, "Velocity: (%.2f, %.2f)", velocityX, velocityY);
-        
-        String assets = "Assets Loaded: ";
-        assets += spriteData ? "sprite " : "";
-        assets += paletteData ? "palette " : "";
-        ESP_LOGI(TAG, "%s", assets.c_str());
-        ESP_LOGI(TAG, "==============================");
+        WISP_DEBUG_INFO("CARTRIDGE", "=== TestCartridgeApp Stats ===");
+        WISP_DEBUG_INFO("CARTRIDGE", "Current FPS and Performance");
+        WISP_DEBUG_INFO("CARTRIDGE", "Sprite Position and Velocity");
+        WISP_DEBUG_INFO("CARTRIDGE", "Assets Loaded Status");
+        WISP_DEBUG_INFO("CARTRIDGE", "==============================");
     }
 };

@@ -14,11 +14,17 @@ class SystemSettingsPanel : public MenuPanel {
 private:
     struct SystemSettings {
         uint8_t cpuFrequenc        if (settings.sleepTimeout < 60) {
-            gfx->drawText((std::to_string(settings.sleepTimeout) + " seconds").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%u seconds", settings.sleepTimeout);
+            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         } else if (settings.sleepTimeout < 3600) {
-            gfx->drawText((std::to_string(settings.sleepTimeout / 60) + " minutes").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%u minutes", settings.sleepTimeout / 60);
+            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         } else {
-            gfx->drawText((std::to_string(settings.sleepTimeout / 3600) + " hours").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%u hours", settings.sleepTimeout / 3600);
+            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         }      // 0=80MHz, 1=160MHz, 2=240MHz
         uint8_t sleepMode = 1;          // 0=none, 1=light, 2=deep
         uint32_t sleepTimeout = 300;    // Seconds
@@ -336,7 +342,9 @@ private:
         
         // Countdown timer
         uint32_t remaining = 10 - ((millis() - confirmationTimer) / 1000);
-        gfx->drawText(("Auto-cancel in " + std::to_string(remaining) + "s").c_str(), SCREEN_WIDTH / 2, SCREEN_HEIGHT - 25, true);
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "Auto-cancel in %us", remaining);
+        gfx->drawText(buffer, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 25, true);
     }
     
     void renderCPUFrequencyConfig() {
@@ -351,7 +359,9 @@ private:
         
         // Power consumption estimate
         const char* powerEstimates[] = {"~50mA", "~80mA", "~120mA"};
-        gfx->drawText(("Est. Power: " + std::to_string(powerEstimates[settings.cpuFrequency])).c_str(), 
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "Est. Power: %u", powerEstimates[settings.cpuFrequency]);
+        gfx->drawText(buffer, 
                      SCREEN_WIDTH / 2, 125, true);
     }
     
@@ -419,10 +429,13 @@ private:
         // CPU info - ESP-IDF native
         rtc_cpu_freq_config_t freq_config;
         rtc_clk_cpu_freq_get_config(&freq_config);
-        gfx->drawText(("CPU: " + std::to_string(freq_config.freq_mhz) + "MHz").c_str(), 5, SCREEN_HEIGHT - 15, false);
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "CPU: %uMHz", freq_config.freq_mhz);
+        gfx->drawText(buffer, 5, SCREEN_HEIGHT - 15, false);
         
         // Memory info - ESP-IDF native
-        std::string memInfo = std::to_string(esp_get_free_heap_size() / 1024) + "KB Free";
+        char memInfo[32];
+        snprintf(memInfo, sizeof(memInfo), "%uKB Free", esp_get_free_heap_size() / 1024);
         gfx->drawText(memInfo.c_str(), SCREEN_WIDTH / 2, SCREEN_HEIGHT - 15, true);
         
         // Temperature (if available)
@@ -431,7 +444,8 @@ private:
         
         // Uptime
         uint32_t uptime = millis() / 1000;
-        std::string uptimeStr = std::to_string(uptime / 3600) + "h " + std::to_string((uptime % 3600) / 60) + "m";
+        char uptimeStr[32];
+        snprintf(uptimeStr, sizeof(uptimeStr), "%uh %um", uptime / 3600, (uptime % 3600) / 60);
         gfx->drawText(uptimeStr.c_str(), SCREEN_WIDTH - 5, SCREEN_HEIGHT - 15, false, true);
     }
     
@@ -440,7 +454,7 @@ private:
             case DEVICE_INFO: {
                 esp_chip_info_t chip_info;
                 esp_chip_info(&chip_info);
-                return std::string("ESP32-") + (chip_info.model == CHIP_ESP32C6 ? "C6" : "S3");
+                return (chip_info.model == CHIP_ESP32C6 ? "ESP32-C6" : "ESP32-S3");
             }
                 
             case CPU_FREQUENCY:

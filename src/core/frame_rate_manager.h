@@ -165,7 +165,7 @@ public:
             int32_t diff = actualFrameTimes[i] - averageFrameTime;
             sum += diff * diff;
         }
-        return sqrt(sum / 16.0f);
+        return sqrtf(sum / 16.0f);
     }
     
     uint32_t getDroppedFrameCount() const {

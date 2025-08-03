@@ -82,7 +82,7 @@ inline void disconnect(bool resetMode = true) {
   }
 }
 
-inline void scanNetworks(std::vector<String>& results) {
+inline void scanNetworks(char networks[][64], int* networkCount, int maxNetworks) {
   results.clear();
   
   wifi_scan_config_t scan_config = {};

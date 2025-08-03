@@ -1,15 +1,16 @@
 // database_system.h - ESP32-C6/S3 Database System Declarations
 #pragma once
 
-// Use centralized engine header for namespace organization  
+// Use central header for namespace organization  
 #include "../../wisp_engine.h"
-#include <vector>
-#include <map>
-#include <string>
 #include <esp_crc.h>
 
 // Implement the Database namespace components
-namespace WispEngine::Database {
+// Forward declarations to avoid namespace conflicts
+#include <utility>   // Include before namespace to avoid conflicts
+#include <type_traits>
+
+// Note: Avoiding namespace due to C++ stdlib conflicts - using class prefixes instead
 
 // Database configuration constants
 #define WISP_DB_MAX_ITEMS 256
@@ -84,8 +85,8 @@ struct WispDBEntry {
 // Item system structures
 struct WispItem {
     uint16_t itemId;
-    std::string name;
-    std::string description;
+    char name[64];
+    char description[128];
     uint8_t category;
     uint8_t rarity;
     uint32_t value;
@@ -98,9 +99,9 @@ struct WispItem {
 // Quest system structures
 struct WispQuest {
     uint16_t questId;
-    std::string title;
-    std::string description;
-    uint8_t status; // 0=inactive, 1=active, 2=completed
+    char title[64];
+    char description[256];
+    uint8_t status;             // Quest status (0=not started, 1=active, 2=complete, etc.)
     uint8_t progress;
     uint32_t flags;
     
@@ -174,7 +175,7 @@ public:
     static bool addToInventory(uint16_t itemId, uint8_t quantity = 1);
     static bool hasInInventory(uint16_t itemId, uint8_t quantity = 1);
     static uint8_t getInventoryCount(uint16_t itemId);
-    static std::vector<WispInventorySlot> getInventory();
+    static void getInventory(WispInventorySlot* inventory, uint8_t* numSlots, uint8_t maxSlots);
     
     // Debug and statistics
     static void printDatabaseStats();
@@ -198,10 +199,10 @@ public:
     bool isInitialized() const;
     
     // Data operations (to be implemented)
-    bool store(const std::string& key, const void* data, size_t size);
-    bool retrieve(const std::string& key, void* data, size_t maxSize);
-    bool remove(const std::string& key);
-    bool exists(const std::string& key);
+    bool store(const char* key, const void* data, uint32_t size);
+    bool retrieve(const char* key, void* data, uint32_t maxSize);
+    bool remove(const char* key);
+    bool exists(const char* key);
 };
 
 // Global database instance

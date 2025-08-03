@@ -5,16 +5,15 @@
 #include "snake_game_db_config.h"
 #include "iot_sensor_db_config.h"
 
-#include <iostream>
-#include <cstring>
+#include "esp_log.h"
 
 void demonstratePokemonConfig() {
-    std::cout << "\n=== Pokemon RPG Database Demo ===\n";
+    ESP_LOGI("DEMO", "\n=== Pokemon RPG Database Demo ===");
     
     // Initialize with Pokemon configuration
     WispErrorCode result = POKEMON_DB_INIT();
     if (result != WISP_SUCCESS) {
-        std::cout << "Failed to initialize Pokemon database: " << result << std::endl;
+        ESP_LOGE("DEMO", "Failed to initialize Pokemon database: %d", result);
         return;
     }
     
@@ -35,27 +34,26 @@ void demonstratePokemonConfig() {
     
     // Retrieve and display data
     TrainerData retrievedTrainer = POKEMON_GET_TRAINER(1);
-    std::cout << "Trainer: " << retrievedTrainer.name << ", Money: " << retrievedTrainer.money << std::endl;
+    ESP_LOGI("DEMO", "Trainer: %s, Money: %d", retrievedTrainer.name, retrievedTrainer.money);
     
     PokemonInstance retrievedPikachu = POKEMON_GET_CAPTURED(1);
-    std::cout << "Pokemon: " << retrievedPikachu.nickname << ", Level: " << (int)retrievedPikachu.level << std::endl;
+    ESP_LOGI("DEMO", "Pokemon: %s, Level: %d", retrievedPikachu.nickname, (int)retrievedPikachu.level);
     
     // Display database stats
     WispDBStats stats;
     wispDB.getStats(&stats);
-    std::cout << "Pokemon DB - Total entries: " << stats.totalEntries;
-    std::cout << ", Used: " << stats.usedSize << "/" << stats.totalSize << " bytes" << std::endl;
+    ESP_LOGI("DEMO", "Pokemon DB - Total entries: %zu, Used: %zu/%zu bytes", stats.totalEntries, stats.usedSize, stats.totalSize);
     
     wispDB.cleanup();
 }
 
 void demonstrateSnakeConfig() {
-    std::cout << "\n=== Snake Game Database Demo ===\n";
+    ESP_LOGI("DEMO", "\n=== Snake Game Database Demo ===");
     
     // Initialize with Snake configuration
     WispErrorCode result = SNAKE_DB_INIT();
     if (result != WISP_SUCCESS) {
-        std::cout << "Failed to initialize Snake database: " << result << std::endl;
+        ESP_LOGE("DEMO", "Failed to initialize Snake database: %d", result);
         return;
     }
     
@@ -79,35 +77,30 @@ void demonstrateSnakeConfig() {
     uint16_t highScore = SNAKE_GET_HIGH_SCORE();
     GameState state = SNAKE_GET_GAME_STATE();
     
-    std::cout << "High Score: " << highScore << std::endl;
-    std::cout << "Current - Level: " << (int)state.level << ", Score: " << state.score;
-    std::cout << ", Length: " << (int)state.snakeLength << std::endl;
+    ESP_LOGI("DEMO", "High Score: %u", highScore);
+    ESP_LOGI("DEMO", "Current - Level: %d, Score: %u, Length: %d", (int)state.level, state.score, (int)state.snakeLength);
     
     SnakeSegment head = SNAKE_GET_SEGMENT(0);
     FoodPosition food = SNAKE_GET_FOOD();
-    std::cout << "Snake head at (" << (int)head.x << "," << (int)head.y << ")";
-    std::cout << ", Food at (" << (int)food.x << "," << (int)food.y << ")" << std::endl;
+    ESP_LOGI("DEMO", "Snake head at (%d,%d), Food at (%d,%d)", (int)head.x, (int)head.y, (int)food.x, (int)food.y);
     
     // Display database stats
     WispDBStats stats;
     wispDB.getStats(&stats);
-    std::cout << "Snake DB - Total entries: " << stats.totalEntries;
-    std::cout << ", Used: " << stats.usedSize << "/" << stats.totalSize << " bytes" << std::endl;
+    ESP_LOGI("DEMO", "Snake DB - Total entries: %zu, Used: %zu/%zu bytes", stats.totalEntries, stats.usedSize, stats.totalSize);
     
     wispDB.cleanup();
 }
 
 void demonstrateIoTConfig() {
-    std::cout << "\n=== IoT Sensor Hub Database Demo ===\n";
+    ESP_LOGI("DEMO", "\n=== IoT Sensor Hub Database Demo ===");
     
-    // Initialize with IoT configuration
+    // Initialize with IoT configuration  
     WispErrorCode result = IOT_DB_INIT();
     if (result != WISP_SUCCESS) {
-        std::cout << "Failed to initialize IoT database: " << result << std::endl;
+        ESP_LOGE("DEMO", "Failed to initialize IoT database: %d", result);
         return;
-    }
-    
-    // Define sensors
+    }    // Define sensors
     IOT_DEFINE_SENSOR(1, SENSOR_TEMPERATURE, "Living Room", 34, 5000);
     IOT_DEFINE_SENSOR(2, SENSOR_HUMIDITY, "Bathroom", 35, 10000);
     IOT_DEFINE_SENSOR(3, SENSOR_MOTION, "Front Door", 12, 1000);
@@ -133,49 +126,55 @@ void demonstrateIoTConfig() {
     DeviceState ledState = IOT_GET_DEVICE_STATE(1);
     WiFiConfig wifi = IOT_GET_WIFI_CONFIG();
     
-    std::cout << "Temperature: " << tempReading.value << "°C (Quality: " << (int)tempReading.quality << "%)" << std::endl;
-    std::cout << "Humidity: " << humidityReading.value << "% (Quality: " << (int)humidityReading.quality << "%)" << std::endl;
-    std::cout << "LED State: " << (ledState.state ? "ON" : "OFF") << " (Value: " << ledState.value << ")" << std::endl;
-    std::cout << "WiFi SSID: " << wifi.ssid << " (DHCP: " << (wifi.dhcp ? "Yes" : "No") << ")" << std::endl;
+    ESP_LOGI("DEMO", "Temperature: %.1f°C (Quality: %d%%)", tempReading.value, (int)tempReading.quality);
+    ESP_LOGI("DEMO", "Humidity: %.1f%% (Quality: %d%%)", humidityReading.value, (int)humidityReading.quality);
+    ESP_LOGI("DEMO", "LED State: %s (Value: %d)", (ledState.state ? "ON" : "OFF"), ledState.value);
+    ESP_LOGI("DEMO", "WiFi SSID: %s (DHCP: %s)", wifi.ssid, (wifi.dhcp ? "Yes" : "No"));
     
     // Display database stats
     WispDBStats stats;
     wispDB.getStats(&stats);
-    std::cout << "IoT DB - Total entries: " << stats.totalEntries;
-    std::cout << ", Used: " << stats.usedSize << "/" << stats.totalSize << " bytes" << std::endl;
-    std::cout << "Encryption: " << (stats.encryptionEnabled ? "Enabled" : "Disabled");
-    std::cout << ", Compression: " << (stats.compressionEnabled ? "Enabled" : "Disabled") << std::endl;
+    ESP_LOGI("DEMO", "IoT DB - Total entries: %zu, Used: %zu/%zu bytes", stats.totalEntries, stats.usedSize, stats.totalSize);
+    ESP_LOGI("DEMO", "Encryption: %s, Compression: %s", 
+             (stats.encryptionEnabled ? "Enabled" : "Disabled"),
+             (stats.compressionEnabled ? "Enabled" : "Disabled"));
     
     wispDB.cleanup();
 }
 
 void demonstrateMultiConfig() {
-    std::cout << "\n=== Multi-Configuration Comparison ===\n";
+    ESP_LOGI("DEMO", "\n=== Multi-Configuration Comparison ===");
     
     // Compare different configurations
-    std::cout << "Configuration Comparison:" << std::endl;
-    std::cout << "Pokemon RPG: ROM=" << POKEMON_DB_CONFIG.romSize << "B, Save=" << POKEMON_DB_CONFIG.saveSize << "B, Total=" << 
-                 (POKEMON_DB_CONFIG.romSize + POKEMON_DB_CONFIG.saveSize + POKEMON_DB_CONFIG.backupSize + POKEMON_DB_CONFIG.runtimeSize) << "B" << std::endl;
-    std::cout << "Snake Game:  ROM=" << SNAKE_DB_CONFIG.romSize << "B, Save=" << SNAKE_DB_CONFIG.saveSize << "B, Total=" << 
-                 (SNAKE_DB_CONFIG.romSize + SNAKE_DB_CONFIG.saveSize + SNAKE_DB_CONFIG.backupSize + SNAKE_DB_CONFIG.runtimeSize) << "B" << std::endl;
-    std::cout << "IoT Sensors: ROM=" << IOT_DB_CONFIG.romSize << "B, Save=" << IOT_DB_CONFIG.saveSize << "B, Total=" << 
-                 (IOT_DB_CONFIG.romSize + IOT_DB_CONFIG.saveSize + IOT_DB_CONFIG.backupSize + IOT_DB_CONFIG.runtimeSize) << "B" << std::endl;
+    ESP_LOGI("DEMO", "Configuration Comparison:");
+    ESP_LOGI("DEMO", "Pokemon RPG: ROM=%zuB, Save=%zuB, Total=%zuB", 
+                 POKEMON_DB_CONFIG.romSize, POKEMON_DB_CONFIG.saveSize,
+                 (POKEMON_DB_CONFIG.romSize + POKEMON_DB_CONFIG.saveSize + POKEMON_DB_CONFIG.backupSize + POKEMON_DB_CONFIG.runtimeSize));
+    ESP_LOGI("DEMO", "Snake Game:  ROM=%zuB, Save=%zuB, Total=%zuB", 
+                 SNAKE_DB_CONFIG.romSize, SNAKE_DB_CONFIG.saveSize,
+                 (SNAKE_DB_CONFIG.romSize + SNAKE_DB_CONFIG.saveSize + SNAKE_DB_CONFIG.backupSize + SNAKE_DB_CONFIG.runtimeSize));
+    ESP_LOGI("DEMO", "IoT Sensors: ROM=%zuB, Save=%zuB, Total=%zuB", 
+                 IOT_DB_CONFIG.romSize, IOT_DB_CONFIG.saveSize,
+                 (IOT_DB_CONFIG.romSize + IOT_DB_CONFIG.saveSize + IOT_DB_CONFIG.backupSize + IOT_DB_CONFIG.runtimeSize));
     
-    std::cout << "\nFeature Comparison:" << std::endl;
-    std::cout << "Pokemon RPG: Cache=" << POKEMON_DB_CONFIG.maxCacheEntries << ", Compression=" << 
-                 (POKEMON_DB_CONFIG.enableCompression ? "Yes" : "No") << ", Encryption=" << 
-                 (POKEMON_DB_CONFIG.enableEncryption ? "Yes" : "No") << std::endl;
-    std::cout << "Snake Game:  Cache=" << SNAKE_DB_CONFIG.maxCacheEntries << ", Compression=" << 
-                 (SNAKE_DB_CONFIG.enableCompression ? "Yes" : "No") << ", Encryption=" << 
-                 (SNAKE_DB_CONFIG.enableEncryption ? "Yes" : "No") << std::endl;
-    std::cout << "IoT Sensors: Cache=" << IOT_DB_CONFIG.maxCacheEntries << ", Compression=" << 
-                 (IOT_DB_CONFIG.enableCompression ? "Yes" : "No") << ", Encryption=" << 
-                 (IOT_DB_CONFIG.enableEncryption ? "Yes" : "No") << std::endl;
+    ESP_LOGI("DEMO", "\nFeature Comparison:");
+    ESP_LOGI("DEMO", "Pokemon RPG: Cache=%d, Compression=%s, Encryption=%s", 
+                 POKEMON_DB_CONFIG.maxCacheEntries,
+                 (POKEMON_DB_CONFIG.enableCompression ? "Yes" : "No"),
+                 (POKEMON_DB_CONFIG.enableEncryption ? "Yes" : "No"));
+    ESP_LOGI("DEMO", "Snake Game:  Cache=%d, Compression=%s, Encryption=%s", 
+                 SNAKE_DB_CONFIG.maxCacheEntries,
+                 (SNAKE_DB_CONFIG.enableCompression ? "Yes" : "No"),
+                 (SNAKE_DB_CONFIG.enableEncryption ? "Yes" : "No"));
+    ESP_LOGI("DEMO", "IoT Sensors: Cache=%d, Compression=%s, Encryption=%s", 
+                 IOT_DB_CONFIG.maxCacheEntries,
+                 (IOT_DB_CONFIG.enableCompression ? "Yes" : "No"), 
+                 (IOT_DB_CONFIG.enableEncryption ? "Yes" : "No"));
 }
 
 int main() {
-    std::cout << "Wisp Partitioned Database System V2 - Configuration Demo\n";
-    std::cout << "========================================================\n";
+    ESP_LOGI("DEMO", "Wisp Partitioned Database System V2 - Configuration Demo");
+    ESP_LOGI("DEMO", "========================================================");
     
     // Demonstrate each configuration
     demonstratePokemonConfig();
@@ -183,10 +182,10 @@ int main() {
     demonstrateIoTConfig();
     demonstrateMultiConfig();
     
-    std::cout << "\n=== Demo Complete ===\n";
-    std::cout << "Each app can now define its own database partition sizes and features!\n";
-    std::cout << "The engine supports configurations from 3KB (Snake) to 16KB+ (Pokemon)\n";
-    std::cout << "with optional compression, encryption, and caching per app.\n";
+    ESP_LOGI("DEMO", "\n=== Demo Complete ===");
+    ESP_LOGI("DEMO", "Each app can now define its own database partition sizes and features!");
+    ESP_LOGI("DEMO", "The engine supports configurations from 3KB (Snake) to 16KB+ (Pokemon)");
+    ESP_LOGI("DEMO", "with optional compression, encryption, and caching per app.");
     
     return 0;
 }

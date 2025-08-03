@@ -16,8 +16,8 @@ enum AppFormat {
 
 // App database entry for fast lookup
 struct AppDatabaseEntry {
-    String name;
-    String path;
+    char name[64];
+    char path[256];
     AppFormat format;
     uint32_t configOffset;   // Offset to config in WISP bundle
     uint32_t configSize;     // Size of config data
@@ -27,10 +27,10 @@ struct AppDatabaseEntry {
 
 // App configuration structure
 struct AppConfig {
-    String name;
-    String version;
-    String author;
-    String description;
+    char name[64];
+    char version[16];
+    char author[64];
+    char description[256];
     
     // Audio requirements
     uint8_t requiredAudioOutputs = AUDIO_PIEZO;  // Bitmask
@@ -51,8 +51,8 @@ struct AppConfig {
     bool needsEEPROM = false;
     
     // Entry points
-    String mainBinary = "main.wash";     // Compiled C++ binary
-    String configData = "config.yaml";  // Configuration data (YAML format)
+    char mainBinary[64] = "main.wash";     // Compiled C++ binary
+    char configData[64] = "config.yaml";  // Configuration data (YAML format)
 };
 
 // App loading results
@@ -67,9 +67,11 @@ enum AppLoadResult {
 
 class AppLoader {
 public:
-    std::vector<AppDatabaseEntry> appDatabase;
+    static const int MAX_APPS = 32;
+    AppDatabaseEntry appDatabase[MAX_APPS];
+    int appCount;
     AppConfig currentAppConfig;
-    String currentAppPath;
+    char currentAppPath[256];
     AppFormat currentAppFormat;
     bool appLoaded = false;
     
@@ -78,7 +80,7 @@ public:
         appDatabase.clear();
         
         if (!SD.begin()) {
-            Serial.println("SD card initialization failed");
+            WISP_DEBUG_WARNING("LOADER", "SD card initialization failed");
             return;
         }
         
@@ -92,18 +94,17 @@ public:
         // Scan for WISP bundle apps (optimized single-file format)
         scanWispApps();
         
-        Serial.print("App database built: ");
-        Serial.print(appDatabase.size());
-        Serial.println(" WISP apps found");
+        WISP_DEBUG_INFO("LOADER", "App database built - WISP apps found");
     }
     
     // Get list of app names for menu display
-    std::vector<String> getAppNames() {
-        std::vector<String> names;
-        for (const auto& entry : appDatabase) {
-            names.push_back(entry.name);
+    void getAppNames(char appNames[][64], uint8_t* numNames, uint8_t maxNames) {
+        *numNames = 0;
+        for (uint8_t i = 0; i < numAppEntries && *numNames < maxNames; i++) {
+            strncpy(appNames[*numNames], appDatabase[i].name, 63);
+            appNames[*numNames][63] = '\0';
+            (*numNames)++;
         }
-        return names;
     }
     
     // Load app by name from database
@@ -279,7 +280,7 @@ public:
     
     AppLoadResult loadWispForExecution(const String& filePath) {
         // Load the WISP bundle structure for runtime access
-        Serial.println("Loading WISP bundle: " + filePath);
+        WISP_DEBUG_INFO("LOADER", "Loading WISP bundle");
         
         // TODO: Implement full WISP loading for runtime asset access
         // This would parse the entire bundle and prepare assets for use
@@ -288,14 +289,14 @@ public:
     }
     
     AppLoadResult executeApp(const AppDatabaseEntry& entry) {
-        Serial.println("Executing app: " + entry.name);
+        WISP_DEBUG_INFO("LOADER", "Executing app");
         
         // PERFORMANCE OPTIMIZATION: Only support WISP format
         // Single file execution for optimal performance
         
         if (entry.format == APP_FORMAT_WISP_BUNDLE) {
             // Execute from WISP bundle
-            Serial.println("Executing from WISP bundle");
+            WISP_DEBUG_INFO("LOADER", "Executing from WISP bundle");
             
             // TODO: Find and execute main binary (.wash) from WISP bundle
             // This would:
@@ -309,7 +310,7 @@ public:
             
         } else {
             // Unsupported format
-            Serial.println("ERROR: Unsupported app format");
+            WISP_DEBUG_ERROR("LOADER", "Unsupported app format");
             return APP_LOAD_INVALID_CONFIG;
         }
     }
@@ -510,7 +511,7 @@ private:
     
     // Load LUT/palette assets from bundle
     bool loadLUTAssets() {
-        Serial.println("Loading LUT assets...");
+        WISP_DEBUG_INFO("LOADER", "Loading LUT assets...");
         
         // For now, use the existing LUT data
         // In a full implementation, this would:
@@ -524,7 +525,7 @@ private:
             graphics->setupLUTFlashEffect(1, 0x001F, 0x07FF, 2); // Blue flash on slot 1
             // Slots 2 and 3 remain transparent (disabled)
             
-            Serial.println("Enhanced LUT configured with default effects");
+            WISP_DEBUG_INFO("LOADER", "Enhanced LUT configured with default effects");
             return true;
         }
         

@@ -101,12 +101,13 @@ bool menuInitialized = false;
 
 // --- SETUP PHASE ---
 void bootloaderSetup() {
-    ESP_LOGI("WISP", "=== Wisp Engine Native C++ Bootloader ===");
-    ESP_LOGI("WISP", "Starting boot sequence...");
-    
     // Initialize debug system first (use namespace bridge)
     Core::Debug::init(Core::Debug::DEBUG_MODE_ENABLED, Core::Debug::SAFETY_ENABLED);
-    ESP_LOGI("WISP", "Debug system initialized");
+    
+    // NOW we can use WISP_DEBUG - all logging must go through the main system
+    WISP_DEBUG_INFO("WISP", "=== Wisp Engine Native C++ Bootloader ===");
+    WISP_DEBUG_INFO("WISP", "Starting boot sequence...");
+    WISP_DEBUG_INFO("WISP", "Debug system initialized");
     
     // Initialize display first
     display.init();
@@ -114,7 +115,7 @@ void bootloaderSetup() {
     display.setColorDepth(16);
     display.fillScreen(0x0000); // Black
     
-    ESP_LOGI("WISP", "Display initialized");
+    WISP_DEBUG_INFO("WISP", "Display initialized");
     
     // Show initial boot message
     display.setTextColor(0xFFFF);
@@ -132,32 +133,32 @@ void bootloaderSetup() {
     
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
     if (ret != ESP_OK) {
-        ESP_LOGE("WISP", "SPIFFS initialization failed");
+        WISP_DEBUG_ERROR("WISP", "SPIFFS initialization failed");
         display.fillScreen(0xF800); // Red error screen
         display.setTextColor(0xFFFF);
         display.drawString("STORAGE ERROR", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
         while(1) vTaskDelay(pdMS_TO_TICKS(1000));
     }
     
-    ESP_LOGI("WISP", "SPIFFS initialized successfully");
+    WISP_DEBUG_INFO("WISP", "SPIFFS initialized successfully");
     
     // Try to initialize SD card (ESP-IDF native, non-breaking, optional)
     bool sdAvailable = false;
-    ESP_LOGI("WISP", "Attempting SD card initialization...");
+    WISP_DEBUG_INFO("WISP", "Attempting SD card initialization...");
     // TODO: Implement proper ESP-IDF SD card initialization
     // For now, assume SD not available - use SPIFFS only
     if (sdAvailable) {
-        ESP_LOGI("WISP", "SD card initialized successfully");
+        WISP_DEBUG_INFO("WISP", "SD card initialized successfully");
     } else {
-        ESP_LOGI("WISP", "SD card not available - using SPIFFS only");
+        WISP_DEBUG_INFO("WISP", "SD card not available - using SPIFFS only");
     }
     
-    ESP_LOGI("WISP", "Save system skipped for basic bootloader test");
+    WISP_DEBUG_INFO("WISP", "Save system skipped for basic bootloader test");
     
     // Initialize input controller
     inputController = new InputController(BUTTON_PINS);
     if (!inputController->init()) {
-        ESP_LOGE("WISP", "Input controller initialization failed");
+        WISP_DEBUG_ERROR("WISP", "Input controller initialization failed");
         while(1) vTaskDelay(pdMS_TO_TICKS(1000));
     }
     
@@ -167,7 +168,7 @@ void bootloaderSetup() {
     // Initialize app manager (use existing)
     AppLoader appLoaderInstance;
     if (!appManager.init(&appLoaderInstance, &appLoop)) {
-        ESP_LOGE("WISP", "App manager initialization failed");
+        WISP_DEBUG_ERROR("WISP", "App manager initialization failed");
         display.fillScreen(0xF800); // Red error screen
         display.setTextColor(0xFFFF);
         display.drawString("APP MANAGER ERROR", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
@@ -177,7 +178,7 @@ void bootloaderSetup() {
     // Scan for available .wisp applications
     appManager.scanForApps();
     
-    ESP_LOGI("WISP", "App manager initialized successfully");
+    WISP_DEBUG_INFO("WISP", "App manager initialized successfully");
 }
 
 // --- MAIN LOOP ---
@@ -204,9 +205,9 @@ void bootloaderLoop() {
                 curatedAPI.setAppPermissions(true, false, false, false);
                 
                 menuInitialized = true;
-                ESP_LOGI("WISP", "Menu system initialized with app launch permissions");
+                WISP_DEBUG_INFO("WISP", "Menu system initialized with app launch permissions");
             } else {
-                ESP_LOGE("WISP", "Menu system initialization failed");
+                WISP_DEBUG_ERROR("WISP", "Menu system initialization failed");
             }
         }
         
@@ -227,7 +228,7 @@ void bootloaderLoop() {
             
         } else {
             // No app or menu - show error or return to menu
-            ESP_LOGI("WISP", "No active app or menu - returning to menu");
+            WISP_DEBUG_INFO("WISP", "No active app or menu - returning to menu");
             WispMenu::activate();
         }
     }
@@ -239,7 +240,7 @@ void bootloaderLoop() {
             emergencyMenuTimer = millis();
         } else if (millis() - emergencyMenuTimer > 2000) {
             // 2 seconds of holding both buttons
-            ESP_LOGI("WISP", "Emergency menu activation");
+            WISP_DEBUG_INFO("WISP", "Emergency menu activation");
             WispMenu::activate();
             emergencyMenuTimer = 0;
         }
@@ -283,27 +284,26 @@ WispInputState convertToWispInput() {
 }
 
 bool launchApp(const String& appPath) {
-    ESP_LOGI("WISP", "Launching app: %s", appPath.c_str());
+    WISP_DEBUG_INFO("WISP", "Launching app");
     
     // Use app manager to load the .wisp file (existing system)
     if (appManager.loadApp(appPath)) {
-        ESP_LOGI("WISP", "App launched successfully via app manager");
+        WISP_DEBUG_INFO("WISP", "App launched successfully via app manager");
         return true;
     } else {
-        ESP_LOGE("WISP", "App launch failed");
+        WISP_DEBUG_ERROR("WISP", "App launch failed");
         return false;
     }
 }
 
 void printPerformanceStats() {
     uint32_t freeHeap = esp_get_free_heap_size();
-    ESP_LOGI("STATS", "FPS: %.1f | Memory: %luKB | Free Heap: %lu bytes", 
-             Core::Timing::getFPS(), freeHeap / 1024, freeHeap);
+    WISP_DEBUG_INFO("STATS", "FPS and Memory Statistics");
 }
 
 // Emergency error handler
 void handleCriticalError(const String& error) {
-    ESP_LOGE("WISP", "CRITICAL ERROR: %s", error.c_str());
+    WISP_DEBUG_ERROR("WISP", "CRITICAL ERROR");
     
     // Activate emergency mode in debug system (use namespace bridge)
     Core::Debug::activateEmergencyMode(error);

@@ -6,8 +6,6 @@
 #include "../../wisp_engine.h"
 
 namespace WispEngine::Core {
-    #include "../../boards/esp32-c6_config.h"
-#endif
 
 enum WispLogLevel {
     WISP_LOG_ERROR = 0,
@@ -24,7 +22,7 @@ private:
     static uint32_t warningCount;
     static uint32_t lastHeartbeat;
     static bool pinsInitialized;
-    static std::string currentAppName;
+    static char currentAppName[32];  // Fixed-size buffer for app name
     
     // Error tracking
     static uint32_t errorsThisSecond;
@@ -34,42 +32,42 @@ private:
     static void initDebugPins();
     static void initErrorLog();
     static void rotateLogFiles();
-    static void writeToErrorLog(const std::string& message);
+    static void writeToErrorLog(const char* message);  // Write message to error log
     static void outputDebugSignal(WispLogLevel level);
     static void signalPin(int pin);
     static void signalAllPins(bool active);
     static void updateErrorCounters(WispLogLevel level);
     static void checkErrorStorm();
     static void logSystemStats();
-    static std::string getTimestamp();
-    static std::string getLevelString(WispLogLevel level);
+    static const char* getTimestamp();  // Get current timestamp
+    static const char* getLevelString(WispLogLevel level);  // Get log level string
     
 public:
     // Main interface methods
     static void init(bool enableDebug = true, bool disableSafety = false);
-    static void setCurrentApp(const std::string& appName);
+    static void setCurrentApp(const char* appName);  // Set current app name
     static bool isDebugEnabled();
     static bool isSafetyDisabled();
     
     // Safety check function
-    static bool checkQuotaLimit(const std::string& operation, bool withinLimit);
+    static bool checkQuotaLimit(const char* operation, bool withinLimit);  // Check quota limits
     
     // Core logging method
-    static void logMessage(WispLogLevel level, const std::string& category, const std::string& message);
+    static void logMessage(WispLogLevel level, const char* category, const char* message);  // Log message with level
     
     // Convenience logging functions
-    static void logError(const std::string& category, const std::string& message);
-    static void logWarning(const std::string& category, const std::string& message);
-    static void logInfo(const std::string& category, const std::string& message);
-    static void logDebug(const std::string& category, const std::string& message);
+    static void logError(const char* category, const char* message);  // Log error message
+    static void logWarning(const char* category, const char* message);  // Log warning message
+    static void logInfo(const char* category, const char* message);  // Log info message
+    static void logDebug(const char* category, const char* message);  // Log debug message
     
     // Specialized logging
-    static void logQuotaViolation(const std::string& resourceType, uint32_t current, uint32_t max);
-    static void logPerformanceWarning(const std::string& operation, uint32_t timeUs, uint32_t limitUs);
+    static void logQuotaViolation(const char* resourceType, uint32_t current, uint32_t max);  // Log quota violations
+    static void logPerformanceWarning(const char* operation, uint32_t timeUs, uint32_t limitUs);  // Log performance issues
     
     // System monitoring
     static void heartbeat();
-    static void activateEmergencyMode(const std::string& reason);
+    static void activateEmergencyMode(const char* reason);  // Activate emergency mode
     static void getDebugStats(uint32_t& errors, uint32_t& warnings);
     static void shutdown();
 };
@@ -82,3 +80,5 @@ public:
 #define WISP_DEBUG_CHECK_QUOTA(op, limit) WispDebugSystem::checkQuotaLimit(op, limit)
 #define WISP_DEBUG_HEARTBEAT() WispDebugSystem::heartbeat()
 #define WISP_DEBUG_SET_APP(name) WispDebugSystem::setCurrentApp(name)
+
+}  // namespace WispEngine::Core

@@ -22,7 +22,7 @@ public:
     
     static void shutdown() {
         if (instance) {
-            instance->cleanup();
+            // instance->cleanup();  // Method doesn't exist, skip cleanup
             delete instance;
             instance = nullptr;
         }
@@ -34,7 +34,8 @@ public:
     
     static bool playTone(uint16_t frequency, uint16_t duration, uint8_t volume = 128) {
         if (instance) {
-            return instance->playTone(frequency, duration, volume);
+            instance->playTone(frequency, duration, volume);
+            return true;
         }
         return false;
     }

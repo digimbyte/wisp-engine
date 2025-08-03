@@ -1,5 +1,6 @@
 #include "database_system.h"
-#include <cstring>
+#include <string.h>
+#include <utility>   // For std::pair
 #include <algorithm>
 
 WispPartitionedDB::WispPartitionedDB() : initialized(false), config(nullptr) {
@@ -59,14 +60,14 @@ WispErrorCode WispPartitionedDB::allocatePartitions() {
     }
     
     // Allocate ROM partition
-    partitions[WISP_DB_PARTITION_ROM] = new(std::nothrow) uint8_t[config->romSize];
+    partitions[WISP_DB_PARTITION_ROM] = (uint8_t*)malloc(config->romSize);
     if (!partitions[WISP_DB_PARTITION_ROM]) {
         return WISP_ERROR_OUT_OF_MEMORY;
     }
     partitionSizes[WISP_DB_PARTITION_ROM] = config->romSize;
     
     // Allocate Save partition
-    partitions[WISP_DB_PARTITION_SAVE] = new(std::nothrow) uint8_t[config->saveSize];
+    partitions[WISP_DB_PARTITION_SAVE] = (uint8_t*)malloc(config->saveSize);
     if (!partitions[WISP_DB_PARTITION_SAVE]) {
         return WISP_ERROR_OUT_OF_MEMORY;
     }
@@ -74,7 +75,7 @@ WispErrorCode WispPartitionedDB::allocatePartitions() {
     
     // Allocate Backup partition (if specified)
     if (config->backupSize > 0) {
-        partitions[WISP_DB_PARTITION_BACKUP] = new(std::nothrow) uint8_t[config->backupSize];
+        partitions[WISP_DB_PARTITION_BACKUP] = (uint8_t*)malloc(config->backupSize);
         if (!partitions[WISP_DB_PARTITION_BACKUP]) {
             return WISP_ERROR_OUT_OF_MEMORY;
         }
@@ -83,7 +84,7 @@ WispErrorCode WispPartitionedDB::allocatePartitions() {
     
     // Allocate Runtime partition (if specified)
     if (config->runtimeSize > 0) {
-        partitions[WISP_DB_PARTITION_RUNTIME] = new(std::nothrow) uint8_t[config->runtimeSize];
+        partitions[WISP_DB_PARTITION_RUNTIME] = (uint8_t*)malloc(config->runtimeSize);
         if (!partitions[WISP_DB_PARTITION_RUNTIME]) {
             return WISP_ERROR_OUT_OF_MEMORY;
         }

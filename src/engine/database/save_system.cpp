@@ -77,7 +77,7 @@ void WispSaveSystem::setAppIdentity(const WispAppIdentity& identity) {
     }
     
     // Validate UUID format (basic check for reverse domain notation)
-    if (identity.uuid.find('.') == std::string::npos) {
+    if (strchr(identity.uuid.c_str(), '.') == nullptr) {
         DEBUG_WARNING("SAVE", "App UUID should use reverse domain notation (e.g. com.developer.gamename)");
     }
     
@@ -91,15 +91,29 @@ void WispSaveSystem::setAutoSave(bool enabled, uint32_t intervalMs) {
     lastAutoSave = millis();
     
     DEBUG_INFO("SAVE", String("Auto-save ") + (enabled ? "enabled" : "disabled") + 
-                     (enabled ? " (interval: " + std::to_string(intervalMs) + "ms)" : ""));
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "Auto-save %s%s", 
+             enabled ? "enabled" : "disabled",
+             (enabled ? " (interval: " : ""));
+    if (enabled) {
+        char intervalStr[32];
+        snprintf(intervalStr, sizeof(intervalStr), "%dms)", intervalMs);
+        strcat(buffer, intervalStr);
+    }
+    ESP_LOGI("SAVE", "%s", buffer);
 }
 
 String WispSaveSystem::getSaveFilePath() const {
     // Create safe filename from UUID (replace dots and invalid chars)
     String safeUuid = currentApp.uuid;
-    std::replace(safeUuid.begin(), safeUuid.end(), '.', '_');
-    std::replace(safeUuid.begin(), safeUuid.end(), '/', '_');
-    std::replace(safeUuid.begin(), safeUuid.end(), '\\', '_');
+    // Replace dots with underscores for safe filename
+    for (char* p = safeUuid; *p; p++) {
+        if (*p == '.') *p = '_';
+    }
+    // Replace slashes with underscores for safe filename
+    for (char* p = safeUuid; *p; p++) {
+        if (*p == '/' || *p == '\\') *p = '_';
+    }
     
     if (useSDCard) {
         return saveDirectory + "/" + safeUuid + ".sav";
@@ -152,7 +166,9 @@ bool WispSaveSystem::validateSaveFile(const String& filePath, WispSaveHeader& he
     
     // Validate app identity
     if (String(header.appUuid) != currentApp.uuid) {
-        DEBUG_ERROR_STR("SAVE", "Save file belongs to different app: " + std::string(header.appUuid));
+        char errorMsg[128];
+        snprintf(errorMsg, sizeof(errorMsg), "Save file belongs to different app: %s", header.appUuid);
+        DEBUG_ERROR_STR("SAVE", errorMsg);
         fclose(file);
         return false;
     }
@@ -221,7 +237,9 @@ WispSaveResult WispSaveSystem::save() {
         lastAutoSave = millis();
         DEBUG_INFO("SAVE", "Save completed successfully");
     } else {
-        DEBUG_ERROR_STR("SAVE", "Save failed: " + std::string(getSaveResultString(result)));
+        char errorMsg[128];
+        snprintf(errorMsg, sizeof(errorMsg), "Save failed: %s", getSaveResultString(result));
+        DEBUG_ERROR_STR("SAVE", errorMsg);
         
         // Try to restore from backup if save failed
         if (hasSaveFile()) {
@@ -462,7 +480,9 @@ bool WispSaveSystem::registerBlobField(const String& key, void* dataPtr, size_t 
     }
     
     saveFields[key] = WispSaveField(key, SAVE_TYPE_BLOB, dataPtr, size);
-    DEBUG_INFO_STR("SAVE", "Registered blob field: " + key + " (" + std::to_string(size) + " bytes)");
+    char debugMsg[128];
+    snprintf(debugMsg, sizeof(debugMsg), "Registered blob field: %s (%zu bytes)", key.c_str(), size);
+    DEBUG_INFO_STR("SAVE", debugMsg);
     return true;
 }
 

@@ -1,6 +1,7 @@
 // engine/timing.h - ESP32-C6/S3 Timing System using ESP-IDF native timers
 // High-precision timing for deterministic frame rates using esp_timer
 #pragma once
+#include <stdint.h>
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 
 // Clean timing system - no more global state mess

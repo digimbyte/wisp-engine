@@ -2,7 +2,6 @@
 // Depth-sorted sprite rendering with memory optimization for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <vector>
 #include "engine.h"
 #include "../../utils/math/math.h"
 
@@ -66,7 +65,9 @@ struct WispAnimationFrame {
 
 // Animation sequence
 struct WispAnimation {
-    std::vector<WispAnimationFrame> frames;
+    static const int MAX_ANIMATION_FRAMES = 32;
+    WispAnimationFrame frames[MAX_ANIMATION_FRAMES];
+    int frameCount;
     bool loop;                  // Should animation loop
     bool pingpong;              // Reverse at end
     bool paused;                // Is animation paused
@@ -89,7 +90,7 @@ struct WispDepthMask {
     }
     
     // Set which layers this sprite appears on
-    void setLayers(std::initializer_list<WispSpriteLayer> layers) {
+    void setLayers(const WispSpriteLayer* layers, int count) {
         layerMask = 0;
         for (WispSpriteLayer layer : layers) {
             layerMask |= (1 << layer);
@@ -158,7 +159,9 @@ private:
     GraphicsEngine* graphics;
     
     // Sprites organized by layer for efficient rendering
-    std::vector<WispLayeredSprite*> layers[WISP_LAYER_COUNT];
+    static const int MAX_SPRITES_PER_LAYER = 50;
+    WispLayeredSprite* layers[WISP_LAYER_COUNT][MAX_SPRITES_PER_LAYER];
+    int layerCounts[WISP_LAYER_COUNT];
     
     // Camera/viewport for parallax and scrolling
     float cameraX, cameraY;
@@ -207,7 +210,7 @@ public:
     // Animation system
     void updateAnimations(uint32_t deltaTime);
     void updateSpriteAnimation(WispLayeredSprite* sprite, uint32_t deltaTime);
-    bool setAnimation(WispLayeredSprite* sprite, const std::vector<WispAnimationFrame>& frames);
+    bool setAnimation(WispLayeredSprite* sprite, const WispAnimationFrame* frames, int frameCount);
     void playAnimation(WispLayeredSprite* sprite, bool loop = true);
     void pauseAnimation(WispLayeredSprite* sprite);
     void stopAnimation(WispLayeredSprite* sprite);
@@ -232,7 +235,7 @@ public:
     WispLayeredSprite* createTextSprite(const String& text, float x, float y);
     
     // Multi-layer sprites (appear on multiple layers with depth masking)
-    void setMultiLayer(WispLayeredSprite* sprite, std::initializer_list<WispSpriteLayer> layers);
+    void setMultiLayer(WispLayeredSprite* sprite, const WispSpriteLayer* layers, int count);
     void setLayerDepth(WispLayeredSprite* sprite, WispSpriteLayer layer, uint8_t depth);
     
     // Utility

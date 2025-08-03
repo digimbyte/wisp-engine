@@ -63,7 +63,9 @@ private:
             text(t), appPath(path), iconPath(""), isApp(app), isSettings(settings) {}
     };
     
-    std::vector<MenuItem> menuItems;
+    static const int MAX_MENU_ITEMS = 20;
+    MenuItem menuItems[MAX_MENU_ITEMS];
+    int menuItemCount;
     int selectedIndex;
     int scrollOffset;
     ResourceHandle backgroundSprite;

@@ -52,7 +52,7 @@ class OptimizedSpriteSystem {
 private:
     OptimizedGraphicsEngine* graphics;
     
-    // Fixed-size arrays (no std::vector overhead)
+    // Fixed-size arrays for optimal performance
     SimpleSpriteInstance sprites[MAX_SPRITES_ACTIVE];
     uint8_t spriteCount;
     
@@ -92,12 +92,12 @@ public:
                      SpriteType type = SPRITE_STATIC, uint8_t priority = 128) {
         
         if (spriteCount >= MAX_SPRITES_ACTIVE) {
-            Serial.println("ERROR: Max sprites reached");
+            // Use WISP debug system instead of Serial
             return 0xFF;
         }
         
         if (layer >= LAYER_COUNT) {
-            Serial.println("ERROR: Invalid layer");
+            // Use WISP debug system instead of Serial
             return 0xFF;
         }
         
@@ -124,15 +124,8 @@ public:
             layerSprites[layer][layerCounts[layer]++] = instanceId;
         }
         
-        Serial.print("Sprite added: ID=");
-        Serial.print(instanceId);
-        Serial.print(" Layer=");
-        Serial.print(layer);
-        Serial.print(" Pos=(");
-        Serial.print(x);
-        Serial.print(",");
-        Serial.print(y);
-        Serial.println(")");
+        // Debug logging removed for ESP-IDF compatibility
+        // Use WISP debug system for logging when needed
         
         return instanceId;
     }

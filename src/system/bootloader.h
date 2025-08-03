@@ -91,7 +91,9 @@ private:
     bool fadeComplete;
     
     // App management
-    std::vector<AppInfo> availableApps;
+    static const int MAX_APPS = 50;
+    AppInfo availableApps[MAX_APPS];
+    int appCount;
     int selectedAppIndex;
     AppInfo currentApp;
     
@@ -493,7 +495,7 @@ inline void WispBootloader::scanForApps() {
     
     struct dirent* entry;
     while ((entry = readdir(root)) != NULL) {
-        std::string fileName = std::string(entry->d_name);
+        const char* fileName = entry->d_name;
         
         // Check if file has .wisp extension
         if (fileName.length() > 5 && fileName.substr(fileName.length() - 5) == ".wisp" && entry->d_type == DT_REG) {
@@ -501,7 +503,8 @@ inline void WispBootloader::scanForApps() {
             ESP_LOGI("WISP", "%s", fileName.c_str());
             
             AppInfo appInfo;
-            std::string fullPath = "/" + fileName;
+            char fullPath[256];
+            snprintf(fullPath, sizeof(fullPath), "/%s", fileName);
             
             // Try to load app metadata from the .wisp file
             if (loadAppInfo(fullPath, appInfo)) {
@@ -511,14 +514,21 @@ inline void WispBootloader::scanForApps() {
             } else {
                 // Create basic info from filename if metadata loading fails
                 size_t dotPos = fileName.find_last_of('.');
-                appInfo.name = (dotPos != std::string::npos) ? fileName.substr(0, dotPos) : fileName;
+                const char* dotPos = strrchr(fileName, '.');
+                if (dotPos != nullptr) {
+                    size_t len = dotPos - fileName;
+                    strncpy(appInfo.name, fileName, len);
+                    appInfo.name[len] = '\0';
+                } else {
+                    strcpy(appInfo.name, fileName);
+                }
                 appInfo.version = "Unknown";
                 appInfo.author = "Unknown";
                 appInfo.description = "Wisp application";
                 appInfo.executablePath = fullPath;
                 appInfo.autoStart = false;
                 availableApps.push_back(appInfo);
-                printf("Added app (basic info): %s\n", appInfo.name.c_str());
+                WISP_DEBUG_INFO("BOOTLOADER", "Added app");
             }
         }
     }
@@ -532,13 +542,14 @@ inline void WispBootloader::scanForApps() {
         
         struct dirent* appEntry;
         while ((appEntry = readdir(appsDir)) != NULL) {
-            std::string fileName = std::string(appEntry->d_name);
+            const char* fileName = appEntry->d_name;
             
             if (fileName.length() > 5 && fileName.substr(fileName.length() - 5) == ".wisp" && appEntry->d_type == DT_REG) {
                 ESP_LOGI("WISP", "Found .wisp file in /apps: %s", fileName.c_str());
                 
                 AppInfo appInfo;
-                std::string fullPath = "/apps/" + fileName;
+                char fullPath[256];
+                snprintf(fullPath, sizeof(fullPath), "/apps/%s", fileName);
                 
                 if (loadAppInfo(fullPath, appInfo)) {
                     appInfo.executablePath = fullPath;
@@ -571,7 +582,7 @@ inline void WispBootloader::scanForApps() {
     }
 }
 
-inline bool WispBootloader::loadAppInfo(const std::string& appPath, AppInfo& info) {
+inline bool WispBootloader::loadAppInfo(const char* appPath, AppInfo& info) {
     // For now, just extract basic info from filename
     // In the future, this could read metadata from the .wisp file header
     
@@ -582,13 +593,16 @@ inline bool WispBootloader::loadAppInfo(const std::string& appPath, AppInfo& inf
     }
     
     // Get filename without path and extension - ESP-IDF native
-    std::string fileName = appPath;
-    size_t lastSlash = fileName.find_last_of('/');
-    if (lastSlash != std::string::npos) {
-        fileName = fileName.substr(lastSlash + 1);
+    char fileName[256];
+    strcpy(fileName, appPath);
+    
+    const char* lastSlash = strrchr(fileName, '/');
+    if (lastSlash != nullptr) {
+        strcpy(fileName, lastSlash + 1);
     }
-    size_t lastDot = fileName.find_last_of('.');
-    if (lastDot != std::string::npos) {
+    
+    const char* lastDot = strrchr(fileName, '.');
+    if (lastDot != nullptr) {
         fileName = fileName.substr(0, lastDot);
     }
     

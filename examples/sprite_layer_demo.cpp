@@ -104,37 +104,37 @@ public:
         Serial.println("Setting up animations...");
         
         // Player walking animation (4 frames, 150ms each)
-        std::vector<WispAnimationFrame> walkFrames = {
+        WispAnimationFrame walkFrames[4] = {
             WispAnimationFrame(0, 150), // Frame 0 for 150ms
             WispAnimationFrame(1, 150), // Frame 1 for 150ms
             WispAnimationFrame(2, 150), // Frame 2 for 150ms
             WispAnimationFrame(3, 150)  // Frame 3 for 150ms
         };
         
-        if (layerSystem->setAnimation(player, walkFrames)) {
+        if (layerSystem->setAnimation(player, walkFrames, 4)) {
             layerSystem->playAnimation(player, true); // Loop animation
             Serial.println("Player walk animation set");
         }
         
         // Explosion animation (8 frames, 100ms each, no loop)
-        std::vector<WispAnimationFrame> explosionFrames;
+        WispAnimationFrame explosionFrames[8];
         for (int i = 0; i < 8; i++) {
-            explosionFrames.push_back(WispAnimationFrame(i, 100));
+            explosionFrames[i] = WispAnimationFrame(i, 100);
         }
         
-        if (layerSystem->setAnimation(explosion, explosionFrames)) {
+        if (layerSystem->setAnimation(explosion, explosionFrames, 8)) {
             explosion->animation.loop = false; // Play once
             layerSystem->playAnimation(explosion, false);
             Serial.println("Explosion animation set");
         }
         
         // Enemy floating animation with offset (pingpong movement)
-        std::vector<WispAnimationFrame> floatFrames = {
+        WispAnimationFrame floatFrames[2] = {
             WispAnimationFrame(0, 500, 0, -2), // Frame 0, offset up 2 pixels
             WispAnimationFrame(0, 500, 0, 2)   // Frame 0, offset down 2 pixels
         };
         
-        if (layerSystem->setAnimation(enemy, floatFrames)) {
+        if (layerSystem->setAnimation(enemy, floatFrames, 2)) {
             enemy->animation.pingpong = true;
             layerSystem->playAnimation(enemy, true);
             Serial.println("Enemy float animation set");

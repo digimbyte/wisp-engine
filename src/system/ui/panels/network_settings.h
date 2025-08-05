@@ -9,6 +9,7 @@
 #include "esp_netif.h"
 #include "lwip/ip4_addr.h"
 #include <vector>
+#include <string>
 
 // WiFi connection status function
 bool isConnected() {
@@ -19,16 +20,16 @@ bool isConnected() {
 class NetworkSettingsPanel : public MenuPanel {
 private:
     struct NetworkSettings {
-        String ssid = "";
-        String password = "";
+        std::string ssid = "";
+        std::string password = "";
         bool autoConnect = true;
         bool enableBluetooth = true;
         bool enableHotspot = false;
-        String hotspotName = "WispEngine";
-        String hotspotPassword = "wisp1234";
+        std::string hotspotName = "WispEngine";
+        std::string hotspotPassword = "wisp1234";
         uint8_t wifiPower = 20;         // WiFi TX power (0-20)
         bool enableMDNS = true;
-        String deviceName = "wisp-engine";
+        std::string deviceName = "wisp-engine";
     } settings;
     
     enum NetworkMenuState {
@@ -106,9 +107,9 @@ public:
         
         // Auto-save periodically
         static uint32_t lastSaveTime = 0;
-        if (millis() - lastSaveTime > 10000) { // Every 10 seconds
+        if (get_millis() - lastSaveTime > 10000) { // Every 10 seconds
             saveSettings();
-            lastSaveTime = millis();
+            lastSaveTime = get_millis();
         }
     }
     
@@ -138,7 +139,7 @@ public:
 private:
     void handleNavigation(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return; // Debounce
         
@@ -159,7 +160,7 @@ private:
     
     void handleConfiguration(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return;
         
@@ -256,7 +257,7 @@ private:
             // Draw menu item and value
             gfx->drawText(menuItems[i], 10, y + 3, false);
             
-            String valueText = getStatusText((NetworkMenuState)i);
+            std::string valueText = getStatusText((NetworkMenuState)i);
             if (!valueText.empty()) {
                 gfx->drawText(valueText.c_str(), SCREEN_WIDTH - 10, y + 3, false, true);
             }
@@ -316,9 +317,9 @@ private:
             }
             
             // Truncate long SSIDs
-            String displayName = availableNetworks[i];
+            std::string displayName = availableNetworks[i];
             if (displayName.length() > 25) {
-                displayName = displayName.substring(0, 22) + "...";
+                displayName = displayName.substr(0, 22) + "...";
             }
             
             gfx->drawText(displayName.c_str(), 10, y, false);
@@ -332,7 +333,7 @@ private:
                 rssi = ap_info.rssi;
             }
             
-            String signal = "";
+            std::string signal = "";
             if (rssi > -50) signal = "****";
             else if (rssi > -60) signal = "*** ";
             else if (rssi > -70) signal = "**  ";
@@ -362,7 +363,7 @@ private:
         gfx->fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2, COLOR_GREEN);
         
         // Current value
-        gfx->drawText(("Power: " + String(settings.wifiPower) + " dBm").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+        gfx->drawText(("Power: " + std::to_string(settings.wifiPower) + " dBm").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         
         // Range indicators
         gfx->setTextColor(COLOR_LIGHT_GRAY);

@@ -113,7 +113,7 @@ void loop() {
     // 4. Use colors in sprite system
     // spriteSystem.render();
     
-    delay(100); // Simple delay for this example
+    vTaskDelay(pdMS_TO_TICKS(100)); // Simple delay for this example
 }
 
 // Example of how this integrates with sprite rendering

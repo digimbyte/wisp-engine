@@ -29,7 +29,7 @@ To compile with different modes:
 // Include configuration and engine
 #include "src/engine/app/config.h"
 #include "src/engine/app/interface.h"
-#include "src/utils/debug/debug_system.h"
+#include "src/engine/core/debug.h"  // Use new debug system
 
 // =============================================================================
 // STRESS TEST APP IMPLEMENTATION

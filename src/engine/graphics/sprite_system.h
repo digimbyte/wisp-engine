@@ -241,7 +241,7 @@ public:
     
     // Update animations and system
     void update() {
-        uint32_t startTime = micros();
+        uint32_t startTime = get_micros();
         animationsUpdated = 0;
         
         // Update all animations
@@ -271,7 +271,7 @@ public:
             }
         }
         
-        updateTime = micros() - startTime;
+        updateTime = get_micros() - startTime;
     }
     
     // Render all sprites
@@ -408,7 +408,8 @@ public:
 
 // Usage example:
 /*
-OptimizedGraphicsEngine graphics;
+// Note: Don't create global instances - use pointers/heap allocation instead
+// OptimizedGraphicsEngine graphics;  // COMMENTED OUT - causes massive memory usage!
 OptimizedSpriteSystem sprites(&graphics);
 
 // Initialize
@@ -428,6 +429,6 @@ sprites.playAnimation(player);
 while (true) {
     sprites.update();
     sprites.render();
-    delay(16); // ~60fps
+    delay_ms(16); // ~60fps
 }
 */

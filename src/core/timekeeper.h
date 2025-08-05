@@ -34,7 +34,7 @@ static TimerEntry timerQueue[MAX_TIMERS];
 
 // --- Init ---
 inline void init(uint8_t fps = SYSTEM_FPS) {
-  lastTick = millis();
+  lastTick = get_millis();
   now = lastTick;
   delta = 0.0f;
   totalTime = 0;
@@ -47,7 +47,7 @@ inline void init(uint8_t fps = SYSTEM_FPS) {
 // --- Init with Frame Rate Manager ---
 inline void initWithFrameRateManager(FrameRateManager* manager) {
   frameRateManager = manager;
-  lastTick = millis();
+  lastTick = get_millis();
   now = lastTick;
   delta = 0.0f;
   totalTime = 0;
@@ -66,7 +66,7 @@ inline void initWithFrameRateManager(FrameRateManager* manager) {
 
 // --- Frame limiter ---
 inline bool frameReady() {
-  now = millis();
+  now = get_millis();
   
   // Use frame rate manager if available
   if (frameRateManager) {

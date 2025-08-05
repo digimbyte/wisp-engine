@@ -2,6 +2,14 @@
 // Persistent storage system using SPIFFS and LP-SRAM for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+
+// Forward declare debug functions to avoid circular includes
+namespace WispDebugSystem {
+    void logError(const char* category, const char* message);
+    void logWarning(const char* category, const char* message);
+    void logInfo(const char* category, const char* message);
+}
+
 // ESP-IDF native includes - no Arduino SPIFFS or SD libs
 #include "../../engine/core/debug.h"
 
@@ -121,8 +129,9 @@ private:
     bool restoreFromBackup();
     
 public:
-    WispSaveSystem() : useSDCard(false), autoSave(false), autoSaveInterval(30000), lastAutoSave(0) {
-        saveDirectory = "/saves";
+    WispSaveSystem() : saveFieldCount(0), useSDCard(false), autoSave(false), autoSaveInterval(30000), lastAutoSave(0) {
+        strncpy(saveDirectory, "/saves", sizeof(saveDirectory) - 1);
+        saveDirectory[sizeof(saveDirectory) - 1] = '\0';
     }
     
     // System initialization

@@ -14,7 +14,10 @@ public:
 };
 
 // Global enhanced LUT system instance
+// Disabled for ESP32-C6 due to memory constraints (16KB+ usage)
+#if !defined(PLATFORM_C6) || defined(WISP_MEMORY_PROFILE) && WISP_MEMORY_PROFILE >= 1
 EnhancedLUTSystem enhancedLUT;
+#endif
 
 // Implementation note: Most methods are already implemented in the header
 // This file provides any additional implementation details if needed
@@ -101,6 +104,7 @@ namespace LUTHelpers {
     
     // Setup all 4 slots with fire effect (different phases)
     void setupFireEffect() {
+#if !defined(PLATFORM_C6)
         enhancedLUT.setupColorCycle(0, LUTPresets::FIRE_COLORS, LUTPresets::FIRE_COLORS_COUNT);
         
         // Create shifted versions for other slots to create wave effect
@@ -118,10 +122,14 @@ namespace LUTHelpers {
         enhancedLUT.setupColorCycle(3, fireShift3, 8);
         
         printf("Enhanced LUT: Fire effect configured across all slots\n");
+#else
+        printf("Enhanced LUT: Fire effect disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
     
     // Setup water ripple effect
     void setupWaterEffect() {
+#if !defined(PLATFORM_C6)
         enhancedLUT.setupColorCycle(0, LUTPresets::WATER_COLORS, LUTPresets::WATER_COLORS_COUNT);
         
         // Create phase-shifted water effects
@@ -137,38 +145,54 @@ namespace LUTHelpers {
         enhancedLUT.setupColorCycle(3, waterShift3, 8);
         
         printf("Enhanced LUT: Water effect configured across all slots\n");
+#else
+        printf("Enhanced LUT: Water effect disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
     
     // Setup different effects per slot
     void setupMixedEffects() {
+#if !defined(PLATFORM_C6)
         enhancedLUT.setupColorCycle(0, LUTPresets::FIRE_COLORS, LUTPresets::FIRE_COLORS_COUNT);
         enhancedLUT.setupColorCycle(1, LUTPresets::WATER_COLORS, LUTPresets::WATER_COLORS_COUNT);
         enhancedLUT.setupColorCycle(2, LUTPresets::ENERGY_COLORS, LUTPresets::ENERGY_COLORS_COUNT);
         enhancedLUT.setupColorCycle(3, LUTPresets::MAGIC_COLORS, LUTPresets::MAGIC_COLORS_COUNT);
         
         printf("Enhanced LUT: Mixed effects configured (fire/water/energy/magic)\n");
+#else
+        printf("Enhanced LUT: Mixed effects disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
     
     // Setup warning indicators
     void setupWarningEffects() {
+#if !defined(PLATFORM_C6)
         enhancedLUT.setupFlashEffect(0, 0xF800, 0xFFE0, 2);  // Red/Yellow flash
         enhancedLUT.setupFlashEffect(1, 0xF800, 0x0000, 3);  // Red/Black flash
         enhancedLUT.setupColorCycle(2, LUTPresets::WARNING_COLORS, LUTPresets::WARNING_COLORS_COUNT);
         enhancedLUT.setupFlashEffect(3, 0xF800, 0x0000, 6);  // Red flash
         
         printf("Enhanced LUT: Warning effects configured\n");
+#else
+        printf("Enhanced LUT: Warning effects disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
     
     // Disable all slots (all transparent)
     void disableAllSlots() {
+#if !defined(PLATFORM_C6)
         for (uint8_t i = 0; i < 4; i++) {
             enhancedLUT.disableSlot(i);
         }
         printf("Enhanced LUT: All slots disabled (transparent)\n");
+#else
+        printf("Enhanced LUT: Disable all slots disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
     
     // Test pattern for debugging
     void setupTestPattern() {
+#if !defined(PLATFORM_C6)
         // Simple color progression for testing
         uint16_t testColors[4] = {0xF800, 0x07E0, 0x001F, 0xFFFF};  // Red, Green, Blue, White
         
@@ -178,5 +202,8 @@ namespace LUTHelpers {
         }
         
         printf("Enhanced LUT: Test pattern configured (R/G/B/W)\n");
+#else
+        printf("Enhanced LUT: Test pattern disabled (ESP32-C6 memory constraints)\n");
+#endif
     }
 }

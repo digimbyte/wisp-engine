@@ -3,7 +3,7 @@
 // Curated API interface for ESP32 application development
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include "wisp_curated_api.h"
+#include "curated_api.h"
 
 // Base class for all Wisp Engine applications
 // Apps MUST inherit from this and are restricted to the curated API
@@ -56,13 +56,13 @@ public:
     bool isInitialized() const { return initialized; }
     bool isActive() const { return active; }
     uint32_t getFrameCount() const { return frameCount; }
-    uint32_t getRunTime() const { return millis() - startTime; }
+    uint32_t getRunTime() const { return get_millis() - startTime; }
     
     // Called by engine - apps should not call these
     bool internalInit() {
         if (initialized) return true;
         
-        startTime = millis();
+        startTime = get_millis();
         frameCount = 0;
         
         bool result = init();

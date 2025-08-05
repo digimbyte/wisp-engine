@@ -1,7 +1,7 @@
 // examples/save_demo_app.cpp
 // Demonstration app showing how to use the Wisp Save System
-#include "../src/engine/wisp_app_interface.h"
-#include "../src/engine/wisp_curated_api.h"
+#include "../src/engine/app/interface.h"
+#include "../src/engine/app/curated_api.h"
 
 class SaveDemoApp : public WispAppBase {
 private:

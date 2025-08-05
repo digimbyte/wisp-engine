@@ -3,6 +3,7 @@
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include <LovyanGFX.hpp>
+#include <algorithm>  // For std::min/max
 
 // ESP32-optimized graphics engine
 // Designed for 320x172 display with minimal memory footprint
@@ -190,7 +191,7 @@ public:
         
         memcpy(sprite.pixelData, spriteData + sizeof(OptimizedSpriteHeader), sprite.header.dataSize);
         sprite.loaded = true;
-        sprite.lastUsed = millis();
+        sprite.lastUsed = get_millis();
         
         Serial.print("Sprite loaded: ");
         Serial.print(spriteId);
@@ -239,7 +240,7 @@ public:
     
     // Tile-based rendering
     void renderFrame() {
-        frameStartTime = micros();
+        frameStartTime = get_micros();
         spritesRendered = 0;
         
         display->startWrite();
@@ -256,7 +257,7 @@ public:
         
         display->endWrite();
         
-        renderTime = micros() - frameStartTime;
+        renderTime = get_micros() - frameStartTime;
         tileCtx.frameCount++;
     }
     
@@ -271,13 +272,12 @@ public:
         // Render layers in order
         for (int layer = 0; layer < LAYER_COUNT; layer++) {
             renderLayerToTile(layer, tileX, tileY);
+            spritesRendered += layerSpriteCount[layer];
         }
         
         // Output tile to display
         display->setAddrWindow(screenX, screenY, TILE_SIZE, TILE_SIZE);
         display->writePixels(tileCtx.tileBuffer, TILE_SIZE * TILE_SIZE);
-        
-        spritesRendered += layerSpriteCount[layer];
     }
     
     // Render layer sprites to tile buffer
@@ -306,7 +306,7 @@ public:
             
             // Render sprite to tile buffer
             renderSpriteToTile(instance, sprite, tileStartX, tileStartY);
-            sprites[instance.spriteId].lastUsed = millis();
+            sprites[instance.spriteId].lastUsed = get_millis();
         }
     }
     
@@ -318,10 +318,10 @@ public:
         int16_t spriteY = instance.y - tileStartY;
         
         // Calculate clipping
-        int16_t startX = max(0, -spriteX);
-        int16_t startY = max(0, -spriteY);
-        int16_t endX = min((int16_t)sprite.header.width, TILE_SIZE - spriteX);
-        int16_t endY = min((int16_t)sprite.header.height, TILE_SIZE - spriteY);
+        int16_t startX = std::max(0, -spriteX);
+        int16_t startY = std::max(0, -spriteY);
+        int16_t endX = std::min(static_cast<int>(sprite.header.width), static_cast<int>(TILE_SIZE - spriteX));
+        int16_t endY = std::min(static_cast<int>(sprite.header.height), static_cast<int>(TILE_SIZE - spriteY));
         
         // Render pixels
         for (int16_t y = startY; y < endY; y++) {

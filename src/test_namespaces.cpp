@@ -5,8 +5,8 @@
 // Simple test functions to verify namespace bridges work
 void testDebugNamespace() {
     WispEngine::Core::Debug::init(
-        WispEngine::Core::Debug::DEBUG_MODE_ENABLED,
-        WispEngine::Core::Debug::SAFETY_ENABLED
+        WispEngine::Core::Debug::DEBUG_MODE_ON,
+        WispEngine::Core::Debug::SAFETY_MODE_ENABLED
     );
     
     WispEngine::Core::Debug::info("TEST", "Debug system working via namespace bridge");
@@ -17,7 +17,7 @@ void testDebugNamespace() {
 void testTimingNamespace() {
     WispEngine::Core::Timing::init();
     
-    WISP_DEBUG_INFO("TEST", "Timing namespace initialized");
+    WispEngine::Core::Debug::info("TEST", "Timing namespace initialized");
     
     // Test a few frames
     for (int i = 0; i < 10; i++) {
@@ -30,11 +30,11 @@ void testTimingNamespace() {
 }
 
 void runNamespaceTests() {
-    WISP_DEBUG_INFO("TEST", "Starting namespace bridge tests...");
+    WispEngine::Core::Debug::info("TEST", "Starting namespace bridge tests...");
     
     testDebugNamespace();
     testTimingNamespace();
     
-    WISP_DEBUG_INFO("TEST", "All namespace bridge tests completed successfully!");
+    WispEngine::Core::Debug::info("TEST", "All namespace bridge tests completed successfully!");
     WispEngine::Core::Debug::shutdown();
 }

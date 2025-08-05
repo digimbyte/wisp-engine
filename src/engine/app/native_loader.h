@@ -156,7 +156,7 @@ inline bool NativeAppLoader::initializeApp(EngineCore* engine) {
     
     bool success = currentApp->init(engine);
     if (success) {
-        appStartTime = millis();
+        appStartTime = get_millis();
         totalFrames = 0;
         
         ESP_LOGI("APP_LOADER", "App initialized: %s v%s by %s", 
@@ -171,9 +171,9 @@ inline bool NativeAppLoader::initializeApp(EngineCore* engine) {
 inline void NativeAppLoader::updateApp(float deltaTime) {
     if (!currentApp) return;
     
-    uint32_t start = micros();
+    uint32_t start = get_micros();
     currentApp->update(deltaTime);
-    frameUpdateTime = micros() - start;
+    frameUpdateTime = get_micros() - start;
     
     totalFrames++;
 }
@@ -181,9 +181,9 @@ inline void NativeAppLoader::updateApp(float deltaTime) {
 inline void NativeAppLoader::renderApp(GraphicsEngine* graphics) {
     if (!currentApp || !graphics) return;
     
-    uint32_t start = micros();
+    uint32_t start = get_micros();
     currentApp->render(graphics);
-    frameRenderTime = micros() - start;
+    frameRenderTime = get_micros() - start;
 }
 
 inline void NativeAppLoader::cleanupApp() {
@@ -254,7 +254,7 @@ inline bool NativeAppLoader::validateApp(WispApp* app) {
 }
 
 inline uint32_t NativeAppLoader::getAppRuntime() const {
-    return appStartTime > 0 ? (millis() - appStartTime) : 0;
+    return appStartTime > 0 ? (get_millis() - appStartTime) : 0;
 }
 
 inline void NativeAppLoader::logAppEvent(const String& event) {

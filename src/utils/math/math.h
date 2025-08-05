@@ -236,10 +236,27 @@ namespace Math {
             return 1 - 2 * (1 - t) * (1 - t);
         }
     }
+    // Return the minimum of two values
+    inline float min(float a, float b) {
+        return (a < b) ? a : b;
+    }
+
+    // Return the minimum of two integers
+    inline int min_int(int a, int b) {
+        return (a < b) ? a : b;
+    }
+
+    // Return the maximum of two values
+    inline float max(float a, float b) {
+        return (a > b) ? a : b;
+    }
+
+    // Return the maximum of two integers
+    inline int max_int(int a, int b) {
+        return (a > b) ? a : b;
+    }
 }
 
-// Type aliases for backward compatibility
-using WispVec2 = Vec2;
+// Type aliases for backward compatibility (only the ones that don't conflict)
 using WispRect = Rect;
-using WispColor = Color;
 namespace WispMath = Math;

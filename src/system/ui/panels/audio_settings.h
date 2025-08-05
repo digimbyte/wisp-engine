@@ -4,6 +4,7 @@
 
 #include "menu.h"
 #include "../../system/definitions.h"
+#include <string>
 
 class AudioSettingsPanel : public MenuPanel {
 private:
@@ -70,9 +71,9 @@ public:
         
         // Auto-save periodically
         static uint32_t lastSaveTime = 0;
-        if (millis() - lastSaveTime > 10000) { // Every 10 seconds
+        if (get_millis() - lastSaveTime > 10000) { // Every 10 seconds
             saveSettings();
-            lastSaveTime = millis();
+            lastSaveTime = get_millis();
         }
     }
     
@@ -109,7 +110,7 @@ public:
             // Draw menu item and value
             gfx->drawText(menuItems[i], 10, y + 5, false);
             
-            String valueText = getValueText((AudioMenuState)i);
+            std::string valueText = getValueText((AudioMenuState)i);
             if (!valueText.empty()) {
                 gfx->drawText(valueText.c_str(), SCREEN_WIDTH - 10, y + 5, false, true);
             }
@@ -131,7 +132,7 @@ public:
 private:
     void handleNavigation(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return; // Debounce
         
@@ -162,7 +163,7 @@ private:
     
     void handleAdjustment(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 100) return; // Faster adjustment
         
@@ -245,16 +246,16 @@ private:
         }
     }
     
-    String getValueText(AudioMenuState item) {
+    std::string getValueText(AudioMenuState item) {
         switch (item) {
             case MASTER_VOLUME:
-                return String(settings.masterVolume) + "%";
+                return std::to_string(settings.masterVolume) + "%";
                 
             case EFFECTS_VOLUME:
-                return String(settings.effectsVolume) + "%";
+                return std::to_string(settings.effectsVolume) + "%";
                 
             case MUSIC_VOLUME:
-                return String(settings.musicVolume) + "%";
+                return std::to_string(settings.musicVolume) + "%";
                 
             case OUTPUT_MODE:
                 if (settings.enablePiezo && settings.enableI2S) return "Piezo+I2S";
@@ -273,7 +274,7 @@ private:
                 return settings.enableHaptics ? "Enabled" : "Disabled";
                 
             case HAPTIC_STRENGTH:
-                return settings.enableHaptics ? (String(settings.hapticStrength) + "%") : "N/A";
+                return settings.enableHaptics ? (std::to_string(settings.hapticStrength) + "%") : "N/A";
                 
             default:
                 return "";
@@ -303,11 +304,11 @@ private:
         // Volume percentage
         gfx->setTextColor(COLOR_WHITE);
         gfx->setTextSize(1);
-        gfx->drawText(String(settings.masterVolume).c_str(), barX + barWidth/2, barY + barHeight + 5, true);
+        gfx->drawText(std::to_string(settings.masterVolume).c_str(), barX + barWidth/2, barY + barHeight + 5, true);
     }
     
     void testAudio() {
-        if (millis() - lastTestTime < 1000) return; // Prevent spam
+        if (get_millis() - lastTestTime < 1000) return; // Prevent spam
         
         // Play test sounds using current settings
         api->audio()->playTone(440, 200, settings.effectsVolume); // A4 note
@@ -317,7 +318,7 @@ private:
             // This would need to be implemented in the curated API
         }
         
-        lastTestTime = millis();
+        lastTestTime = get_millis();
     }
     
     void testVolumeLevel() {

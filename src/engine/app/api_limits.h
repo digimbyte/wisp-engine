@@ -3,6 +3,7 @@
 // Resource limits and quotas for safe ESP32 application execution
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include <string>
 
 // Wisp Engine API Limits - Enforced restrictions to prevent system crashes
 // These limits ensure apps can't overwhelm the ESP32's resources
@@ -154,7 +155,7 @@ struct WispResourceQuota {
     
     bool safeAllocateMemory(uint32_t bytes) { 
         bool withinLimit = canAllocateMemory(bytes);
-        String operation = "Memory allocation (" + String(bytes) + " bytes)";
+        std::string operation = "Memory allocation (" + std::to_string(bytes) + " bytes)";
         if (checkSafetyLimit(operation, withinLimit)) {
             if (withinLimit) currentMemoryUsage += bytes;
             return true;
@@ -218,45 +219,21 @@ struct WispResourceQuota {
     bool isDrawCallUsageHigh() const { return getDrawCallUsage() > 0.8f; }
     
     void printUsageStats() const {
-        Serial.println("=== Resource Quota Usage ===");
-        Serial.print("Entities: ");
-        Serial.print(currentEntities);
-        Serial.print("/");
-        Serial.print(maxEntities);
-        Serial.print(" (");
-        Serial.print((int)(getEntityUsage() * 100));
-        Serial.println("%)");
-        
-        Serial.print("Sprites: ");
-        Serial.print(currentSprites);
-        Serial.print("/");
-        Serial.print(maxSprites);
-        Serial.print(" (");
-        Serial.print((int)(getSpriteUsage() * 100));
-        Serial.println("%)");
-        
-        Serial.print("Memory: ");
-        Serial.print(currentMemoryUsage);
-        Serial.print("/");
-        Serial.print(maxMemoryUsage);
-        Serial.print(" bytes (");
-        Serial.print((int)(getMemoryUsage() * 100));
-        Serial.println("%)");
-        
-        Serial.print("Draw Calls: ");
-        Serial.print(currentDrawCalls);
-        Serial.print("/");
-        Serial.print(maxDrawCalls);
-        Serial.print(" (");
-        Serial.print((int)(getDrawCallUsage() * 100));
-        Serial.println("%)");
-        
-        Serial.println("============================");
+        ESP_LOGI("QUOTA", "=== Resource Quota Usage ===");
+        ESP_LOGI("QUOTA", "Entities: %zu/%zu (%d%%)", 
+                 currentEntities, maxEntities, (int)(getEntityUsage() * 100));
+        ESP_LOGI("QUOTA", "Sprites: %zu/%zu (%d%%)", 
+                 currentSprites, maxSprites, (int)(getSpriteUsage() * 100));
+        ESP_LOGI("QUOTA", "Memory: %zu/%zu bytes (%d%%)", 
+                 currentMemoryUsage, maxMemoryUsage, (int)(getMemoryUsage() * 100));
+        ESP_LOGI("QUOTA", "Draw Calls: %zu/%zu (%d%%)", 
+                 currentDrawCalls, maxDrawCalls, (int)(getDrawCallUsage() * 100));
+        ESP_LOGI("QUOTA", "============================");
     }
     
 private:
     // Safety check method that integrates with debug system
-    bool checkSafetyLimit(const String& operation, bool withinLimit) const {
+    bool checkSafetyLimit(const std::string& operation, bool withinLimit) const {
         // This will be implemented by including the debug system
         // For now, we'll use a simplified version
         #if WISP_SAFETY_DISABLED

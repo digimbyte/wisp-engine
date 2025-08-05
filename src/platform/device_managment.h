@@ -9,10 +9,11 @@
 #include <esp_spi_flash.h>
 #include <esp_chip_info.h>
 #include <esp_wifi.h>
+#include <string>
 
 namespace DeviceManagement {
 
-inline String generateDeviceId() {
+inline std::string generateDeviceId() {
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   char raw[32];
@@ -31,10 +32,10 @@ inline String generateDeviceId() {
   return hex;
 }
 
-inline String ensureDeviceId() {
+inline std::string ensureDeviceId() {
   Preferences p;
   p.begin("appcfg", false);
-  String id = p.getString("device_id", "");
+  std::string id = p.getString("device_id", "");
   if (id.empty()) {
     id = generateDeviceId();
     p.putString("device_id", id);
@@ -43,20 +44,20 @@ inline String ensureDeviceId() {
   return id;
 }
 
-inline String getChipInfo() {
+inline std::string getChipInfo() {
   esp_chip_info_t chip;
   esp_chip_info(&chip);
 
-  String info = "ESP32-";
-  info += chip.model;
+  std::string info = "ESP32-";
+  info += std::to_string(chip.model);
   info += " Rev";
-  info += chip.revision;
+  info += std::to_string(chip.revision);
   info += " Cores: ";
-  info += chip.cores;
+  info += std::to_string(chip.cores);
   return info;
 }
 
-inline String getMacAddress() {
+inline std::string getMacAddress() {
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   char buf[18];
@@ -66,7 +67,7 @@ inline String getMacAddress() {
 }
 
 inline uint32_t getUptimeMs() {
-  return millis();
+  return get_millis();
 }
 
 inline size_t getFreeHeap() {
@@ -81,8 +82,8 @@ inline size_t getPsramSize() {
 #endif
 }
 
-inline String getResetReason() {
-  return String(esp_reset_reason());
+inline std::string getResetReason() {
+  return std::to_string(esp_reset_reason());
 }
 
 inline void resetToFactory() {

@@ -2,7 +2,9 @@
 #pragma once
 #include <LovyanGFX.hpp>
 #include "../../engine/app/curated_api.h"
+#include "../esp32_common.h"
 #include <vector>
+#include <string>
 
 class MainMenu {
 public:
@@ -10,7 +12,7 @@ public:
     int appCount;
     int selectedApp = 0;
     bool inAppSelection = false;
-    String statusMessage = "";
+    std::string statusMessage = "";
     uint32_t statusTimeout = 0;
     
     WispCuratedAPI* api;  // Use curated API instead of direct access
@@ -90,8 +92,8 @@ public:
                 uint16_t color = (i == selectedApp) ? TFT_YELLOW : TFT_WHITE;
                 display.setTextColor(color);
                 
-                String prefix = (i == selectedApp) ? "> " : "  ";
-                display.drawString(prefix + availableApps[i], 20, startY + i * lineHeight);
+                std::string prefix = (i == selectedApp) ? "> " : "  ";
+                display.drawString((prefix + availableApps[i]).c_str(), 20, startY + i * lineHeight);
             }
             
             // Instructions
@@ -113,7 +115,7 @@ public:
 private:
     void loadSelectedApp() {
         if (selectedApp >= 0 && selectedApp < availableApps.size() && api) {
-            String appName = availableApps[selectedApp];
+            std::string appName = availableApps[selectedApp];
             statusMessage = "Loading " + appName + "...";
             statusTimeout = api->getTime() + 2000;
             

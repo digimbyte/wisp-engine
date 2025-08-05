@@ -3,7 +3,12 @@
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
 #include <driver/ledc.h>
-#include <driver/i2s.h>
+#include <driver/i2s_std.h>
+// Use legacy I2S API to avoid deprecation warnings until migration
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcpp"
+#include <driver/i2s.h>  // Legacy I2S API for i2s_driver_uninstall
+#pragma GCC diagnostic pop
 #include <driver/gpio.h>
 
 #define MAX_AUDIO_CHANNELS 16
@@ -78,6 +83,9 @@ public:
   bool internalDacEnabled = false;
   bool pwmEnabled = false;
   
+  // I2S channel handle for new ESP-IDF 5.x API
+  i2s_chan_handle_t i2s_tx_handle = nullptr;
+  
   // Bluetooth A2DP (disabled for basic compilation)
   #ifdef AUDIO_BLUETOOTH_ENABLED
   BluetoothA2DPSink* a2dpSink = nullptr;
@@ -97,7 +105,7 @@ public:
       channels[i].active = false;
       channels[i].volume = 128;
       channels[i].phase = 0;
-      channels[i].lastUpdate = millis();
+      channels[i].lastUpdate = get_millis();
     }
     
     // Initialize all requested outputs
@@ -133,29 +141,44 @@ public:
   }
 
   void initI2S() {
-    i2s_config_t i2s_config = {
-      .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-      .sample_rate = sampleRate,
-      .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-      .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-      .communication_format = I2S_COMM_FORMAT_I2S_MSB,
-      .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-      .dma_buf_count = 8,
-      .dma_buf_len = AUDIO_BUFFER_SIZE,
-      .use_apll = false,
-      .tx_desc_auto_clear = true
+    // New ESP-IDF 5.x I2S API
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    esp_err_t ret = i2s_new_channel(&chan_cfg, &i2s_tx_handle, nullptr);
+    if (ret != ESP_OK) {
+      ESP_LOGE("AudioEngine", "Failed to create I2S channel: %s", esp_err_to_name(ret));
+      return;
+    }
+
+    i2s_std_config_t std_cfg = {
+      .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sampleRate),
+      .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+      .gpio_cfg = {
+        .mclk = I2S_GPIO_UNUSED,
+        .bclk = AUDIO_I2S_BCLK,
+        .ws = AUDIO_I2S_LRC,
+        .dout = AUDIO_I2S_DIN,
+        .din = I2S_GPIO_UNUSED,
+        .invert_flags = {
+          .mclk_inv = false,
+          .bclk_inv = false,
+          .ws_inv = false
+        }
+      }
     };
 
-    i2s_pin_config_t pin_config = {
-      .bck_io_num = AUDIO_I2S_BCLK,
-      .ws_io_num = AUDIO_I2S_LRC,
-      .data_out_num = AUDIO_I2S_DIN,
-      .data_in_num = I2S_PIN_NO_CHANGE
-    };
+    ret = i2s_channel_init_std_mode(i2s_tx_handle, &std_cfg);
+    if (ret != ESP_OK) {
+      ESP_LOGE("AudioEngine", "Failed to initialize I2S channel: %s", esp_err_to_name(ret));
+      return;
+    }
 
-    i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-    i2s_set_pin(I2S_NUM_0, &pin_config);
-    i2sEnabled = true;
+    ret = i2s_channel_enable(i2s_tx_handle);
+    if (ret == ESP_OK) {
+      i2sEnabled = true;
+      ESP_LOGI("AudioEngine", "I2S initialized successfully");
+    } else {
+      ESP_LOGE("AudioEngine", "Failed to enable I2S channel: %s", esp_err_to_name(ret));
+    }
   }
 
   void initBluetooth() {
@@ -176,7 +199,7 @@ public:
     ch.waveform = wave;
     ch.volume = volume;
     ch.phase = 0;
-    ch.lastUpdate = millis();
+    ch.lastUpdate = get_millis();
     ch.sampleData = nullptr; // Clear any sample playback
   }
 
@@ -268,7 +291,7 @@ public:
   void update() {
     if (!enabled) return;
     
-    uint32_t now = millis();
+    uint32_t now = get_millis();
     
     // Update channel states
     for (int i = 0; i < MAX_AUDIO_CHANNELS; i++) {
@@ -292,10 +315,15 @@ public:
 
 private:
   void silenceAllOutputs() {
-    if (piezoEnabled) ledcWrite(PIEZO_PWM_CHANNEL, 0);
+    if (piezoEnabled) {
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL, 0);
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL);
+    }
     if (pwmEnabled) {
-      ledcWrite(PWM_LEFT_CHANNEL, 128);  // Middle value for PWM
-      ledcWrite(PWM_RIGHT_CHANNEL, 128);
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_LEFT_CHANNEL, 128);  // Middle value for PWM
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_LEFT_CHANNEL);
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_RIGHT_CHANNEL, 128);
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_RIGHT_CHANNEL);
     }
     if (internalDacEnabled) {
       #ifdef DAC_CHANNEL_1_GPIO_NUM
@@ -347,9 +375,9 @@ private:
 
   void outputToAllDevices() {
     // Output to I2S DAC
-    if (enabledOutputs & AUDIO_I2S_DAC && i2sEnabled) {
+    if (enabledOutputs & AUDIO_I2S_DAC && i2sEnabled && i2s_tx_handle) {
       size_t bytesWritten;
-      i2s_write(I2S_NUM_0, mixBuffer, sizeof(mixBuffer), &bytesWritten, 0);
+      i2s_channel_write(i2s_tx_handle, mixBuffer, sizeof(mixBuffer), &bytesWritten, 0);
     }
     
     // Output to PWM
@@ -378,8 +406,10 @@ private:
     for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
       uint8_t leftPWM = ((mixBuffer[i * 2] + 32768) >> 8);
       uint8_t rightPWM = ((mixBuffer[i * 2 + 1] + 32768) >> 8);
-      ledcWrite(PWM_LEFT_CHANNEL, leftPWM);
-      ledcWrite(PWM_RIGHT_CHANNEL, rightPWM);
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_LEFT_CHANNEL, leftPWM);
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_LEFT_CHANNEL);
+      ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_RIGHT_CHANNEL, rightPWM);
+      ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PWM_RIGHT_CHANNEL);
       delayMicroseconds(1000000 / sampleRate); // Timing for PWM updates
     }
   }
@@ -402,12 +432,25 @@ private:
       if (ch.active) {
         uint32_t pwmValue = (ch.volume * masterVolume) >> 8;
         pwmValue = (pwmValue * 255) >> 8;
-        ledcWriteTone(PIEZO_PWM_CHANNEL, ch.frequency);
-        ledcWrite(PIEZO_PWM_CHANNEL, pwmValue);
+        
+        // Set frequency by configuring timer
+        ledc_timer_config_t ledc_timer = {
+          .speed_mode = LEDC_LOW_SPEED_MODE,
+          .duty_resolution = LEDC_TIMER_8_BIT,
+          .timer_num = LEDC_TIMER_0,
+          .freq_hz = ch.frequency,
+          .clk_cfg = LEDC_AUTO_CLK,
+          .deconfigure = false
+        };
+        ledc_timer_config(&ledc_timer);
+        
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL, pwmValue);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL);
         return;
       }
     }
-    ledcWrite(PIEZO_PWM_CHANNEL, 0);
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL, 0);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, (ledc_channel_t)PIEZO_PWM_CHANNEL);
   }
 
   void outputToBluetooth() {

@@ -14,9 +14,16 @@ private:
 public:
     static bool initialize() {
         if (!instance) {
+            // TODO: Large GraphicsEngine disabled for ESP32-C6 memory constraints
+            // Uncomment when memory optimization is complete
+            #if !defined(PLATFORM_C6) || defined(WISP_MEMORY_PROFILE) && WISP_MEMORY_PROFILE >= 1
             instance = new GraphicsEngine();
             // GraphicsEngine likely has init() method, not initialize()
             return true; // Placeholder - implement actual initialization
+            #else
+            // Return false on ESP32-C6 with minimal memory profile - no graphics engine
+            return false;
+            #endif
         }
         return true;
     }

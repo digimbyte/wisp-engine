@@ -260,7 +260,7 @@ public:
     
     // Update animated colors
     void updateAnimations() {
-        uint32_t startTime = micros();
+        uint32_t startTime = get_micros();
         animationsUpdated = 0;
         
         for (uint8_t p = 0; p < MAX_ACTIVE_PALETTES; p++) {
@@ -285,7 +285,7 @@ public:
             }
         }
         
-        updateTime = micros() - startTime;
+        updateTime = get_micros() - startTime;
     }
     
     // Utility: Convert HSV to RGB565

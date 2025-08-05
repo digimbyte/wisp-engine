@@ -1,21 +1,23 @@
 // src/system/ui/panels/display_settings.h
 #pragma once
 #include "../../../engine/app/curated_api.h"
+#include "../../esp32_common.h"
 #include "menu.h"
+#include <string>
 
 namespace WispMenu {
 
 class DisplaySettingsPanel : public MenuPanel {
 private:
     struct DisplaySetting {
-        String name;
+        std::string name;
         int* valuePtr;
         int minValue;
         int maxValue;
         int step;
-        String unit;
+        std::string unit;
         
-        DisplaySetting(const String& n, int* ptr, int minVal, int maxVal, int s = 1, const String& u = "") :
+        DisplaySetting(const std::string& n, int* ptr, int minVal, int maxVal, int s = 1, const std::string& u = "") :
             name(n), valuePtr(ptr), minValue(minVal), maxValue(maxVal), step(s), unit(u) {}
     };
     
@@ -134,7 +136,7 @@ public:
             api->drawText(setting.name, 20, y + 5, nameColor, 1);
             
             // Setting value
-            String valueText = String(*setting.valuePtr);
+            std::string valueText = std::to_string(*setting.valuePtr);
             if (!setting.unit.empty()) {
                 if (setting.unit == "%") {
                     int percent = map(*setting.valuePtr, setting.minValue, setting.maxValue, 0, 100);
@@ -172,8 +174,8 @@ public:
         }
         
         // Instructions
-        String instructions = editMode ? "← → Adjust   A: Confirm   B: Cancel" : "↑ ↓ Navigate   A: Edit   B: Back";
-        api->drawText(instructions, 20, SCREEN_HEIGHT - 25, WispColor(180, 180, 180), 1);
+        std::string instructions = editMode ? "← → Adjust   A: Confirm   B: Cancel" : "↑ ↓ Navigate   A: Edit   B: Back";
+        api->drawText(instructions.c_str(), 20, SCREEN_HEIGHT - 25, WispColor(180, 180, 180), 1);
         
         // Preview area
         renderPreview();

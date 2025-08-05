@@ -67,7 +67,7 @@ public:
     
     // Check if it's time for the next frame
     bool isFrameReady() {
-        uint32_t currentTime = micros();
+        uint32_t currentTime = get_micros();
         
         if (lastFrameTime == 0 || (currentTime - lastFrameTime) >= frameTimeUs) {
             frameStartTime = currentTime;
@@ -79,13 +79,13 @@ public:
     
     // Call at the start of each frame
     void frameStart() {
-        frameStartTime = micros();
+        frameStartTime = get_micros();
         totalFrames++;
     }
     
     // Call at the end of each frame
     void frameEnd() {
-        uint32_t currentTime = micros();
+        uint32_t currentTime = get_micros();
         uint32_t actualFrameTime = currentTime - frameStartTime;
         
         // Update rolling average

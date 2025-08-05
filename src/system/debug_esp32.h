@@ -2,6 +2,7 @@
 #pragma once
 
 #include "esp32_common.h"
+#include <string>
 
 // Include board-specific debug pin definitions
 #ifdef PLATFORM_S3
@@ -19,15 +20,24 @@ enum WispLogLevel {
 
 // Debug system configuration
 #ifndef WISP_DEBUG_ENABLED_DEFAULT
-#define WISP_DEBUG_ENABLED_DEFAULT true
+#define WISP_DEBUG_ENABLED_DEFAULT 1
 #endif
 
 #ifndef WISP_SAFETY_DISABLED_DEFAULT  
-#define WISP_SAFETY_DISABLED_DEFAULT false
+#define WISP_SAFETY_DISABLED_DEFAULT 0
 #endif
 
 #ifndef DEBUG_OUTPUT_PINS
-#define DEBUG_OUTPUT_PINS true
+#define DEBUG_OUTPUT_PINS 1
+#endif
+
+// Legacy compatibility constants
+#ifndef DEBUG_MODE_ENABLED
+#define DEBUG_MODE_ENABLED WISP_DEBUG_ENABLED_DEFAULT
+#endif
+
+#ifndef SAFETY_DISABLED
+#define SAFETY_DISABLED WISP_SAFETY_DISABLED_DEFAULT
 #endif
 
 #ifndef DEBUG_LOG_TO_SD
@@ -83,7 +93,7 @@ private:
     static uint32_t warningCount;
     static uint32_t lastHeartbeat;
     static bool pinsInitialized;
-    static String currentAppName;
+    static std::string currentAppName;
     
     // Error tracking
     static uint32_t errorsThisSecond;
@@ -101,7 +111,7 @@ public:
         warningCount = 0;
         errorsThisSecond = 0;
         lastErrorSecond = 0;
-        lastHeartbeat = millis();
+        lastHeartbeat = get_millis();
         pinsInitialized = false;
         
         if (debugMode) {
@@ -126,7 +136,7 @@ public:
         }
     }
     
-    static void setCurrentApp(const String& appName) {
+    static void setCurrentApp(const std::string& appName) {
         currentAppName = appName;
         if (debugMode) {
             ESP_LOGI(TAG, "Switched to app: %s", appName.c_str());
@@ -137,7 +147,7 @@ public:
     static bool isSafetyDisabled() { return safetyDisabled; }
     
     // Safety check function - returns true if operation should proceed
-    static bool checkQuotaLimit(const String& operation, bool withinLimit) {
+    static bool checkQuotaLimit(const std::string& operation, bool withinLimit) {
         if (safetyDisabled) {
             // In unsafe mode, always allow operation but log it
             if (debugMode && !withinLimit) {
@@ -159,7 +169,7 @@ public:
     }
     
     // Error logging with different severity levels
-    static void logMessage(WispLogLevel level, const String& category, const String& message) {
+    static void logMessage(WispLogLevel level, const std::string& category, const std::string& message) {
         if (!debugMode) return;
         
         const char* categoryStr = category.c_str();
@@ -196,39 +206,39 @@ public:
     }
     
     // Convenience functions for different log levels
-    static void logError(const String& category, const String& message) {
+    static void logError(const std::string& category, const std::string& message) {
         logMessage(LOG_ERROR, category, message);
     }
     
-    static void logWarning(const String& category, const String& message) {
+    static void logWarning(const std::string& category, const std::string& message) {
         logMessage(LOG_WARNING, category, message);
     }
     
-    static void logInfo(const String& category, const String& message) {
+    static void logInfo(const std::string& category, const std::string& message) {
         logMessage(LOG_INFO, category, message);
     }
     
-    static void logDebug(const String& category, const String& message) {
+    static void logDebug(const std::string& category, const std::string& message) {
         logMessage(LOG_DEBUG, category, message);
     }
     
     // Resource quota violation logging
-    static void logQuotaViolation(const String& resourceType, uint32_t current, uint32_t max) {
+    static void logQuotaViolation(const std::string& resourceType, uint32_t current, uint32_t max) {
         char message[128];
-        snprintf(message, sizeof(message), "%s quota exceeded: %u/%u", resourceType, current, max);
+        snprintf(message, sizeof(message), "%s quota exceeded: %lu/%lu", resourceType.c_str(), (unsigned long)current, (unsigned long)max);
         logError("QUOTA", message);
     }
     
     // Performance monitoring
-    static void logPerformanceWarning(const String& operation, uint32_t timeUs, uint32_t limitUs) {
+    static void logPerformanceWarning(const std::string& operation, uint32_t timeUs, uint32_t limitUs) {
         char message[128];
-        snprintf(message, sizeof(message), "%s took %uμs (limit: %uμs)", operation, timeUs, limitUs);
+        snprintf(message, sizeof(message), "%s took %luμs (limit: %luμs)", operation.c_str(), (unsigned long)timeUs, (unsigned long)limitUs);
         logWarning("PERFORMANCE", message);
     }
     
     // System heartbeat for monitoring
     static void heartbeat() {
-        uint32_t now = millis();
+        uint32_t now = get_millis();
         if (now - lastHeartbeat > 1000) { // Every second
             lastHeartbeat = now;
             
@@ -245,7 +255,7 @@ public:
     }
     
     // Emergency mode activation
-    static void activateEmergencyMode(const String& reason) {
+    static void activateEmergencyMode(const std::string& reason) {
         logError("EMERGENCY", "Emergency mode activated: " + reason);
         
         if (debugMode && DEBUG_OUTPUT_PINS) {
@@ -352,7 +362,7 @@ private:
     }
     
     static void updateErrorCounters(WispLogLevel level) {
-        uint32_t currentSecond = millis() / 1000;
+        uint32_t currentSecond = get_millis() / 1000;
         
         if (currentSecond != lastErrorSecond) {
             errorsThisSecond = 0;
@@ -395,18 +405,6 @@ private:
                 currentAppName.empty() ? "" : currentAppName.c_str());
     }
 };
-
-// Static member definitions
-bool DebugSystem::debugMode = false;
-bool DebugSystem::safetyDisabled = false;
-uint32_t DebugSystem::errorCount = 0;
-uint32_t DebugSystem::warningCount = 0;
-uint32_t DebugSystem::lastHeartbeat = 0;
-bool DebugSystem::pinsInitialized = false;
-String DebugSystem::currentAppName = "";
-uint32_t DebugSystem::errorsThisSecond = 0;
-uint32_t DebugSystem::lastErrorSecond = 0;
-const char* DebugSystem::TAG = "DEBUG";
 
 // Convenience macros for common debug operations
 #define DEBUG_INIT(debug, safety) DebugSystem::init(debug, safety)

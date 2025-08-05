@@ -1,17 +1,19 @@
 #include "database_system.h"
+#include "wbdf_integration.h"  // Include WBDF integration
 #include <string.h>
 #include <utility>   // For std::pair
 #include <algorithm>
 
-// Magic numbers for partition validation
-#define WISP_PARTITION_MAGIC 0xDB01
-#define WISP_ENTRY_MAGIC     0xDA7A
+// Magic numbers for partition validation (safe mode)
+#define WISP_PARTITION_MAGIC_SAFE 0xDB01
+#define WISP_ENTRY_MAGIC          0xDA7A
 
-// Static memory allocation (RTC data for persistence)
-RTC_DATA_ATTR uint8_t WispPartitionedDB::lpSramData[WISP_DB_LP_SRAM_SIZE];
-
-// Global database instance
+// Global database instance - legacy key-value store
 WispPartitionedDB wispDB;
+
+// Note: For new projects, consider using WispDatabaseExtended for structured data
+// or WispDatabaseCompatible for backward compatibility with existing code.
+// See wbdf_integration.h and wbdf_compatibility.h for modern alternatives.
 
 WispPartitionedDB::WispPartitionedDB() : initialized(false), cacheSize(0), cacheCount(0) {
     // Initialize all pointers to safe defaults
@@ -26,6 +28,22 @@ WispPartitionedDB::WispPartitionedDB() : initialized(false), cacheSize(0), cache
     romSize = saveSize = backupSize = runtimeSize = 0;
 }
 
+WispPartitionedDB::~WispPartitionedDB() {
+    // Clean up any allocated resources
+    if (cache) {
+        delete[] cache;
+        cache = nullptr;
+    }
+    
+    // Clear pointers (they point to external memory, don't delete)
+    romPartition = nullptr;
+    savePartition = nullptr;
+    backupPartition = nullptr;
+    runtimePartition = nullptr;
+    
+    initialized = false;
+}
+
 WispErrorCode WispPartitionedDB::initialize(const WispPartitionConfig* partitionConfig) {
     if (initialized) {
         return WISP_ERROR_NOT_INITIALIZED; // Already initialized
@@ -38,6 +56,8 @@ WispErrorCode WispPartitionedDB::initialize(const WispPartitionConfig* partition
             .saveSize = WISP_DB_SAVE_PARTITION_SIZE,
             .backupSize = WISP_DB_BACKUP_PARTITION_SIZE,
             .runtimeSize = WISP_DB_RUNTIME_PARTITION_SIZE,
+            .enableSafety = true,
+            .enableBackup = true,
             .enableCompression = false,
             .enableEncryption = false,
             .maxCacheEntries = 8,
@@ -134,7 +154,7 @@ WispErrorCode WispPartitionedDB::initializePartitionHeaders() {
         }
         
         WispPartitionHeader* header = headers[i];
-        header->magic = WISP_PARTITION_MAGIC;
+        header->magic = WISP_PARTITION_MAGIC_SAFE;
         header->version = WISP_DB_VERSION;
         header->entryCount = 0;
         header->usedBytes = sizeof(WispPartitionHeader);
@@ -389,7 +409,7 @@ uint16_t WispPartitionedDB::getPartitionSize(uint8_t partitionId) {
 
 void WispPartitionedDB::updatePartitionChecksum(uint8_t partitionId) {
     uint8_t* partitionStart = getPartitionStart(partitionId);
-    uint16_t partitionSize = getPartitionSize(partitionId);
+    [[maybe_unused]] uint16_t partitionSize = getPartitionSize(partitionId);
     
     if (!partitionStart) return;
     
@@ -445,7 +465,7 @@ void WispPartitionedDB::cacheEntry(uint32_t key, uint16_t size, uint16_t partiti
     cache[targetSlot].key = key;
     cache[targetSlot].size = size;
     cache[targetSlot].partition_offset = partition_offset;
-    cache[targetSlot].access_time = millis(); // Current timestamp
+    cache[targetSlot].access_time = get_millis(); // Current timestamp
     
     if (cacheCount < cacheSize) {
         cacheCount++;
@@ -541,7 +561,7 @@ bool WispPartitionedDB::validateDatabase() {
         WispPartitionHeader* header = reinterpret_cast<WispPartitionHeader*>(partitionStart);
         
         // Check magic number
-        if (header->magic != WISP_PARTITION_MAGIC) {
+        if (header->magic != WISP_PARTITION_MAGIC_SAFE) {
             return false;
         }
         
@@ -565,32 +585,31 @@ bool WispPartitionedDB::validateDatabase() {
 
 void WispPartitionedDB::printMemoryMap() {
     if (!initialized) {
-        Serial.println("Database not initialized");
+        ESP_LOGI("DB", "Database not initialized");
         return;
     }
     
-    Serial.println("=== Wisp Database Memory Map ===");
-    Serial.printf("Total LP-SRAM: %d bytes\n", WISP_DB_LP_SRAM_SIZE);
-    Serial.printf("Total Used: %d bytes (%.1f%%)\n", 
+    ESP_LOGI("DB", "=== Wisp Database Memory Map ===");
+    ESP_LOGI("DB", "Total LP-SRAM: %d bytes", WISP_DB_LP_SRAM_SIZE);
+    ESP_LOGI("DB", "Total Used: %d bytes (%.1f%%)", 
                   getTotalUsedBytes(), 
                   (getTotalUsedBytes() * 100.0f) / WISP_DB_LP_SRAM_SIZE);
-    Serial.printf("Total Free: %d bytes\n", getTotalFreeBytes());
-    Serial.println();
+    ESP_LOGI("DB", "Total Free: %d bytes", getTotalFreeBytes());
     
     const char* partitionNames[] = {"ROM", "Save", "Backup", "Runtime"};
     for (uint8_t i = 0; i < 4; i++) {
         uint16_t size = getPartitionSize(i);
         uint16_t used = getPartitionUsedBytes(i);
-        uint16_t free = getPartitionFreeBytes(i);
+        [[maybe_unused]] uint16_t free = getPartitionFreeBytes(i);
         uint8_t entries = getEntryCount(i);
         
-        Serial.printf("%s: %d/%d bytes (%.1f%%), %d entries\n",
+        ESP_LOGI("DB", "%s: %d/%d bytes (%.1f%%), %d entries",
                       partitionNames[i], used, size, 
                       (used * 100.0f) / size, entries);
     }
     
     if (cache) {
-        Serial.printf("Cache: %d/%d entries\n", cacheCount, cacheSize);
+        ESP_LOGI("DB", "Cache: %d/%d entries", cacheCount, cacheSize);
     }
 }
 

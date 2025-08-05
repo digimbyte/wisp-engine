@@ -4,12 +4,17 @@
 
 // Include ESP-IDF compatibility layer
 #include "../system/esp32_common.h"
+#include <string>
 
 // Include the actual working implementations
 #include "../core/timekeeper.h"
 #include "../system/debug_esp32.h"
 #include "graphics/engine.h" 
-#include "audio/engine.h"
+// #include "audio/engine.h"  // Temporarily disabled due to GPIO conflicts
+#include "app/loop_manager.h"
+
+// Forward declarations
+class GameLoopManager;
 
 namespace WispEngine {
     // Forward declarations for clean separation
@@ -21,72 +26,74 @@ namespace WispEngine {
         class ResourceManager;
         class Timing;
         
-        namespace Debug {
+        class Debug {
+        public:
             enum DebugMode {
                 DEBUG_MODE_DISABLED = 0,
-                DEBUG_MODE_ENABLED = 1,
+                DEBUG_MODE_ON = 1,
                 DEBUG_MODE_VERBOSE = 2
             };
             
             enum SafetyMode {
-                SAFETY_DISABLED = 0,
-                SAFETY_ENABLED = 1
+                SAFETY_MODE_DISABLED = 0,
+                SAFETY_MODE_ENABLED = 1
             };
             
             // Inline bridges to existing DebugSystem
-            inline void init(DebugMode mode, SafetyMode safety) {
+            static void init(DebugMode mode, SafetyMode safety) {
                 bool enableDebug = (mode != DEBUG_MODE_DISABLED);
-                bool disableSafety = (safety == SAFETY_DISABLED);
+                bool disableSafety = (safety == SAFETY_MODE_DISABLED);
                 DebugSystem::init(enableDebug, disableSafety);
             }
             
-            inline void info(const char* category, const char* message) {
+            static void info(const char* category, const char* message) {
                 DebugSystem::logInfo(category, message);
             }
             
-            inline void warning(const char* category, const char* message) {
+            static void warning(const char* category, const char* message) {
                 DebugSystem::logWarning(category, message);
             }
             
-            inline void error(const char* category, const char* message) {
+            static void error(const char* category, const char* message) {
                 DebugSystem::logError(category, message);
             }
             
-            inline void heartbeat() {
+            static void heartbeat() {
                 DebugSystem::heartbeat();
             }
             
-            inline void activateEmergencyMode(const String& error) {
+            static void activateEmergencyMode(const std::string& error) {
                 DebugSystem::activateEmergencyMode(error);
             }
             
-            inline void shutdown() {
+            static void shutdown() {
                 DebugSystem::shutdown();
             }
-        }
+        };
         
-        namespace Timing {
+        class Timing {
+        public:
             // Inline bridges to existing Time:: namespace
-            inline void init() {
+            static void init() {
                 Time::init();
             }
             
-            inline bool frameReady() {
+            static bool frameReady() {
                 return Time::frameReady();
             }
             
-            inline void tick() {
+            static void tick() {
                 Time::tick();
             }
             
-            inline uint32_t getFrameTime() {
+            static uint32_t getFrameTime() {
                 return Time::getDelta();
             }
             
-            inline float getFPS() {
+            static float getFPS() {
                 return Time::getCurrentFPS();
             }
-        }
+        };
     }
     
     namespace Graphics {
@@ -108,7 +115,8 @@ namespace WispEngine {
         }
         
         inline bool initialize() {
-            return getEngine()->initialize();
+            getEngine()->init(nullptr, nullptr);
+            return true;
         }
         
         inline void cleanup() {
@@ -119,6 +127,7 @@ namespace WispEngine {
         }
     }
     
+    /*
     namespace Audio {
         class Engine;
         class SynthEngine;
@@ -141,20 +150,19 @@ namespace WispEngine {
         inline void cleanup() {
             AudioEngine* engine = getEngine();
             if (engine) {
-                engine->cleanup();
                 delete engine;
             }
         }
     }
+    */
     
     namespace Database {
         class PartitionedDatabase;
-        class SaveSystem;
-        
-        namespace SaveSystem {
-            void setGlobalInstance(SaveSystem* instance);
-            SaveSystem* getGlobalInstance();
-        }
+        class SaveSystem {
+        public:
+            static void setGlobalInstance(SaveSystem* instance);
+            static SaveSystem* getGlobalInstance();
+        };
     }
     
     namespace Physics {
@@ -172,7 +180,21 @@ namespace WispEngine {
     namespace App {
         class Interface;
         class Loader;
-        class LoopManager;
+        
+        // Bridge class for GameLoopManager
+        class LoopManager {
+        private:
+            GameLoopManager* impl;
+        public:
+            LoopManager() : impl(nullptr) {}
+            
+            // Bridge methods to GameLoopManager
+            void setImplementation(GameLoopManager* gameLoopImpl) { impl = gameLoopImpl; }
+            GameLoopManager* getAppLoop() { return impl; }
+            
+            // Add other methods as needed to bridge to GameLoopManager
+        };
+        
         class CuratedAPI;
         
         // App loop stages
@@ -184,7 +206,7 @@ namespace WispEngine {
             STAGE_COLLISION_DETECTION,
             STAGE_PHYSICS_RESOLUTION,
             STAGE_TRIGGER_PROCESSING,
-            STAGE_AUDIO_UPDATE,
+            // STAGE_AUDIO_UPDATE,  // Temporarily disabled due to audio system conflicts
             STAGE_RENDER_PREPARE,
             STAGE_RENDER_EXECUTE,
             STAGE_RENDER_PRESENT,

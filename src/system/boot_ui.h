@@ -12,12 +12,12 @@ static const uint32_t fadeDuration = 200; // ms
 
 inline void triggerFadeOut() {
   fadeTriggered = true;
-  fadeStart = millis();
+  fadeStart = get_millis();
 }
 
 inline bool isFadeDone() {
   if (!fadeTriggered) return false;
-  return millis() - fadeStart >= fadeDuration;
+  return get_millis() - fadeStart >= fadeDuration;
 }
 
 inline void renderSplash(LGFX &display) {
@@ -40,7 +40,7 @@ inline void renderSplash(LGFX &display) {
 
   // Handle fade out
   if (fadeTriggered) {
-    uint32_t elapsed = millis() - fadeStart;
+    uint32_t elapsed = get_millis() - fadeStart;
     if (elapsed < fadeDuration) {
       uint8_t fade = map(elapsed, 0, fadeDuration, 0, 255);
       uint16_t overlay = display.color888(fade, fade, fade); // light gray fade mask

@@ -3,6 +3,8 @@
 #include <LovyanGFX.hpp>
 #include "definitions.h"
 #include "../../../engine/app/curated_api.h"
+#include <string>
+#include <algorithm>  // For min/max functions
 
 // Menu panel interface that integrates with the curated API system
 // Panels can pause app logic while keeping networking and audio active
@@ -15,10 +17,10 @@ protected:
     WispCuratedAPI* api;
     bool active;
     bool appFrozen;
-    String panelName;
+    std::string panelName;
     
 public:
-    MenuPanel(const String& name) : api(nullptr), active(false), appFrozen(false), panelName(name) {}
+    MenuPanel(const std::string& name) : api(nullptr), active(false), appFrozen(false), panelName(name) {}
     virtual ~MenuPanel() {}
     
     // Set API access
@@ -43,7 +45,7 @@ public:
     
     bool isActive() const { return active; }
     bool isAppFrozen() const { return appFrozen; }
-    const String& getName() const { return panelName; }
+    const std::string& getName() const { return panelName; }
     
     // Allow panels to control app freezing
     void setAppFrozen(bool frozen) { appFrozen = frozen; }
@@ -53,13 +55,16 @@ public:
 class MainMenuPanel : public MenuPanel {
 private:
     struct MenuItem {
-        String text;
-        String appPath;
-        String iconPath;
+        std::string text;
+        std::string appPath;
+        std::string iconPath;
         bool isApp;
         bool isSettings;
         
-        MenuItem(const String& t, const String& path = "", bool app = false, bool settings = false) :
+        // Default constructor for array initialization
+        MenuItem() : text(""), appPath(""), iconPath(""), isApp(false), isSettings(false) {}
+        
+        MenuItem(const std::string& t, const std::string& path = "", bool app = false, bool settings = false) :
             text(t), appPath(path), iconPath(""), isApp(app), isSettings(settings) {}
     };
     
@@ -72,9 +77,9 @@ private:
     ResourceHandle menuIcons[8]; // Icons for menu items
     
     // App info for currently selected app
-    String selectedAppName;
-    String selectedAppAuthor;
-    String selectedAppVersion;
+    std::string selectedAppName;
+    std::string selectedAppAuthor;
+    std::string selectedAppVersion;
     ResourceHandle selectedAppIcon;
     
 public:
@@ -115,13 +120,13 @@ public:
         
         // Up/Down navigation
         if (input.up && !upPressed) {
-            selectedIndex = max(0, selectedIndex - 1);
+            selectedIndex = std::max(0, selectedIndex - 1);
             updateSelectedApp();
         }
         upPressed = input.up;
         
         if (input.down && !downPressed) {
-            selectedIndex = min((int)menuItems.size() - 1, selectedIndex + 1);
+            selectedIndex = std::min(menuItemCount - 1, selectedIndex + 1);
             updateSelectedApp();
         }
         downPressed = input.down;
@@ -146,11 +151,11 @@ public:
             api->drawSprite(backgroundSprite, 0, 0, 10); // Background depth
         } else {
             // Simple gradient background
-            api->drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, WispColor(20, 30, 50), 10);
+            api->drawRect(0, 0, WispEngine::Graphics::SCREEN_WIDTH, WispEngine::Graphics::SCREEN_HEIGHT, WispColor(20, 30, 50), 10);
         }
         
         // Draw title
-        api->drawText("WISP ENGINE", SCREEN_WIDTH / 2 - 50, 20, WispColor(255, 255, 255), 2);
+        api->drawText("WISP ENGINE", WispEngine::Graphics::SCREEN_WIDTH / 2 - 50, 20, WispColor(255, 255, 255), 2);
         
         // Draw menu items
         renderMenuItems();
@@ -159,7 +164,7 @@ public:
         renderAppInfo();
         
         // Draw navigation hints
-        api->drawText("A: Select  B: Back", 10, SCREEN_HEIGHT - 20, WispColor(200, 200, 200), 1);
+        api->drawText("A: Select  B: Back", 10, WispEngine::Graphics::SCREEN_HEIGHT - 20, WispColor(200, 200, 200), 1);
     }
     
     void cleanup() override {
@@ -174,18 +179,18 @@ public:
     
 private:
     void buildMenuItems() {
-        menuItems.clear();
+        menuItemCount = 0; // Reset count instead of clear()
         
         // Add detected apps (this would come from app scanner)
-        menuItems.push_back(MenuItem("Launch Game", "/apps/platformer.wapp", true));
-        menuItems.push_back(MenuItem("Snake Game", "/apps/snake.wapp", true));
-        menuItems.push_back(MenuItem("Demo App", "/apps/demo.wapp", true));
+        menuItems[menuItemCount++] = MenuItem("Launch Game", "/apps/platformer.wapp", true);
+        menuItems[menuItemCount++] = MenuItem("Snake Game", "/apps/snake.wapp", true);
+        menuItems[menuItemCount++] = MenuItem("Demo App", "/apps/demo.wapp", true);
         
         // Add settings panels
-        menuItems.push_back(MenuItem("Display Settings", "", false, true));
-        menuItems.push_back(MenuItem("Audio Settings", "", false, true));
-        menuItems.push_back(MenuItem("Network Settings", "", false, true));
-        menuItems.push_back(MenuItem("System Settings", "", false, true));
+        menuItems[menuItemCount++] = MenuItem("Display Settings", "", false, true);
+        menuItems[menuItemCount++] = MenuItem("Audio Settings", "", false, true);
+        menuItems[menuItemCount++] = MenuItem("Network Settings", "", false, true);
+        menuItems[menuItemCount++] = MenuItem("System Settings", "", false, true);
     }
     
     void renderMenuItems() {
@@ -201,7 +206,7 @@ private:
         }
         
         // Render visible menu items
-        for (int i = 0; i < maxVisible && (scrollOffset + i) < (int)menuItems.size(); i++) {
+        for (int i = 0; i < maxVisible && (scrollOffset + i) < menuItemCount; i++) {
             int itemIndex = scrollOffset + i;
             const MenuItem& item = menuItems[itemIndex];
             
@@ -210,7 +215,7 @@ private:
             
             // Draw selection highlight
             if (selected) {
-                api->drawRect(10, y - 2, SCREEN_WIDTH - 20, itemHeight - 2, 
+                api->drawRect(10, y - 2, WispEngine::Graphics::SCREEN_WIDTH - 20, itemHeight - 2, 
                              WispColor(100, 150, 255, 128), 3);
             }
             
@@ -219,10 +224,10 @@ private:
             if (item.isApp && menuIcons[0] != INVALID_RESOURCE) {
                 icon = menuIcons[0]; // Launch icon
             } else if (item.isSettings) {
-                if (item.text.indexOf("Display") >= 0) icon = menuIcons[1];
-                else if (item.text.indexOf("Audio") >= 0) icon = menuIcons[2];
-                else if (item.text.indexOf("Network") >= 0) icon = menuIcons[3];
-                else if (item.text.indexOf("System") >= 0) icon = menuIcons[4];
+                if (item.text.find("Display") != std::string::npos) icon = menuIcons[1];
+                else if (item.text.find("Audio") != std::string::npos) icon = menuIcons[2];
+                else if (item.text.find("Network") != std::string::npos) icon = menuIcons[3];
+                else if (item.text.find("System") != std::string::npos) icon = menuIcons[4];
             }
             
             if (icon != INVALID_RESOURCE) {
@@ -236,22 +241,22 @@ private:
         
         // Draw scroll indicators if needed
         if (scrollOffset > 0) {
-            api->drawText("▲", SCREEN_WIDTH - 20, startY - 10, WispColor(150, 150, 150), 1);
+            api->drawText("▲", WispEngine::Graphics::SCREEN_WIDTH - 20, startY - 10, WispColor(150, 150, 150), 1);
         }
-        if (scrollOffset + maxVisible < (int)menuItems.size()) {
-            api->drawText("▼", SCREEN_WIDTH - 20, startY + maxVisible * itemHeight, 
+        if (scrollOffset + maxVisible < menuItemCount) {
+            api->drawText("▼", WispEngine::Graphics::SCREEN_WIDTH - 20, startY + maxVisible * itemHeight, 
                          WispColor(150, 150, 150), 1);
         }
     }
     
     void renderAppInfo() {
-        if (selectedIndex < 0 || selectedIndex >= (int)menuItems.size()) return;
+        if (selectedIndex < 0 || selectedIndex >= menuItemCount) return;
         
         const MenuItem& item = menuItems[selectedIndex];
         if (!item.isApp) return;
         
         // Draw app info panel on the right side
-        int panelX = SCREEN_WIDTH - 120;
+        int panelX = WispEngine::Graphics::SCREEN_WIDTH - 120;
         int panelY = 80;
         int panelWidth = 110;
         int panelHeight = 100;
@@ -281,7 +286,7 @@ private:
     }
     
     void updateSelectedApp() {
-        if (selectedIndex < 0 || selectedIndex >= (int)menuItems.size()) return;
+        if (selectedIndex < 0 || selectedIndex >= menuItemCount) return;
         
         const MenuItem& item = menuItems[selectedIndex];
         if (item.isApp) {
@@ -299,7 +304,7 @@ private:
     }
     
     void activateSelectedItem() {
-        if (selectedIndex < 0 || selectedIndex >= (int)menuItems.size()) return;
+        if (selectedIndex < 0 || selectedIndex >= menuItemCount) return;
         
         const MenuItem& item = menuItems[selectedIndex];
         
@@ -308,7 +313,7 @@ private:
             api->print("Launching app: " + item.text);
             
             // Use the curated API to request app launch
-            if (api->requestAppLaunch(item.text)) {
+            if (api->requestAppLaunch(item.text.c_str())) {
                 api->print("App launch successful: " + item.text);
                 deactivate();
             } else {
@@ -322,7 +327,7 @@ private:
         }
     }
     
-    void openSettingsPanel(const String& panelName) {
+    void openSettingsPanel(const std::string& panelName) {
         api->print("Opening settings panel: " + panelName);
         // TODO: Switch to appropriate settings panel
         // For now, just show a message

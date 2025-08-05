@@ -5,9 +5,10 @@
 #include "../graphics/engine.h"
 #include "../core/resource_manager.h"
 #include "../database/save_system.h"
+#include <string>
 
 // Forward declarations
-class WispEngine;
+namespace WispEngine { class Engine; }
 class AudioEngine;
 class InputController;
 
@@ -110,7 +111,7 @@ struct WispParticleParams {
 // The curated API class - this is what apps get access to
 class WispCuratedAPI {
 private:
-    WispEngine* engine;
+    WispEngine::Engine* engine;
     WispResourceQuota quota;
     
     // Performance monitoring
@@ -139,7 +140,7 @@ private:
     } appPermissions;
     
 public:
-    WispCuratedAPI(WispEngine* eng);
+    WispCuratedAPI(WispEngine::Engine* eng);
     
     // === CORE LIFECYCLE ===
     // Called by engine - apps should not call these
@@ -158,7 +159,7 @@ public:
     
     // === GRAPHICS API ===
     // Resource management
-    ResourceHandle loadSprite(const String& filePath);
+    ResourceHandle loadSprite(const std::string& filePath);
     void unloadSprite(ResourceHandle handle);
     bool isSpriteLoaded(ResourceHandle handle);
     
@@ -172,7 +173,7 @@ public:
     bool drawRect(float x, float y, float width, float height, WispColor color, uint8_t depth = 5);
     bool drawCircle(float x, float y, float radius, WispColor color, uint8_t depth = 5);
     bool drawLine(float x1, float y1, float x2, float y2, WispColor color, uint8_t depth = 5);
-    bool drawText(const String& text, float x, float y, WispColor color, uint8_t depth = 5);
+    bool drawText(const std::string& text, float x, float y, WispColor color, uint8_t depth = 5);
     
     // Screen/camera management
     void setCameraPosition(float x, float y);
@@ -182,7 +183,7 @@ public:
     WispVec2 screenToWorld(WispVec2 screenPos) const;
     
     // === AUDIO API ===
-    ResourceHandle loadAudio(const String& filePath);
+    ResourceHandle loadAudio(const std::string& filePath);
     void unloadAudio(ResourceHandle handle);
     bool playAudio(ResourceHandle audio, const WispAudioParams& params = WispAudioParams());
     void stopAudio(ResourceHandle audio);
@@ -248,29 +249,29 @@ public:
     
     // === SAVE SYSTEM API ===
     // App identity management
-    bool setAppIdentity(const String& uuid, const String& version, uint32_t saveFormatVersion = 1);
+    bool setAppIdentity(const std::string& uuid, const std::string& version, uint32_t saveFormatVersion = 1);
     
     // Save field registration (must be done during app initialization)
-    bool registerSaveField(const String& key, bool* value);
-    bool registerSaveField(const String& key, int8_t* value);
-    bool registerSaveField(const String& key, uint8_t* value);
-    bool registerSaveField(const String& key, int16_t* value);
-    bool registerSaveField(const String& key, uint16_t* value);
-    bool registerSaveField(const String& key, int32_t* value);
-    bool registerSaveField(const String& key, uint32_t* value);
-    bool registerSaveField(const String& key, float* value);
-    bool registerSaveField(const String& key, String* value, size_t maxLength = 256);
-    bool registerSaveBlob(const String& key, void* data, size_t size);
+    bool registerSaveField(const std::string& key, bool* value);
+    bool registerSaveField(const std::string& key, int8_t* value);
+    bool registerSaveField(const std::string& key, uint8_t* value);
+    bool registerSaveField(const std::string& key, int16_t* value);
+    bool registerSaveField(const std::string& key, uint16_t* value);
+    bool registerSaveField(const std::string& key, int32_t* value);
+    bool registerSaveField(const std::string& key, uint32_t* value);
+    bool registerSaveField(const std::string& key, float* value);
+    bool registerSaveField(const std::string& key, std::string* value, size_t maxLength = 256);
+    bool registerSaveBlob(const std::string& key, void* data, size_t size);
     
     // Save field access (null-safe)
-    template<typename T> T* getSaveField(const String& key);
-    String* getSaveString(const String& key);
-    void* getSaveBlob(const String& key, size_t* outSize = nullptr);
+    template<typename T> T* getSaveField(const std::string& key);
+    std::string* getSaveString(const std::string& key);
+    void* getSaveBlob(const std::string& key, size_t* outSize = nullptr);
     
     // Save field modification (marks dirty for auto-save)
-    template<typename T> bool setSaveField(const String& key, const T& value);
-    bool setSaveString(const String& key, const String& value);
-    bool setSaveBlob(const String& key, const void* data, size_t size);
+    template<typename T> bool setSaveField(const std::string& key, const T& value);
+    bool setSaveString(const std::string& key, const std::string& value);
+    bool setSaveBlob(const std::string& key, const void* data, size_t size);
     
     // Save/load operations
     bool save();
@@ -288,9 +289,9 @@ public:
     size_t getSaveFileSize() const;
     
     // === DEBUG API ===
-    void print(const String& message);
-    void printWarning(const String& message);
-    void printError(const String& message);
+    void print(const std::string& message);
+    void printWarning(const std::string& message);
+    void printError(const std::string& message);
     
     // === QUOTA MONITORING ===
     const WispResourceQuota& getQuota() const { return quota; }
@@ -371,7 +372,7 @@ inline bool WispCuratedAPI::checkEntityQuota() {
 }
 
 inline void WispCuratedAPI::recordError(const String& error) {
-    uint32_t currentTime = millis();
+    uint32_t currentTime = get_millis();
     
     // Reset error counter every second
     if (currentTime - lastErrorReset > 1000) {
@@ -382,7 +383,7 @@ inline void WispCuratedAPI::recordError(const String& error) {
     errorsThisSecond++;
     
     Serial.print("WISP API ERROR: ");
-    Serial.println(error);
+    Serial.println(error.c_str());  // Use c_str() to convert to const char*
     
     // Check if too many errors
     if (errorsThisSecond > WISP_MAX_ERRORS_PER_SECOND) {
@@ -396,7 +397,7 @@ inline void WispCuratedAPI::resetFrameCounters() {
 }
 
 inline bool WispCuratedAPI::beginFrame() {
-    frameStartTime = micros();
+    frameStartTime = get_micros();
     resetFrameCounters();
     
     // Check if still in emergency mode
@@ -408,7 +409,7 @@ inline bool WispCuratedAPI::beginFrame() {
 }
 
 inline void WispCuratedAPI::endFrame() {
-    uint32_t frameTime = micros() - frameStartTime;
+    uint32_t frameTime = get_micros() - frameStartTime;
     
     if (frameTime > WISP_MAX_FRAME_TIME_US) {
         recordError("Frame time exceeded limit");

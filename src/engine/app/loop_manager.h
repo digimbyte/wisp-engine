@@ -2,10 +2,12 @@
 // Deterministic game loop manager optimized for ESP32 real-time performance
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include "lazy_resource_manager.h"
+#include "../core/resource_manager.h"
 #include "interface.h"
-#include "core.h"
-#include "../graphics_engine.h"
+// #include "core.h"  // File not found, commenting out
+#include "../graphics/engine.h"
+#include <algorithm>  // For min/max functions
+#include "../../utils/math/math.h"  // For Math::min/max functions
 
 // Game state for level management
 enum GameState {
@@ -48,7 +50,7 @@ struct PerformanceMetrics {
 class GameLoopManager {
 private:
     LazyResourceManager* resourceManager;
-    GraphicsEngine* graphics;
+    WispEngine::Graphics::GraphicsEngine* graphics;
     WispAppBase* currentApp;
     
     GameState currentState;
@@ -78,7 +80,7 @@ private:
     uint32_t performanceBudget;  // Max microseconds per frame for loading
     
 public:
-    GameLoopManager(LazyResourceManager* resMgr, GraphicsEngine* gfx) :
+    GameLoopManager(LazyResourceManager* resMgr, WispEngine::Graphics::GraphicsEngine* gfx) :
         resourceManager(resMgr), graphics(gfx), currentApp(nullptr),
         currentState(GAME_LOADING), loadStrategy(LOAD_ADJACENT),
         targetFrameTime(16667), lastFrameStart(0), vsyncEnabled(true),
@@ -153,7 +155,7 @@ private:
 
 // Implementation of core methods
 inline void GameLoopManager::tick() {
-    uint32_t frameStart = micros();
+    uint32_t frameStart = get_micros();
     
     // Update performance metrics from last frame
     if (lastFrameStart != 0) {
@@ -198,33 +200,33 @@ inline void GameLoopManager::tick() {
 }
 
 inline void GameLoopManager::processRunning() {
-    uint32_t logicStart = micros();
+    uint32_t logicStart = get_micros();
     
     // Run app logic
     if (currentApp) {
         currentApp->update();
     }
     
-    metrics.logicTime = micros() - logicStart;
+    metrics.logicTime = get_micros() - logicStart;
     
     // Check for chunk loading needs
-    uint32_t loadingStart = micros();
+    uint32_t loadingStart = get_micros();
     updateChunkLoading();
     
     // Background streaming if enabled and performance allows
     if (backgroundStreamingEnabled && !isStreaming && 
-        micros() - loadingStart < performanceBudget / 2) {
+        get_micros() - loadingStart < performanceBudget / 2) {
         backgroundStreamChunk();
     }
     
-    metrics.loadingTime = micros() - loadingStart;
+    metrics.loadingTime = get_micros() - loadingStart;
     
     // Render
-    uint32_t renderStart = micros();
+    uint32_t renderStart = get_micros();
     if (currentApp) {
         currentApp->render();
     }
-    metrics.renderTime = micros() - renderStart;
+    metrics.renderTime = get_micros() - renderStart;
     
     // Handle memory pressure
     if (resourceManager->getMemoryPressure() > 0.9f) {
@@ -328,7 +330,7 @@ inline void GameLoopManager::adaptLoadingBehavior() {
     // If performance is suffering, reduce loading
     if (shouldReduceLoading()) {
         // Temporarily reduce performance budget
-        performanceBudget = max(2000, performanceBudget - 1000); // Min 2ms
+        performanceBudget = Math::max_int(2000, performanceBudget - 1000); // Min 2ms
         
         // Switch to minimal loading
         if (loadStrategy != LOAD_MINIMAL) {
@@ -341,7 +343,7 @@ inline void GameLoopManager::adaptLoadingBehavior() {
         
     } else if (metrics.avgFrameTime < targetFrameTime * 0.8f) {
         // Performance is good, can increase loading
-        performanceBudget = min(12000, performanceBudget + 500); // Max 12ms
+        performanceBudget = Math::min_int(12000, performanceBudget + 500); // Max 12ms
         
         // Re-enable features
         if (!backgroundStreamingEnabled) {

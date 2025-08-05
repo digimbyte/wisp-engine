@@ -2,7 +2,7 @@
 #pragma once
 #include "esp32_common.h"
 #include <LovyanGFX.hpp>
-#include "wisp_curated_api.h"
+#include "../engine/app/curated_api.h"
 #include "lazy_resource_manager.h"
 #include "app_loop_manager.h"
 #include "graphics_engine.h"
@@ -11,6 +11,7 @@
 #include "definitions.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <string>
 
 static const char* TAG = "WispBootloader";
 
@@ -29,13 +30,13 @@ enum BootStage {
 
 // App metadata for menu display
 struct AppInfo {
-    String name;
-    String version;
-    String author;
-    String description;
-    String iconPath;        // Path to app icon sprite
-    String splashPath;      // Path to app splash screen
-    String executablePath;  // Path to app binary/library
+    std::string name;
+    std::string version;
+    std::string author;
+    std::string description;
+    std::string iconPath;        // Path to app icon sprite
+    std::string splashPath;      // Path to app splash screen
+    std::string executablePath;  // Path to app binary/library
     bool autoStart;         // Skip menu and auto-launch
     uint16_t screenWidth;   // App's preferred screen width
     uint16_t screenHeight;  // App's preferred screen height
@@ -56,13 +57,13 @@ struct DeviceConfig {
     uint8_t audioProfile;       // 0=piezo, 1=i2s, 2=bluetooth
     
     // Network settings
-    String wifiSSID;
-    String wifiPassword;
+    std::string wifiSSID;
+    std::string wifiPassword;
     bool wifiEnabled;
     bool bluetoothEnabled;
     
     // System settings
-    String deviceName;
+    std::string deviceName;
     uint8_t sleepTimeout;       // Minutes before sleep
     bool debugMode;
     
@@ -149,7 +150,7 @@ public:
     bool isBootComplete() const { return currentStage == BOOT_COMPLETE; }
     
     // App management
-    bool loadAppInfo(const String& appPath, AppInfo& info);
+    bool loadAppInfo(const std::string& appPath, AppInfo& info);
     void scanForApps();
     bool launchApp(int appIndex);
     
@@ -190,12 +191,12 @@ private:
     // Utility functions
     void advanceStage();
     bool isStageTimeout() const;
-    void centerText(const String& text, int y, uint16_t color = 0xFFFF);
-    void drawMenuItem(const String& text, int index, int y, bool selected);
+    void centerText(const std::string& text, int y, uint16_t color = 0xFFFF);
+    void drawMenuItem(const std::string& text, int index, int y, bool selected);
     
     // App loading helpers
-    bool parseAppManifest(const String& manifestPath, AppInfo& info);
-    bool validateAppBinary(const String& binaryPath);
+    bool parseAppManifest(const std::string& manifestPath, AppInfo& info);
+    bool validateAppBinary(const std::string& binaryPath);
     
     // Animation helpers
     float getStageProgress() const;
@@ -207,7 +208,7 @@ inline bool WispBootloader::init() {
     ESP_LOGI(TAG, "Initializing Wisp Bootloader...");
     
     currentStage = BOOT_HARDWARE_INIT;
-    stageStartTime = millis();
+    stageStartTime = get_millis();
     splashDuration = 2000; // 2 seconds for splash
     
     // Load device configuration
@@ -268,7 +269,7 @@ inline void WispBootloader::handleHardwareInit() {
     // Display, input, basic audio, etc.
     
     // Simulate initialization time
-    if (millis() - stageStartTime > 500) {
+    if (get_millis() - stageStartTime > 500) {
         advanceStage();
     }
 }
@@ -309,7 +310,7 @@ inline void WispBootloader::handleEngineInit() {
 
 inline void WispBootloader::handleSplashDisplay() {
     // Show Wisp Engine logo for splashDuration
-    if (millis() - stageStartTime > splashDuration) {
+    if (get_millis() - stageStartTime > splashDuration) {
         advanceStage();
     }
 }
@@ -330,7 +331,7 @@ inline void WispBootloader::handleMenuCheck() {
         if (availableApps[selectedAppIndex].autoStart) {
             ESP_LOGI(TAG, "Auto-starting application...");
             currentStage = BOOT_APP_LAUNCH;
-            stageStartTime = millis();
+            stageStartTime = get_millis();
             return;
         }
     }
@@ -432,7 +433,7 @@ inline void WispBootloader::renderMainMenu() {
     drawMenuItem("System Settings", 4, startY + itemHeight * 4, menuSelection == 4);
 }
 
-inline void WispBootloader::drawMenuItem(const String& text, int index, int y, bool selected) {
+inline void WispBootloader::drawMenuItem(const std::string& text, int index, int y, bool selected) {
     uint16_t color = selected ? 0xFFE0 : 0xFFFF; // Yellow if selected, white otherwise
     uint16_t bgColor = selected ? 0x2104 : 0x0000; // Dark blue if selected, black otherwise
     
@@ -447,18 +448,18 @@ inline void WispBootloader::drawMenuItem(const String& text, int index, int y, b
 
 inline void WispBootloader::advanceStage() {
     currentStage = (BootStage)((int)currentStage + 1);
-    stageStartTime = millis();
+    stageStartTime = get_millis();
     
     ESP_LOGI(TAG, "Boot stage advanced to: %d", (int)currentStage);
 }
 
 inline float WispBootloader::getStageProgress() const {
-    uint32_t elapsed = millis() - stageStartTime;
+    uint32_t elapsed = get_millis() - stageStartTime;
     uint32_t stageDuration = (currentStage == BOOT_SPLASH_DISPLAY) ? splashDuration : 1000;
     return (float)elapsed / stageDuration;
 }
 
-inline void WispBootloader::centerText(const String& text, int y, uint16_t color) {
+inline void WispBootloader::centerText(const std::string& text, int y, uint16_t color) {
     // Simple centered text placeholder
     int textWidth = text.length() * 6; // Approximate character width
     int x = (deviceScreenWidth - textWidth) / 2;
@@ -542,9 +543,9 @@ inline void WispBootloader::scanForApps() {
         
         struct dirent* appEntry;
         while ((appEntry = readdir(appsDir)) != NULL) {
-            const char* fileName = appEntry->d_name;
+            String fileName = String(appEntry->d_name);
             
-            if (fileName.length() > 5 && fileName.substr(fileName.length() - 5) == ".wisp" && appEntry->d_type == DT_REG) {
+            if (fileName.length() > 5 && fileName.substring(fileName.length() - 5) == ".wisp" && appEntry->d_type == DT_REG) {
                 ESP_LOGI("WISP", "Found .wisp file in /apps: %s", fileName.c_str());
                 
                 AppInfo appInfo;
@@ -566,12 +567,9 @@ inline void WispBootloader::scanForApps() {
                     ESP_LOGI("BOOTLOADER", "Added app (basic info): %s", appInfo.name.c_str());
                 }
             }
-            
-            appFile.close();
-            appFile = appsDir.openNextFile();
         }
         
-        appsDir.close();
+        closedir(appsDir);
     }
     
     ESP_LOGI("BOOTLOADER", "Scan complete. Found %zu .wisp applications", availableApps.size());
@@ -708,7 +706,7 @@ inline void WispBootloader::handleInput(const WispInputState& input) {
                     case 0: // Launch app
                         if (!availableApps.empty()) {
                             currentStage = BOOT_APP_LAUNCH;
-                            stageStartTime = millis();
+                            stageStartTime = get_millis();
                             menuActive = false;
                         }
                         break;

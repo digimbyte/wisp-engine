@@ -2,6 +2,7 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
+#include "../../system/esp32_common.h"
 
 #define MAX_PARTICLES 64
 #define TRAIL_LENGTH 4
@@ -44,7 +45,7 @@ public:
         p.y = y;
         p.vx = vx;
         p.vy = vy;
-        p.startTime = millis();
+        p.startTime = get_millis();
         p.lifespan = lifespan;
         p.spriteIndex = sprite;
         p.flags = flags;
@@ -58,7 +59,7 @@ public:
   }
 
   void updateAndRender(uint8_t* heightmap, void (*draw)(uint8_t sprite, int x, int y, uint8_t brightness)) {
-    uint32_t now = millis();
+    uint32_t now = get_millis();
 
     for (int i = 0; i < MAX_PARTICLES; ++i) {
       Particle& p = particles[i];

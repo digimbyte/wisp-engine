@@ -2,6 +2,7 @@
 // Efficient lazy loading resource management for ESP32 microcontroller
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "../core/debug.h"  // For debug macros
 
 // Fixed array limits for ESP-IDF compatibility
 #define MAX_RESOURCES 256

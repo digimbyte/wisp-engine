@@ -1,0 +1,44 @@
+// database_system_stub.cpp - Simple stub implementation to fix compilation
+#include "database_system.h"
+
+// Global database instance
+WispPartitionedDB* g_Database = nullptr;
+
+WispPartitionedDB::WispPartitionedDB() : initialized(false) {
+}
+
+WispPartitionedDB::~WispPartitionedDB() {
+}
+
+bool WispPartitionedDB::init() {
+    initialized = true;
+    return true;
+}
+
+void WispPartitionedDB::shutdown() {
+    initialized = false;
+}
+
+bool WispPartitionedDB::isInitialized() const {
+    return initialized;
+}
+
+bool WispPartitionedDB::store(const char* key, const void* data, uint32_t size) {
+    // Stub implementation
+    return false;
+}
+
+bool WispPartitionedDB::retrieve(const char* key, void* data, uint32_t maxSize) {
+    // Stub implementation  
+    return false;
+}
+
+bool WispPartitionedDB::remove(const char* key) {
+    // Stub implementation
+    return false;
+}
+
+bool WispPartitionedDB::exists(const char* key) {
+    // Stub implementation
+    return false;
+}

@@ -1,6 +1,6 @@
 // file_system.h - ESP32 native file system wrapper
 #pragma once
-#include "../system/esp32_common.h"
+#include "../../system/esp32_common.h"
 #include <esp_vfs.h>
 #include <esp_spiffs.h>
 #include <stdio.h>
@@ -124,4 +124,4 @@ public:
 
 // Global instances
 extern SPIFFSClass SPIFFS;
-extern SDClass SD;
+extern SD_Class SD;

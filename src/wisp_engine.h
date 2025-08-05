@@ -67,7 +67,15 @@ namespace WispEngine {
             PARTITION_FULL = 5,
             INVALID_PARTITION = 6,
             CHECKSUM_FAILED = 7,
-            STORAGE_FAILURE = 8
+            STORAGE_FAILURE = 8,
+            INVALID_CONFIG = 9,
+            BUFFER_OVERFLOW = 10,
+            INVALID_KEY = 11,
+            ENTRY_TOO_LARGE = 12,
+            INDEX_OVERFLOW = 13,
+            PARTITION_NOT_FOUND = 14,
+            ALREADY_INITIALIZED = 15,
+            MEMORY_EXCEEDED = 16
         };
         
         enum PartitionType {
@@ -91,7 +99,6 @@ namespace WispEngine {
     namespace Utils {
         // Forward declarations for utility systems
         class Math;
-        class String;
         class Crypto;
         class Compression;
     }
@@ -124,6 +131,9 @@ namespace WispEngine {
 namespace Wisp = WispEngine;
 using WispErrorCode = WispEngine::Database::ErrorCode;
 using WispPartitionType = WispEngine::Database::PartitionType;
+
+// Legacy compatibility constants
+#define WISP_SUCCESS WispEngine::Database::ErrorCode::OK
 
 // === COMPONENT INCLUDES ===
 // Include specific components as needed (optional - can be included separately)

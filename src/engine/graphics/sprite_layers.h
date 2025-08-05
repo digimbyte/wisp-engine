@@ -2,8 +2,16 @@
 // Depth-sorted sprite rendering with memory optimization for ESP32
 #pragma once
 #include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include "engine.h"
 #include "../../utils/math/math.h"
+#include <string>
+
+// Forward declarations
+namespace WispEngine {
+    namespace Graphics {
+        class GraphicsEngine;
+    }
+}
+using GraphicsEngine = WispEngine::Graphics::GraphicsEngine;
 
 // Sprite layer definitions (8 total layers)
 enum WispSpriteLayer {
@@ -75,7 +83,7 @@ struct WispAnimation {
     uint32_t frameStartTime;    // When current frame started
     bool reverse;               // Currently playing in reverse (for pingpong)
     
-    WispAnimation() : loop(true), pingpong(false), paused(false), 
+    WispAnimation() : frameCount(0), loop(true), pingpong(false), paused(false), 
                      currentFrame(0), frameStartTime(0), reverse(false) {}
 };
 
@@ -92,8 +100,8 @@ struct WispDepthMask {
     // Set which layers this sprite appears on
     void setLayers(const WispSpriteLayer* layers, int count) {
         layerMask = 0;
-        for (WispSpriteLayer layer : layers) {
-            layerMask |= (1 << layer);
+        for (int i = 0; i < count; i++) {
+            layerMask |= (1 << layers[i]);
         }
         enabled = true;
     }
@@ -180,8 +188,9 @@ public:
         graphics(gfx), cameraX(0), cameraY(0), viewportWidth(320), viewportHeight(240),
         spritesRendered(0), layersRendered(0) {
         
-        // Enable all layers by default
+        // Initialize layer counts and settings
         for (int i = 0; i < WISP_LAYER_COUNT; i++) {
+            layerCounts[i] = 0;    // Initialize all layer counts to 0
             layerEnabled[i] = true;
             layerAlpha[i] = 255;
         }
@@ -219,7 +228,7 @@ public:
     void setCamera(float x, float y);
     void setCameraSmooth(float x, float y, float smoothing = 0.1f);
     void setViewport(float width, float height);
-    WispVec2 getCamera() const { return WispVec2(cameraX, cameraY); }
+    Vec2 getCamera() const { return Vec2(cameraX, cameraY); }
     
     // Layer control
     void setLayerEnabled(WispSpriteLayer layer, bool enabled);
@@ -232,7 +241,7 @@ public:
     WispLayeredSprite* createBackgroundSprite(uint16_t spriteId, WispTilingMode tiling = TILE_REPEAT);
     WispLayeredSprite* createGameSprite(uint16_t spriteId, WispSpriteLayer layer = LAYER_3_GAME_MID);
     WispLayeredSprite* createUISprite(uint16_t spriteId, float x, float y);
-    WispLayeredSprite* createTextSprite(const String& text, float x, float y);
+    WispLayeredSprite* createTextSprite(const std::string& text, float x, float y);
     
     // Multi-layer sprites (appear on multiple layers with depth masking)
     void setMultiLayer(WispLayeredSprite* sprite, const WispSpriteLayer* layers, int count);
@@ -252,8 +261,8 @@ private:
     // Internal rendering helpers
     void renderGradient(WispLayeredSprite* sprite);
     void renderStandardSprite(WispLayeredSprite* sprite, WispSpriteLayer layer);
-    WispVec2 applyParallax(WispLayeredSprite* sprite, float worldX, float worldY);
-    WispVec2 worldToScreen(float worldX, float worldY);
+    Vec2 applyParallax(WispLayeredSprite* sprite, float worldX, float worldY);
+    Vec2 worldToScreen(float worldX, float worldY);
     bool isInViewport(float x, float y, float width, float height);
     
     // Animation helpers

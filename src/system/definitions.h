@@ -1,6 +1,14 @@
 // definitions.h - Hardware definitions for ESP32-C6 1.47" Display Board
 #pragma once
 #include <stdint.h>
+#include "driver/gpio.h"  // For GPIO_NUM_* constants
+
+// Include board-specific configuration
+#ifdef PLATFORM_C6  
+  #include "../boards/esp32-c6_config.h"  
+#elif defined(PLATFORM_S3)  
+  #include "../boards/esp32-s3_config.h"  
+#endif
 
 // --- HARDWARE CONFIGURATION ---
 // Updated for ESP32-C6-LCD-1.47 actual specifications
@@ -22,12 +30,7 @@
 #ifndef MAX_SHAPES
 #define MAX_SHAPES 4
 #endif
-#ifndef MAX_SPRITES
-#define MAX_SPRITES 256
-#endif
-#ifndef SPRITE_LUT_SIZE
-#define SPRITE_LUT_SIZE 64
-#endif
+// MAX_SPRITES and SPRITE_LUT_SIZE now defined as constexpr in graphics engine
 #ifndef MAX_DEPTH_LAYERS
 #define MAX_DEPTH_LAYERS 13
 #endif
@@ -48,33 +51,42 @@ enum Button {
 // See boards/esp32-c6_config.h or boards/esp32-s3_config.h
 
 // --- BUILT-IN BUTTONS ---
-#define BUTTON_BOOT_PIN   9   // Built-in BOOT button
-#define BUTTON_RESET_PIN  0   // Built-in RESET button
+#ifndef BUTTON_BOOT_PIN
+#define BUTTON_BOOT_PIN   9   // Default BOOT button (can be overridden by board config)
+#endif
+#ifndef BUTTON_RESET_PIN
+#define BUTTON_RESET_PIN  0   // Default RESET button (can be overridden by board config)
+#endif
 
 // --- AUDIO CONFIGURATION ---
 // Verified for ESP32-C6-LCD-1.47 board
+#ifndef AUDIO_PIEZO_PIN
 #define AUDIO_PIEZO_PIN 21
+#endif
 
-// I2S DAC pins for external audio (optional)
-#define AUDIO_I2S_BCLK  18
-#define AUDIO_I2S_LRC   19  
-#define AUDIO_I2S_DIN   22
+// I2S DAC pins for external audio (optional) - guard against board config redefinition
+#ifndef AUDIO_I2S_BCLK
+#define AUDIO_I2S_BCLK  GPIO_NUM_18
+#endif
+#ifndef AUDIO_I2S_LRC
+#define AUDIO_I2S_LRC   GPIO_NUM_19
+#endif  
+#ifndef AUDIO_I2S_DIN
+#define AUDIO_I2S_DIN   GPIO_NUM_22
+#endif
 
 // --- SCREEN SPECIFICATIONS ---
-// Updated for actual 1.47" display: 172×320 portrait
-// Protect against redefinition - board configs may define these
-#ifndef SCREEN_WIDTH
-#define SCREEN_WIDTH  172    // 172 pixels wide
-#endif
-#ifndef SCREEN_HEIGHT
-#define SCREEN_HEIGHT 320    // 320 pixels tall
-#endif
+// SCREEN_WIDTH and SCREEN_HEIGHT now defined as constexpr in graphics engine
+// Remove macro definitions to avoid conflicts
 
 // --- C++ APP CONFIGURATION ---
 #define APP_MAIN_FUNCTION "main"  // C++ applications use main() function
 
 // --- RENDER ENGINE DEFAULTS ---
-static uint8_t DUMMY_HEIGHT_MAP[SCREEN_WIDTH] = {0};
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+static uint8_t DUMMY_HEIGHT_MAP[172] __attribute__((unused)) = {0};
+#pragma GCC diagnostic pop
 
 // --- SYSTEM TIMING CONFIGURATION ---
 #define SYSTEM_FPS 24    // Engine heartbeat/frame pacing (not app speed)

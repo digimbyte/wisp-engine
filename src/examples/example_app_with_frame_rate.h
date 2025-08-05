@@ -73,7 +73,7 @@ public:
         }
         
         // Print performance report every 5 seconds
-        uint32_t now = millis();
+        uint32_t now = get_millis();
         if (now - lastPerformanceReport > 5000) {
             printAppPerformanceReport();
             lastPerformanceReport = now;

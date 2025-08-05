@@ -4,8 +4,10 @@
 
 #include "menu.h"
 #include "../../system/definitions.h"
+#include "../../esp32_common.h"
 #include <esp_system.h>
 #include <esp_partition.h>
+#include <string>
 #include "esp_spiffs.h"
 #include "soc/rtc.h"
 #include <sys/stat.h>
@@ -34,7 +36,7 @@ private:
         bool enableSerial = true;
         uint8_t powerProfile = 1;       // 0=performance, 1=balanced, 2=power_save
         bool enableOTA = true;
-        String firmwareVersion = "1.0.0";
+        std::string firmwareVersion = "1.0.0";
     } settings;
     
     enum SystemMenuState {
@@ -105,9 +107,9 @@ public:
         
         // Auto-save periodically
         static uint32_t lastSaveTime = 0;
-        if (millis() - lastSaveTime > 10000) { // Every 10 seconds
+        if (get_millis() - lastSaveTime > 10000) { // Every 10 seconds
             saveSettings();
-            lastSaveTime = millis();
+            lastSaveTime = get_millis();
         }
     }
     
@@ -139,7 +141,7 @@ public:
 private:
     void handleNavigation(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return; // Debounce
         
@@ -160,7 +162,7 @@ private:
     
     void handleConfiguration(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return;
         
@@ -182,7 +184,7 @@ private:
     
     void handleConfirmation(const WispInputState& input) {
         static uint32_t lastInputTime = 0;
-        uint32_t currentTime = millis();
+        uint32_t currentTime = get_millis();
         
         if (currentTime - lastInputTime < 150) return;
         
@@ -227,7 +229,7 @@ private:
             case FACTORY_RESET:
             case RESTART_DEVICE:
                 confirmationMode = true;
-                confirmationTimer = millis();
+                confirmationTimer = get_millis();
                 break;
                 
             case SAVE_SETTINGS:
@@ -268,7 +270,7 @@ private:
             // Draw menu item and value
             gfx->drawText(menuItems[i], 10, y + 2, false);
             
-            String valueText = getValueText((SystemMenuState)i);
+            std::string valueText = getValueText((SystemMenuState)i);
             if (!valueText.empty()) {
                 gfx->drawText(valueText.c_str(), SCREEN_WIDTH - 10, y + 2, false, true);
             }
@@ -286,11 +288,11 @@ private:
         gfx->setTextColor(COLOR_WHITE);
         gfx->setTextSize(1);
         
-        String title = menuItems[currentSelection];
+        std::string title = menuItems[currentSelection];
         gfx->drawText(title.c_str(), SCREEN_WIDTH / 2, 50, true);
         
         // Current value display
-        String currentValue = getValueText(currentSelection);
+        std::string currentValue = getValueText(currentSelection);
         gfx->setTextSize(2);
         gfx->drawText(currentValue.c_str(), SCREEN_WIDTH / 2, 80, true);
         
@@ -341,7 +343,7 @@ private:
         gfx->drawText("SELECT: Confirm | BACK: Cancel", SCREEN_WIDTH / 2, 125, true);
         
         // Countdown timer
-        uint32_t remaining = 10 - ((millis() - confirmationTimer) / 1000);
+        uint32_t remaining = 10 - ((get_millis() - confirmationTimer) / 1000);
         char buffer[32];
         snprintf(buffer, sizeof(buffer), "Auto-cancel in %us", remaining);
         gfx->drawText(buffer, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 25, true);
@@ -409,11 +411,11 @@ private:
         if (settings.sleepTimeout == 0) {
             gfx->drawText("Never sleep", SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         } else if (settings.sleepTimeout < 60) {
-            gfx->drawText((String(settings.sleepTimeout) + " seconds").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            gfx->drawText((std::to_string(settings.sleepTimeout) + " seconds").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         } else if (settings.sleepTimeout < 3600) {
-            gfx->drawText((String(settings.sleepTimeout / 60) + " minutes").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            gfx->drawText((std::to_string(settings.sleepTimeout / 60) + " minutes").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         } else {
-            gfx->drawText((String(settings.sleepTimeout / 3600) + " hours").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
+            gfx->drawText((std::to_string(settings.sleepTimeout / 3600) + " hours").c_str(), SCREEN_WIDTH / 2, barY + barHeight + 10, true);
         }
     }
     
@@ -443,13 +445,13 @@ private:
         // gfx->drawText(tempInfo.c_str(), SCREEN_WIDTH - 5, SCREEN_HEIGHT - 15, false, true);
         
         // Uptime
-        uint32_t uptime = millis() / 1000;
+        uint32_t uptime = get_millis() / 1000;
         char uptimeStr[32];
         snprintf(uptimeStr, sizeof(uptimeStr), "%uh %um", uptime / 3600, (uptime % 3600) / 60);
         gfx->drawText(uptimeStr.c_str(), SCREEN_WIDTH - 5, SCREEN_HEIGHT - 15, false, true);
     }
     
-    String getValueText(SystemMenuState item) {
+    std::string getValueText(SystemMenuState item) {
         switch (item) {
             case DEVICE_INFO: {
                 esp_chip_info_t chip_info;
@@ -483,9 +485,9 @@ private:
                 
             case SLEEP_TIMEOUT:
                 if (settings.sleepTimeout == 0) return "Never";
-                else if (settings.sleepTimeout < 60) return String(settings.sleepTimeout) + "s";
-                else if (settings.sleepTimeout < 3600) return String(settings.sleepTimeout / 60) + "m";
-                else return String(settings.sleepTimeout / 3600) + "h";
+                else if (settings.sleepTimeout < 60) return std::to_string(settings.sleepTimeout) + "s";
+                else if (settings.sleepTimeout < 3600) return std::to_string(settings.sleepTimeout / 60) + "m";
+                else return std::to_string(settings.sleepTimeout / 3600) + "h";
                 
             case WATCHDOG:
                 return settings.enableWatchdog ? "Enabled" : "Disabled";

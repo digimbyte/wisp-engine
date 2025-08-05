@@ -1,6 +1,10 @@
 // engine/sprite_layers.cpp
+#include "engine.h"  // For full GraphicsEngine definition - include first
 #include "sprite_layers.h"
+#include "../../system/esp32_common.h"
 // Using manual sorting for ESP-IDF compatibility
+
+using namespace WispEngine::Graphics;
 
 // Global layer system instance
 WispSpriteLayerSystem* g_LayerSystem = nullptr;
@@ -55,13 +59,17 @@ bool WispSpriteLayerSystem::addSprite(WispLayeredSprite* sprite) {
     if (sprite->depthMask.enabled) {
         for (int layer = 0; layer < WISP_LAYER_COUNT; layer++) {
             if (sprite->depthMask.isOnLayer((WispSpriteLayer)layer)) {
-                layers[layer].push_back(sprite);
+                if (layerCounts[layer] < MAX_SPRITES_PER_LAYER) {
+                    layers[layer][layerCounts[layer]] = sprite;
+                    layerCounts[layer]++;
+                }
             }
         }
     } else {
         // Add to primary layer only
-        if (VALIDATE_LAYER(sprite->primaryLayer)) {
-            layers[sprite->primaryLayer].push_back(sprite);
+        if (VALIDATE_LAYER(sprite->primaryLayer) && layerCounts[sprite->primaryLayer] < MAX_SPRITES_PER_LAYER) {
+            layers[sprite->primaryLayer][layerCounts[sprite->primaryLayer]] = sprite;
+            layerCounts[sprite->primaryLayer]++;
         }
     }
     
@@ -93,13 +101,13 @@ bool WispSpriteLayerSystem::removeSprite(WispLayeredSprite* sprite) {
 
 void WispSpriteLayerSystem::clearLayer(WispSpriteLayer layer) {
     if (VALIDATE_LAYER(layer)) {
-        layers[layer].clear();
+        layerCounts[layer] = 0;  // Reset count to effectively clear the layer
     }
 }
 
 void WispSpriteLayerSystem::clearAllSprites() {
     for (int i = 0; i < WISP_LAYER_COUNT; i++) {
-        layers[i].clear();
+        layerCounts[i] = 0;  // Reset count to effectively clear all layers
     }
 }
 
@@ -110,7 +118,7 @@ void WispSpriteLayerSystem::renderAllLayers() {
     
     // Render layers in order (0 = bottom, 8 = top)
     for (int layer = 0; layer < WISP_LAYER_COUNT; layer++) {
-        if (layerEnabled[layer] && !layers[layer].empty()) {
+        if (layerEnabled[layer] && layerCounts[layer] > 0) {
             renderLayer((WispSpriteLayer)layer);
             layersRendered++;
         }
@@ -120,8 +128,8 @@ void WispSpriteLayerSystem::renderAllLayers() {
 void WispSpriteLayerSystem::renderLayer(WispSpriteLayer layer) {
     if (!VALIDATE_LAYER(layer) || !layerEnabled[layer]) return;
     
-    auto& layerSprites = layers[layer];
-    if (layerSprites.empty()) return;
+    int spriteCount = layerCounts[layer];
+    if (spriteCount == 0) return;
     
     // Sort by render priority if needed
     sortLayer(layer);
@@ -130,7 +138,8 @@ void WispSpriteLayerSystem::renderLayer(WispSpriteLayer layer) {
     graphics->setGlobalAlpha(layerAlpha[layer]);
     
     // Render all sprites in this layer
-    for (WispLayeredSprite* sprite : layerSprites) {
+    for (int i = 0; i < spriteCount; i++) {
+        WispLayeredSprite* sprite = layers[layer][i];
         if (sprite && sprite->visible) {
             renderSprite(sprite, layer);
             spritesRendered++;
@@ -192,8 +201,8 @@ void WispSpriteLayerSystem::renderSprite(WispLayeredSprite* sprite, WispSpriteLa
 void WispSpriteLayerSystem::renderBackgroundSprite(WispLayeredSprite* sprite) {
     if (sprite->tilingMode == TILE_NONE) {
         // Simple background - render once, scaled to viewport
-        WispVec2 pos = applyParallax(sprite, sprite->x, sprite->y);
-        WispVec2 screenPos = worldToScreen(pos.x, pos.y);
+        Vec2 pos = applyParallax(sprite, sprite->x, sprite->y);
+        Vec2 screenPos = worldToScreen(pos.x, pos.y);
         
         graphics->drawSprite(sprite->spriteId, screenPos.x, screenPos.y, 
                            sprite->scaleX, sprite->scaleY, sprite->rotation);
@@ -208,6 +217,8 @@ void WispSpriteLayerSystem::renderTiledBackground(WispLayeredSprite* sprite) {
     // Note: This would need to be implemented to get actual sprite size
     int spriteWidth = 64;  // Placeholder - get from sprite data
     int spriteHeight = 64; // Placeholder - get from sprite data
+    (void)spriteWidth;  // Suppress unused variable warning
+    (void)spriteHeight; // Suppress unused variable warning
     
     int startTileX, startTileY, endTileX, endTileY, tileWidth, tileHeight;
     calculateTileRegion(sprite, startTileX, startTileY, endTileX, endTileY, tileWidth, tileHeight);
@@ -227,8 +238,8 @@ void WispSpriteLayerSystem::renderTiledBackground(WispLayeredSprite* sprite) {
                 mirrorY = (tileY % 2) != 0;
             }
             
-            WispVec2 pos = applyParallax(sprite, worldX, worldY);
-            WispVec2 screenPos = worldToScreen(pos.x, pos.y);
+            Vec2 pos = applyParallax(sprite, worldX, worldY);
+            Vec2 screenPos = worldToScreen(pos.x, pos.y);
             
             if (isInViewport(screenPos.x, screenPos.y, tileWidth, tileHeight)) {
                 float scaleX = sprite->scaleX * (mirrorX ? -1.0f : 1.0f);
@@ -243,7 +254,7 @@ void WispSpriteLayerSystem::renderTiledBackground(WispLayeredSprite* sprite) {
 
 // Standard sprite rendering (Layers 2-6)
 void WispSpriteLayerSystem::renderStandardSprite(WispLayeredSprite* sprite, WispSpriteLayer layer) {
-    WispVec2 screenPos = worldToScreen(sprite->x, sprite->y);
+    Vec2 screenPos = worldToScreen(sprite->x, sprite->y);
     
     // Get sprite dimensions for viewport culling
     // Note: This would need actual sprite dimension lookup
@@ -356,10 +367,10 @@ void WispSpriteLayerSystem::updateAnimations(uint32_t deltaTime) {
 }
 
 void WispSpriteLayerSystem::updateSpriteAnimation(WispLayeredSprite* sprite, uint32_t deltaTime) {
-    if (!sprite->hasAnimation || sprite->animation.frames.empty()) return;
+    if (!sprite->hasAnimation || sprite->animation.frameCount == 0) return;
     
     WispAnimation& anim = sprite->animation;
-    uint32_t currentTime = millis();
+    uint32_t currentTime = get_millis();
     
     if (anim.frameStartTime == 0) {
         anim.frameStartTime = currentTime;
@@ -377,13 +388,13 @@ void WispSpriteLayerSystem::updateSpriteAnimation(WispLayeredSprite* sprite, uin
 void WispSpriteLayerSystem::advanceAnimation(WispLayeredSprite* sprite) {
     WispAnimation& anim = sprite->animation;
     
-    if (anim.frames.empty()) return;
+    if (anim.frameCount == 0) return;
     
     if (anim.pingpong) {
         if (!anim.reverse) {
             anim.currentFrame++;
-            if (anim.currentFrame >= anim.frames.size()) {
-                anim.currentFrame = anim.frames.size() - 2;
+            if (anim.currentFrame >= anim.frameCount) {
+                anim.currentFrame = anim.frameCount - 2;
                 anim.reverse = true;
                 if (!anim.loop) {
                     anim.paused = true;
@@ -404,24 +415,24 @@ void WispSpriteLayerSystem::advanceAnimation(WispLayeredSprite* sprite) {
         }
     } else {
         anim.currentFrame++;
-        if (anim.currentFrame >= anim.frames.size()) {
+        if (anim.currentFrame >= anim.frameCount) {
             if (anim.loop) {
                 anim.currentFrame = 0;
             } else {
-                anim.currentFrame = anim.frames.size() - 1;
+                anim.currentFrame = anim.frameCount - 1;
                 anim.paused = true;
                 return;
             }
         }
     }
     
-    anim.frameStartTime = millis();
+    anim.frameStartTime = get_millis();
 }
 
 WispAnimationFrame* WispSpriteLayerSystem::getCurrentFrame(WispLayeredSprite* sprite) {
-    if (!sprite->hasAnimation || sprite->animation.frames.empty()) return nullptr;
+    if (!sprite->hasAnimation || sprite->animation.frameCount == 0) return nullptr;
     
-    if (sprite->animation.currentFrame < sprite->animation.frames.size()) {
+    if (sprite->animation.currentFrame < sprite->animation.frameCount) {
         return &sprite->animation.frames[sprite->animation.currentFrame];
     }
     
@@ -481,15 +492,15 @@ WispLayeredSprite* WispSpriteLayerSystem::createGameSprite(uint16_t spriteId, Wi
 }
 
 // Helper functions
-WispVec2 WispSpriteLayerSystem::applyParallax(WispLayeredSprite* sprite, float worldX, float worldY) {
-    return WispVec2(
+Vec2 WispSpriteLayerSystem::applyParallax(WispLayeredSprite* sprite, float worldX, float worldY) {
+    return Vec2(
         worldX + (cameraX * (1.0f - sprite->parallaxX)),
         worldY + (cameraY * (1.0f - sprite->parallaxY))
     );
 }
 
-WispVec2 WispSpriteLayerSystem::worldToScreen(float worldX, float worldY) {
-    return WispVec2(worldX - cameraX, worldY - cameraY);
+Vec2 WispSpriteLayerSystem::worldToScreen(float worldX, float worldY) {
+    return Vec2(worldX - cameraX, worldY - cameraY);
 }
 
 bool WispSpriteLayerSystem::isInViewport(float x, float y, float width, float height) {
@@ -499,9 +510,12 @@ bool WispSpriteLayerSystem::isInViewport(float x, float y, float width, float he
 void WispSpriteLayerSystem::sortLayer(WispSpriteLayer layer) {
     if (!VALIDATE_LAYER(layer)) return;
     
+    int count = layerCounts[layer];
+    if (count <= 1) return;
+    
     // Simple bubble sort for layer sprite ordering
-    for (int i = 0; i < layers[layer].size() - 1; i++) {
-        for (int j = 0; j < layers[layer].size() - i - 1; j++) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
             if (layers[layer][j]->renderPriority > layers[layer][j + 1]->renderPriority) {
                 WispLayeredSprite* temp = layers[layer][j];
                 layers[layer][j] = layers[layer][j + 1];
@@ -528,8 +542,8 @@ void WispSpriteLayerSystem::calculateTileRegion(WispLayeredSprite* sprite, int& 
     tileWidth = 64;
     tileHeight = 64;
     
-    WispVec2 pos = applyParallax(sprite, sprite->scrollX, sprite->scrollY);
-    WispVec2 screenPos = worldToScreen(pos.x, pos.y);
+    Vec2 pos = applyParallax(sprite, sprite->scrollX, sprite->scrollY);
+    Vec2 screenPos = worldToScreen(pos.x, pos.y);
     
     startTileX = (int)floor((cameraX - screenPos.x) / tileWidth) - 1;
     startTileY = (int)floor((cameraY - screenPos.y) / tileHeight) - 1;

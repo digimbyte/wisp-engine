@@ -72,7 +72,7 @@ namespace WispEngine {
     
     // Convenience aliases for common operations
     using Vec2 = WispVec2;
-    using Color = uint8_t;  // Palette index
+    using PaletteColor = uint8_t;  // Palette index
     using SpriteID = uint16_t;
     using EntityID = uint16_t;
     using DatabaseKey = uint32_t;

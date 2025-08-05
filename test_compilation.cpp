@@ -11,8 +11,8 @@ int main() {
     ESP_LOGI("TEST", "Testing ESP-IDF compilation");
     
     // Test timing functions
-    uint32_t start_time = millis();
-    uint64_t micro_time = micros();
+    uint32_t start_time = get_millis();
+    uint64_t micro_time = get_micros();
     
     // Test input controller (should use ESP-IDF GPIO now)
     uint8_t test_pins[] = {4, 5, 6, 255};

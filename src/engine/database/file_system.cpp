@@ -3,4 +3,4 @@
 
 // Global instances
 SPIFFSClass SPIFFS;
-SDClass SD;
+// SD object is defined in esp32_compat.cpp

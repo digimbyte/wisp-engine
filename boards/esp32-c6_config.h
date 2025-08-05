@@ -107,9 +107,9 @@
 #define AUDIO_PIEZO_PIN             21             // Built-in piezo speaker
 #define AUDIO_PWM_LEFT              20             // PWM audio left channel
 #define AUDIO_PWM_RIGHT             10             // PWM audio right channel
-#define AUDIO_I2S_BCLK              18             // I2S bit clock
-#define AUDIO_I2S_LRC               19             // I2S left/right clock  
-#define AUDIO_I2S_DIN               22             // I2S data input
+#define AUDIO_I2S_BCLK              GPIO_NUM_18    // I2S bit clock
+#define AUDIO_I2S_LRC               GPIO_NUM_19    // I2S left/right clock  
+#define AUDIO_I2S_DIN               GPIO_NUM_22    // I2S data input
 
 // === DISPLAY SPI PIN DEFINITIONS ===
 #define DISPLAY_SPI_MOSI_PIN        23             // SPI MOSI pin

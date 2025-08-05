@@ -157,10 +157,10 @@
 #define AUDIO_PIEZO_PIN             21            // Built-in piezo speaker
 #define AUDIO_PWM_LEFT              20            // PWM audio left channel
 #define AUDIO_PWM_RIGHT             23            // PWM audio right channel
-#define AUDIO_I2S_BCLK              26            // I2S bit clock
-#define AUDIO_I2S_LRC               25            // I2S left/right clock  
-#define AUDIO_I2S_DIN               22            // I2S data input
-#define AUDIO_I2S_DOUT              27            // I2S data output
+#define AUDIO_I2S_BCLK              GPIO_NUM_5    // I2S bit clock (valid ESP32-S3 pin)
+#define AUDIO_I2S_LRC               GPIO_NUM_4    // I2S left/right clock (valid ESP32-S3 pin)
+#define AUDIO_I2S_DIN               GPIO_NUM_6    // I2S data input (valid ESP32-S3 pin)
+#define AUDIO_I2S_DOUT              GPIO_NUM_7    // I2S data output (valid ESP32-S3 pin)
 
 // === BUTTON DEFINITIONS ===
 #define BUTTON_BOOT_PIN             0             // BOOT button

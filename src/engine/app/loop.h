@@ -149,24 +149,24 @@ public:
     
     // Main app loop - call this every frame
     void update() {
-        frameStartTime = micros();
+        frameStartTime = get_micros();
         deltaTime = frameStartTime - lastFrameTime;
         frameCount++;
         
         // Execute all app stages in order
         for (int stage = 0; stage < STAGE_COUNT; stage++) {
             currentStage = (AppStage)stage;
-            uint32_t stageStart = micros();
+            uint32_t stageStart = get_micros();
             
             executeStage(currentStage);
             
-            stageTimings[stage] = micros() - stageStart;
+            stageTimings[stage] = get_micros() - stageStart;
         }
         
         lastFrameTime = frameStartTime;
         
         // Frame rate limiting (if needed)
-        uint32_t frameTime = micros() - frameStartTime;
+        uint32_t frameTime = get_micros() - frameStartTime;
         if (frameTime < targetFrameTime) {
             delayMicroseconds(targetFrameTime - frameTime);
         }

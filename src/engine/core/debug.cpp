@@ -28,7 +28,7 @@ void WispDebugSystem::init(bool enableDebug, bool disableSafety) {
     warningCount = 0;
     errorsThisSecond = 0;
     lastErrorSecond = 0;
-    lastHeartbeat = millis();
+    lastHeartbeat = get_millis();
     pinsInitialized = false;
     
     if (debugMode) {
@@ -158,7 +158,7 @@ void WispDebugSystem::logPerformanceWarning(const char* operation, uint32_t time
 }
 
 void WispDebugSystem::heartbeat() {
-    uint32_t now = millis();
+    uint32_t now = get_millis();
     if (now - lastHeartbeat > 1000) { // Every second
         lastHeartbeat = now;
         
@@ -236,7 +236,7 @@ void WispDebugSystem::signalAllPins(bool active) {
 }
 
 void WispDebugSystem::updateErrorCounters(WispLogLevel level) {
-    uint32_t currentSecond = millis() / 1000;
+    uint32_t currentSecond = get_millis() / 1000;
     
     if (currentSecond != lastErrorSecond) {
         errorsThisSecond = 0;
@@ -286,7 +286,7 @@ void WispDebugSystem::logSystemStats() {
 
 const char* WispDebugSystem::getTimestamp() {
     static char timestamp[16];  // Static buffer for timestamp string
-    uint32_t ms = millis();
+    uint32_t ms = get_millis();
     uint32_t seconds = ms / 1000;
     uint32_t minutes = seconds / 60;
     uint32_t hours = minutes / 60;

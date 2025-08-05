@@ -73,12 +73,13 @@ public:
 };
 
 // Convenience macros for common debug operations
-#define WISP_DEBUG_INIT(debug, safety) WispDebugSystem::init(debug, safety)
-#define WISP_DEBUG_ERROR(category, message) WispDebugSystem::logError(category, message)
-#define WISP_DEBUG_WARNING(category, message) WispDebugSystem::logWarning(category, message)
-#define WISP_DEBUG_INFO(category, message) WispDebugSystem::logInfo(category, message)
-#define WISP_DEBUG_CHECK_QUOTA(op, limit) WispDebugSystem::checkQuotaLimit(op, limit)
-#define WISP_DEBUG_HEARTBEAT() WispDebugSystem::heartbeat()
-#define WISP_DEBUG_SET_APP(name) WispDebugSystem::setCurrentApp(name)
+#define WISP_DEBUG_INIT(debug, safety) WispEngine::Core::WispDebugSystem::init(debug, safety)
+#define WISP_DEBUG_ERROR(category, message) WispEngine::Core::WispDebugSystem::logError(category, message)
+#define WISP_DEBUG_WARNING(category, message) WispEngine::Core::WispDebugSystem::logWarning(category, message)
+#define WISP_DEBUG_INFO(category, message) WispEngine::Core::WispDebugSystem::logInfo(category, message)
+#define WISP_DEBUG_LOG(category, message) WispEngine::Core::WispDebugSystem::logInfo(category, message)  // Alias for INFO
+#define WISP_DEBUG_CHECK_QUOTA(op, limit) WispEngine::Core::WispDebugSystem::checkQuotaLimit(op, limit)
+#define WISP_DEBUG_HEARTBEAT() WispEngine::Core::WispDebugSystem::heartbeat()
+#define WISP_DEBUG_SET_APP(name) WispEngine::Core::WispDebugSystem::setCurrentApp(name)
 
 }  // namespace WispEngine::Core

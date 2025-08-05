@@ -2,18 +2,24 @@
 #pragma once
 #include "esp32_common.h"
 #include <vector>
+#include <string>
+#include <dirent.h>
+
+// Include debug macros FIRST to avoid ordering issues
+#include "../engine/core/debug.h"
+
 #include "../engine/app/loader.h"
-#include "app_loop_manager.h"
+#include "../engine/app/loop_manager.h"
 
 // App information structure
 struct AppInfo {
-    String name;
-    String version;
-    String author;
-    String description;
-    String iconPath;
-    String splashPath;
-    String executablePath;
+    std::string name;
+    std::string version;
+    std::string author;
+    std::string description;
+    std::string iconPath;
+    std::string splashPath;
+    std::string executablePath;
     bool autoStart;
     uint16_t screenWidth;
     uint16_t screenHeight;
@@ -27,7 +33,7 @@ private:
     AppLoader* appLoader;
     AppLoopManager* appLoopManager;
     
-    String currentAppName;
+    std::string currentAppName;
     bool appRunning;
     bool appInitialized;
     
@@ -55,7 +61,7 @@ public:
     }
     
     // Load and start a C++ application
-    bool loadApp(const String& appName) {
+    bool loadApp(const std::string& appName) {
         if (appRunning) {
             WISP_DEBUG_ERROR("APP_MANAGER", "Another app is already running");
             return false;
@@ -80,9 +86,10 @@ public:
         
         // Reset app loop state
         if (appLoopManager->getAppLoop()) {
-            appLoopManager->getAppLoop()->entities.clear();
-            appLoopManager->getAppLoop()->regions.clear();
-            appLoopManager->getAppLoop()->frameEvents.clear();
+            // TODO: Reset app state when proper entity system is implemented
+            // appLoopManager->getAppLoop()->entities.clear();
+            // appLoopManager->getAppLoop()->regions.clear();
+            // appLoopManager->getAppLoop()->frameEvents.clear();
         }
         
         currentAppName = "";
@@ -124,11 +131,11 @@ public:
     
     // Query functions
     bool isAppRunning() const { return appRunning; }
-    String getCurrentAppName() const { return currentAppName; }
+    std::string getCurrentAppName() const { return currentAppName; }
     
     // SD card app discovery
     void scanForApps() {
-        availableApps.clear();
+        appCount = 0;  // Reset the app count instead of calling clear()
         
         WISP_DEBUG_INFO("APP_MANAGER", "Scanning SD card for .wisp files...");
         
@@ -139,72 +146,75 @@ public:
         }
         
         // Scan root directory for .wisp files
-        File root = SD.open("/");
+        DIR* root = opendir("/");
         if (!root) {
             WISP_DEBUG_ERROR("APP_MANAGER", "Failed to open root directory");
             return;
         }
         
-        File file = root.openNextFile();
-        while (file) {
-            String fileName = file.name();
-            
-            // Check if file has .wisp extension
-            if (fileName.endsWith(".wisp") && !file.isDirectory()) {
-                WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file");
+        struct dirent* entry;
+        while ((entry = readdir(root)) != nullptr) {
+            if (entry->d_type == DT_REG) { // Regular file
+                String fileName(entry->d_name);
                 
-                AppInfo appInfo;
-                String fullPath = "/" + fileName;
-                
-                // Create basic info from filename
-                appInfo.name = fileName.substring(0, fileName.lastIndexOf('.'));
-                appInfo.version = "1.0";
-                appInfo.author = "Unknown";
-                appInfo.description = "Wisp Application";
-                appInfo.executablePath = fullPath;
-                appInfo.autoStart = false;
-                availableApps.push_back(appInfo);
-                
-                WISP_DEBUG_INFO("APP_MANAGER", "Added app");
-            }
-            
-            file.close();
-            file = root.openNextFile();
-        }
-        
-        root.close();
-        
-        // Also scan apps/ subdirectory if it exists
-        File appsDir = SD.open("/apps");
-        if (appsDir) {
-            WISP_DEBUG_INFO("APP_MANAGER", "Scanning /apps directory...");
-            
-            File appFile = appsDir.openNextFile();
-            while (appFile) {
-                String fileName = appFile.name();
-                
-                if (fileName.endsWith(".wisp") && !appFile.isDirectory()) {
-                    WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file in /apps");
+                // Check if file has .wisp extension
+                if (fileName.indexOf(".wisp") != -1) {
+                    WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file");
                     
                     AppInfo appInfo;
-                    String fullPath = "/apps/" + fileName;
+                    std::string fullPath = std::string("/") + fileName.c_str();
                     
-                    appInfo.name = fileName.substring(0, fileName.lastIndexOf('.'));
+                    // Create basic info from filename
+                    appInfo.name = fileName.substring(0, fileName.lastIndexOf('.')).c_str();
                     appInfo.version = "1.0";
                     appInfo.author = "Unknown";
                     appInfo.description = "Wisp Application";
                     appInfo.executablePath = fullPath;
                     appInfo.autoStart = false;
-                    availableApps.push_back(appInfo);
+                    if (appCount < MAX_APPS) {
+                        availableApps[appCount] = appInfo;
+                        appCount++;
+                    }
                     
                     WISP_DEBUG_INFO("APP_MANAGER", "Added app");
                 }
-                
-                appFile.close();
-                appFile = appsDir.openNextFile();
+            }
+        }
+        
+        closedir(root);
+        
+        // Also scan apps/ subdirectory if it exists
+        DIR* appsDir = opendir("/apps");
+        if (appsDir) {
+            WISP_DEBUG_INFO("APP_MANAGER", "Scanning /apps directory...");
+            
+            while ((entry = readdir(appsDir)) != nullptr) {
+                if (entry->d_type == DT_REG) { // Regular file
+                    String fileName(entry->d_name);
+                    
+                    if (fileName.indexOf(".wisp") != -1) {
+                        WISP_DEBUG_INFO("APP_MANAGER", "Found .wisp file in /apps");
+                        
+                        AppInfo appInfo;
+                        std::string fullPath = std::string("/apps/") + fileName.c_str();
+                        
+                        appInfo.name = fileName.substring(0, fileName.lastIndexOf('.')).c_str();
+                        appInfo.version = "1.0";
+                        appInfo.author = "Unknown";
+                        appInfo.description = "Wisp Application";
+                        appInfo.executablePath = fullPath;
+                        appInfo.autoStart = false;
+                        if (appCount < MAX_APPS) {
+                            availableApps[appCount] = appInfo;
+                            appCount++;
+                        }
+                        
+                        WISP_DEBUG_INFO("APP_MANAGER", "Added app");
+                    }
+                }
             }
             
-            appsDir.close();
+            closedir(appsDir);
         }
         
         WISP_DEBUG_INFO("APP_MANAGER", "Scan complete");
@@ -218,7 +228,7 @@ public:
     
     // Launch app by index
     bool launchAppByIndex(int index) {
-        if (index < 0 || index >= (int)availableApps.size()) {
+        if (index < 0 || index >= appCount) {
             WISP_DEBUG_ERROR("APP_MANAGER", "Invalid app index");
             return false;
         }

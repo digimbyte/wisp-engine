@@ -7,6 +7,7 @@
 #include "../../system/display_driver.h"  // Multi-board LGFX display driver
 
 #include <LovyanGFX.hpp>
+#include <string>
 #include "renderer.h"
 #include "lut_system.h"
 #include "../../../exports/lut_palette_data.h"
@@ -152,7 +153,7 @@ public:
     }
     
     // Load the 64x64 color LUT from SD card image
-    bool loadColorLUTFromFile(const String& filePath) {
+    bool loadColorLUTFromFile(const std::string& filePath) {
         // TODO: Load from lut3d_flat.png and convert to RGB565 array
         // For now, generate a test LUT
         generateTestLUT();
@@ -646,3 +647,5 @@ public:
         }
     }
 };
+
+} // namespace WispEngine::Graphics

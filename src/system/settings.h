@@ -1,6 +1,21 @@
 // settings.h - ESP32-C6/S3 Settings System using ESP-IDF
 // Native ESP32 settings management with NVS and mbedTLS
 #pragma once
+
+// Include board-specific feature flags
+#ifdef PLATFORM_C6
+  #include "../boards/esp32-c6_config.h"
+#elif PLATFORM_S3
+  #include "../boards/esp32-s3_config.h"
+#else
+  // Default feature flags for unknown platforms
+  #define WISP_HAS_WIFI           0
+  #define WISP_HAS_BLUETOOTH      0
+  #define WISP_HAS_BLUETOOTH_CLASSIC 0
+  #define WISP_HAS_WIFI_DIRECT    0
+  #define WISP_HAS_EXTERNAL_STORAGE 0
+#endif
+
 #include "esp32_common.h"  // Pure ESP-IDF native headers
 #include "nvs_flash.h"
 #include "nvs.h"
@@ -131,6 +146,54 @@ public:
     nvs_set_str(nvs_handle, "bt_name", encrypted);
     nvs_commit(nvs_handle);
   }
+
+  // --- WIFI ENABLE/DISABLE ---
+#if WISP_HAS_WIFI
+  bool getWiFiEnabled() {
+    uint8_t enabled = 1; // Default: enabled if hardware supports it
+    nvs_get_u8(nvs_handle, "wifi_enabled", &enabled);
+    return enabled != 0;
+  }
+
+  void setWiFiEnabled(bool enabled) {
+    nvs_set_u8(nvs_handle, "wifi_enabled", enabled ? 1 : 0);
+    nvs_commit(nvs_handle);
+  }
+#else
+  // Stub methods for boards without WiFi
+  bool getWiFiEnabled() { return false; }
+  void setWiFiEnabled(bool enabled) { /* No-op */ }
+#endif
+
+  // --- BLUETOOTH ENABLE/DISABLE ---
+#if WISP_HAS_BLUETOOTH
+  bool getBluetoothEnabled() {
+    uint8_t enabled = 1; // Default: enabled if hardware supports it
+    nvs_get_u8(nvs_handle, "bt_enabled", &enabled);
+    return enabled != 0;
+  }
+
+  void setBluetoothEnabled(bool enabled) {
+    nvs_set_u8(nvs_handle, "bt_enabled", enabled ? 1 : 0);
+    nvs_commit(nvs_handle);
+  }
+
+  String getBluetoothDeviceName() {
+    char name[64];
+    getBluetoothName(name, sizeof(name));
+    return String(name);
+  }
+
+  void setBluetoothDeviceName(const String& name) {
+    setBluetoothName(name.c_str());
+  }
+#else
+  // Stub methods for boards without Bluetooth
+  bool getBluetoothEnabled() { return false; }
+  void setBluetoothEnabled(bool enabled) { /* No-op */ }
+  String getBluetoothDeviceName() { return "No Bluetooth"; }
+  void setBluetoothDeviceName(const String& name) { /* No-op */ }
+#endif
 
   // --- UI THEME ---
   uint16_t getThemePrimaryColor() {

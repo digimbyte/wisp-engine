@@ -1,7 +1,7 @@
 // engine/core.h - ESP32-C6/S3 Core Engine using ESP-IDF
 // Main engine core with timing, entities, and system management for ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "../engine_common.h"
 #include <stdint.h>
 #include "timing.h"
 #include "entity_system.h"

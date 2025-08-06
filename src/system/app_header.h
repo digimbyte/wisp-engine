@@ -191,9 +191,9 @@ public:
         ESP_LOGI("APP_HEADER", "Author: %s", header.author);
         ESP_LOGI("APP_HEADER", "Target FPS: %d", header.targetFrameRate);
         ESP_LOGI("APP_HEADER", "Min FPS: %d", header.minimumFrameRate);
-        ESP_LOGI("APP_HEADER", "Memory: %d KB", header.resources.maxMemoryKB);
+        ESP_LOGI("APP_HEADER", "Memory: %lu KB", (unsigned long)header.resources.maxMemoryKB);
         ESP_LOGI("APP_HEADER", "Entities: %d", header.resources.maxEntities);
-        ESP_LOGI("APP_HEADER", "Features: 0x%X", header.features);
+        ESP_LOGI("APP_HEADER", "Features: 0x%lX", (unsigned long)header.features);
         ESP_LOGI("APP_HEADER", "Compatible: %s", isCompatible(header) ? "Yes" : "No");
     }
     

@@ -1,7 +1,7 @@
 // minimal_engine.h - GBA-inspired minimal engine for ESP32-C6
 // Enhanced from ultra-lean to "minified GBA" feature set
 #pragma once
-#include "../../system/esp32_common.h"
+#include "../engine_common.h"
 
 namespace WispEngine {
 namespace Minimal {

@@ -1,7 +1,7 @@
 // engine/optimized_graphics_engine.h - ESP32-C6/S3 Optimized Graphics using ESP-IDF
 // High-performance graphics engine optimized for ESP32 with LovyanGFX
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include <LovyanGFX.hpp>
 #include <algorithm>  // For std::min/max
 

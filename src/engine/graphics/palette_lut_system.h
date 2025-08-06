@@ -1,7 +1,7 @@
 // hybrid_palette_lut_system.h - ESP32-C6/S3 Hybrid Palette LUT using ESP-IDF
 // Advanced color mixing with 64x64 LUT for complex effects on ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "sprite_system_config.h"
 
 // Hybrid palette system with optional 64x64 LUT for complex color mixing

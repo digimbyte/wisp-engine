@@ -1,7 +1,7 @@
 // engine/game_loop_manager.h - ESP32-C6/S3 Game Loop Manager using ESP-IDF
 // Deterministic game loop manager optimized for ESP32 real-time performance
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "../core/resource_manager.h"
 #include "interface.h"
 // #include "core.h"  // File not found, commenting out

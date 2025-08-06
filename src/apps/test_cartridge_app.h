@@ -2,7 +2,7 @@
 #pragma once
 
 #include "../system/wisp_app_interface.h"
-#include "../engine/wisp_cartridge_system.h"
+#include "../engine/app/loader.h"  // Use the unified app loader
 #include "../engine/core/debug.h"  // Use WISP debug system instead
 
 static const char* TAG = "TEST_CARTRIDGE_APP";
@@ -42,23 +42,22 @@ public:
     bool internalInit() override {
         WISP_DEBUG_INFO("CARTRIDGE", "Initializing...");
         
-        // Get cartridge system
-        if (!g_CartridgeSystem) {
-            WISP_DEBUG_ERROR("CARTRIDGE", "No cartridge system available");
-            return false;
+        // Get the global app loader instance
+        extern WispEngine::App::Loader g_appLoader;  // Assume this exists
+        
+        // Check if a WISP bundle is loaded
+        if (!g_appLoader.hasLoadedAsset("palette.wlut")) {
+            WISP_DEBUG_WARNING("CARTRIDGE", "No palette.wlut asset found in loaded bundle");
+        } else {
+            paletteData = g_appLoader.getLoadedAssetData("palette.wlut");
+            WISP_DEBUG_INFO("CARTRIDGE", "Palette asset loaded");
         }
         
-        // Load required assets
-        if (!g_CartridgeSystem->loadAsset("palette.wlut")) {
-            WISP_DEBUG_WARNING("CARTRIDGE", "Could not load palette asset");
+        if (!g_appLoader.hasLoadedAsset("sprite.art")) {
+            WISP_DEBUG_WARNING("CARTRIDGE", "No sprite.art asset found in loaded bundle");
         } else {
-            paletteData = g_CartridgeSystem->getAssetData("palette.wlut");
-        }
-        
-        if (!g_CartridgeSystem->loadAsset("sprite.art")) {
-            WISP_DEBUG_WARNING("CARTRIDGE", "Could not load sprite asset");
-        } else {
-            spriteData = g_CartridgeSystem->getAssetData("sprite.art");
+            spriteData = g_appLoader.getLoadedAssetData("sprite.art");
+            WISP_DEBUG_INFO("CARTRIDGE", "Sprite asset loaded");
         }
         
         WISP_DEBUG_INFO("CARTRIDGE", "Initialized successfully");
@@ -116,14 +115,11 @@ public:
     void internalCleanup() override {
         WISP_DEBUG_INFO("CARTRIDGE", "Cleaning up...");
         
-        // Unload assets
-        if (g_CartridgeSystem) {
-            g_CartridgeSystem->unloadAsset("sprite.art");
-            g_CartridgeSystem->unloadAsset("palette.wlut");
-        }
-        
+        // Assets are managed by the app loader, no manual cleanup needed
         spriteData = nullptr;
         paletteData = nullptr;
+        
+        WISP_DEBUG_INFO("CARTRIDGE", "Cleanup complete");
     }
     
     // Input handling

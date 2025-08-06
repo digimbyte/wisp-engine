@@ -1,7 +1,7 @@
 // engine/save_system.h - ESP32-C6/S3 Save System using ESP-IDF
 // Persistent storage system using SPIFFS and LP-SRAM for ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 
 // Forward declare debug functions to avoid circular includes
 namespace WispDebugSystem {

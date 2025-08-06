@@ -1,7 +1,7 @@
 // palette_framebuffer_system.h - ESP32-C6/S3 Palette Framebuffer using ESP-IDF
 // Memory-optimized palette-based framebuffer for massive memory savings on ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "sprite_system_config.h"
 
 // Palette-based framebuffer system for massive memory savings

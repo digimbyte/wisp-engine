@@ -1,7 +1,7 @@
 // optimized_palette_system.h - ESP32-C6/S3 Palette System using ESP-IDF
 // Memory-optimized palette system for ESP32 with LUT acceleration
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "sprite_system_config.h"
 
 // Optimized palette system for ESP32-C6

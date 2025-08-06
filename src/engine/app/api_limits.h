@@ -2,8 +2,7 @@
 // api_limits.h - ESP32-C6/S3 API Limits using ESP-IDF
 // Resource limits and quotas for safe ESP32 application execution
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include <string>
+#include "engine_common.h"  // Pure ESP-IDF native headers
 
 // Wisp Engine API Limits - Enforced restrictions to prevent system crashes
 // These limits ensure apps can't overwhelm the ESP32's resources
@@ -220,14 +219,14 @@ struct WispResourceQuota {
     
     void printUsageStats() const {
         ESP_LOGI("QUOTA", "=== Resource Quota Usage ===");
-        ESP_LOGI("QUOTA", "Entities: %zu/%zu (%d%%)", 
-                 currentEntities, maxEntities, (int)(getEntityUsage() * 100));
-        ESP_LOGI("QUOTA", "Sprites: %zu/%zu (%d%%)", 
-                 currentSprites, maxSprites, (int)(getSpriteUsage() * 100));
-        ESP_LOGI("QUOTA", "Memory: %zu/%zu bytes (%d%%)", 
-                 currentMemoryUsage, maxMemoryUsage, (int)(getMemoryUsage() * 100));
-        ESP_LOGI("QUOTA", "Draw Calls: %zu/%zu (%d%%)", 
-                 currentDrawCalls, maxDrawCalls, (int)(getDrawCallUsage() * 100));
+        ESP_LOGI("QUOTA", "Entities: %lu/%lu (%d%%)", 
+                 (unsigned long)currentEntities, (unsigned long)maxEntities, (int)(getEntityUsage() * 100));
+        ESP_LOGI("QUOTA", "Sprites: %lu/%lu (%d%%)", 
+                 (unsigned long)currentSprites, (unsigned long)maxSprites, (int)(getSpriteUsage() * 100));
+        ESP_LOGI("QUOTA", "Memory: %lu/%lu bytes (%d%%)", 
+                 (unsigned long)currentMemoryUsage, (unsigned long)maxMemoryUsage, (int)(getMemoryUsage() * 100));
+        ESP_LOGI("QUOTA", "Draw Calls: %lu/%lu (%d%%)", 
+                 (unsigned long)currentDrawCalls, (unsigned long)maxDrawCalls, (int)(getDrawCallUsage() * 100));
         ESP_LOGI("QUOTA", "============================");
     }
     

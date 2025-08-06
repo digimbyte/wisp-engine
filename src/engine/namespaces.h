@@ -2,15 +2,13 @@
 // Clean organization with inline bridges to existing implementations
 #pragma once
 
-// Include ESP-IDF compatibility layer
-#include "../system/esp32_common.h"
+// Common engine includes
+#include "engine_common.h"
 #include <string>
 
 // Include the actual working implementations
-#include "../core/timekeeper.h"
-#include "../system/debug_esp32.h"
 #include "graphics/engine.h" 
-// #include "audio/engine.h"  // Temporarily disabled due to GPIO conflicts
+#include "audio/audio_engine.h"
 #include "app/loop_manager.h"
 
 // Forward declarations

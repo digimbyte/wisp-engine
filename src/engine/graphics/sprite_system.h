@@ -1,7 +1,7 @@
 // engine/optimized_sprite_system.h - ESP32-C6/S3 Sprite System using ESP-IDF
 // Native ESP32 implementation with LUT palette optimization
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "../engine_common.h"
 #include "sprite_system_config.h"
 
 // Configurable sprite system for ESP32-C6

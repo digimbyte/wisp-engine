@@ -1,29 +1,29 @@
 // test_compilation.cpp - Test core system compilation
 // This file tests if the core bootloader and essential systems compile
 
-#include "src/system/esp32_common.h"
-#include "src/system/input_controller.h"
-#include "src/engine/namespaces.h"
+#include "src/engine/engine_common.h"
+#include "src/engine/wisp_engine_api.h"
 
-// Test function to check basic functionality
+// Test function to check unified engine compilation
 int main() {
     // Test ESP-IDF logging
-    ESP_LOGI("TEST", "Testing ESP-IDF compilation");
+    ESP_LOGI("TEST", "Testing Wisp Engine compilation");
     
-    // Test timing functions
-    uint32_t start_time = get_millis();
-    uint64_t micro_time = get_micros();
+    // Test unified engine initialization
+    if (!WispEngine::Engine::initialize()) {
+        ESP_LOGE("TEST", "Failed to initialize engine");
+        return -1;
+    }
     
-    // Test input controller (should use ESP-IDF GPIO now)
-    uint8_t test_pins[] = {4, 5, 6, 255};
-    InputController input(test_pins);
-    input.init();
+    // Test engine subsystem access
+    auto* graphics = WispEngine::Engine::getGraphics();
+    auto* database = WispEngine::Engine::getDatabase();
     
-    // Test namespace bridge
-    Core::Timing::init();
-    float fps = Core::Timing::getFPS();
+    ESP_LOGI("TEST", "Engine version: %s", WispEngine::Engine::getVersion());
+    ESP_LOGI("TEST", "Compilation test successful");
     
-    ESP_LOGI("TEST", "Compilation test successful - FPS: %.1f", fps);
+    // Clean shutdown
+    WispEngine::Engine::shutdown();
     
     return 0;
 }

@@ -1,7 +1,7 @@
 // engine/entity_system.h - ESP32-C6/S3 Entity Component System using ESP-IDF
 // Memory-efficient ECS optimized for ESP32 microcontroller constraints
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include <vector>
 
 // Clean entity component system

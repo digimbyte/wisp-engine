@@ -1,7 +1,7 @@
 // sprite_system_config.h - ESP32-C6/S3 Sprite Configuration using ESP-IDF
 // Native ESP32 memory configuration for game development (Game Boy/GBA inspired)
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 
 // ESP32-C6 Memory Configuration for Game Development
 // Inspired by Game Boy / Game Boy Advance architecture

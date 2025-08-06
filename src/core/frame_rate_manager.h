@@ -137,8 +137,8 @@ public:
         currentTargetFPS = frameRate;
         frameTimeUs = AppHeaderUtils::getFrameTimeUs(frameRate);
         
-        ESP_LOGI("WISP", "Frame rate set to %d FPS (%u μs per frame)", 
-                 static_cast<uint8_t>(frameRate), frameTimeUs);
+        ESP_LOGI("WISP", "Frame rate set to %d FPS (%lu μs per frame)", 
+                 static_cast<uint8_t>(frameRate), (unsigned long)frameTimeUs);
     }
     
     // Get current performance metrics
@@ -191,11 +191,11 @@ public:
         ESP_LOGI("WISP", "=== Frame Rate Performance ===");
         ESP_LOGI("WISP", "Target FPS: %d", static_cast<uint8_t>(currentTargetFPS));
         ESP_LOGI("WISP", "Current FPS: %.1f", averageFPS);
-        ESP_LOGI("WISP", "Target Frame Time: %u μs", frameTimeUs);
-        ESP_LOGI("WISP", "Average Frame Time: %u μs", averageFrameTime);
+        ESP_LOGI("WISP", "Target Frame Time: %lu μs", (unsigned long)frameTimeUs);
+        ESP_LOGI("WISP", "Average Frame Time: %lu μs", (unsigned long)averageFrameTime);
         ESP_LOGI("WISP", "Frame Time Variance: %.2f", getFrameTimeVariance());
-        ESP_LOGI("WISP", "Total Frames: %u", totalFrames);
-        ESP_LOGI("WISP", "Dropped Frames: %u (%.1f%%)", droppedFrames, getFrameDropPercentage());
+        ESP_LOGI("WISP", "Total Frames: %lu", (unsigned long)totalFrames);
+        ESP_LOGI("WISP", "Dropped Frames: %lu (%.1f%%)", (unsigned long)droppedFrames, getFrameDropPercentage());
         
         if (isPerformanceGood()) {
             ESP_LOGI("WISP", "Performance: Good");

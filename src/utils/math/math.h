@@ -1,8 +1,7 @@
 // utils/math/math.h - Unified Math Library for ESP32-C6/S3 Wisp Engine
 // Optimized 2D vector math, geometry, and color utilities for ESP32 performance
 #pragma once
-#include "../../system/esp32_common.h"
-#include <math.h>
+#include "engine_common.h"
 
 // Simple 2D vector for position and calculations
 struct Vec2 {

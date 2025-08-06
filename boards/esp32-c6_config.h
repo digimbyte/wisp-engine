@@ -74,6 +74,13 @@
 #define BLUETOOTH_MESH_SUPPORT      true           // Bluetooth Mesh capable
 #define USB_SUPPORT                 "Full-Speed"   // Full-speed USB port
 
+// === FEATURE AVAILABILITY FLAGS ===
+#define WISP_HAS_WIFI               1              // WiFi 6 (802.11ax) available
+#define WISP_HAS_BLUETOOTH          1              // Bluetooth 5.0 LE available
+#define WISP_HAS_BLUETOOTH_CLASSIC  1              // Bluetooth Classic available
+#define WISP_HAS_WIFI_DIRECT        1              // WiFi Direct/P2P available
+#define WISP_HAS_EXTERNAL_STORAGE   1              // TF/MicroSD card available
+
 // === STORAGE SPECIFICATIONS ===  
 #define EXTERNAL_STORAGE_TYPE       "TF_CARD"      // TF/MicroSD card slot
 #define EXTERNAL_STORAGE_FORMAT     "FAT32"        // Recommended format

@@ -1,7 +1,7 @@
 // engine/native_app_loader.h - ESP32-C6/S3 Native App Loader using ESP-IDF
 // Native C++ app loader for ESP32 - loads compiled app binaries and manages lifecycle
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "interface.h"
 
 // Native C++ app loader - loads compiled app binaries and manages lifecycle

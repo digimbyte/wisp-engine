@@ -2,11 +2,10 @@
 // app_loop.h - ESP32-C6/S3 Application Loop using ESP-IDF
 // Structured application loop with timing and state management for ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers (includes input_controller.h)
 #include "../graphics/engine.h"
 #include "../physics/engine.h"
 #include "../audio/engine.h"
-#include "../../system/input_controller.h"
 
 // App loop stages - executed in order each frame
 enum AppStage {

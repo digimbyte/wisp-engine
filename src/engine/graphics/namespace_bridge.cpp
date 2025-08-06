@@ -1,7 +1,7 @@
 // engine/graphics/namespace_bridge.cpp - Graphics namespace implementation
-#include "../namespaces.h"
-#include "../../../src/engine/graphics/engine.h" // Existing GraphicsEngine
-#include "../../../src/engine/graphics/optimized_engine.h" // OptimizedGraphicsEngine
+#include "../engine_common.h"
+#include "engine.h" // Existing GraphicsEngine
+#include "optimized_engine.h" // OptimizedGraphicsEngine
 
 namespace WispEngine {
 namespace Graphics {

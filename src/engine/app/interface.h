@@ -2,7 +2,7 @@
 // app_interface.h - ESP32-C6/S3 App Interface using ESP-IDF
 // Curated API interface for ESP32 application development
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 #include "curated_api.h"
 
 // Base class for all Wisp Engine applications

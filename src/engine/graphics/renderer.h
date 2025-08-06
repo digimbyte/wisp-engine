@@ -1,8 +1,6 @@
 // palette_renderer.h
 #pragma once
-#include <stdint.h>
-#include <string.h>
-#include "../../system/esp32_common.h"
+#include "engine_common.h"
 
 #define MAX_PALETTES 4
 #define PALETTE_SIZE 256

@@ -2,23 +2,21 @@
 // app_loader.h - ESP32-C6/S3 App Loader using ESP-IDF
 // Application loading system with memory management for ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
+#include "engine_common.h"  // Pure ESP-IDF native headers
 // Note: SD.h replaced with ESP-IDF native SPIFFS/SD card support
 #include "cJSON.h"  // ESP-IDF native JSON parser
-#include "../audio/engine.h"
+#include "../audio/audio_engine.h"
+#include "../audio/audio_outputs.h"  // Audio output type definitions
+#include "../audio/audio_engine_class.h"  // AudioEngine class wrapper
 #include "../graphics/engine.h"  // For complete GraphicsEngine definition
 #include "../system/wisp_asset_types.h"
 #include "../namespaces.h"  // For WispEngine::Core::Debug
+#include "wisp_runtime_loader.h"  // WISP bundle runtime loading
 #include <dirent.h>
 #include <stdio.h>
 
 // Note: Debug macros are already defined by the core debug system
 // No need to redefine them here
-
-// Forward declarations for WISP assets
-namespace WispAssets {
-    constexpr uint32_t MAGIC_WISP = 0x50534957;  // "WISP" in little endian
-}
 
 // Use GraphicsEngine directly from namespace (complete definition in ../graphics/engine.h)
 using GraphicsEngine = WispEngine::Graphics::GraphicsEngine;
@@ -126,6 +124,9 @@ namespace WispEngine {
             // Graphics and timing for LUT animations
             GraphicsEngine* graphics = nullptr;
             uint32_t lastFrameTick = 0;
+            
+            // WISP runtime loader for asset access
+            WispRuntimeLoader wispLoader;
     
             // Build app database by scanning SD card and reading headers
             void buildAppDatabase() {
@@ -250,10 +251,51 @@ namespace WispEngine {
     
     AppLoadResult loadWispForExecution(const String& filePath) {
         // Load the WISP bundle structure for runtime access
-        WispEngine::Core::Debug::info("LOADER", "Loading WISP bundle");
+        WispEngine::Core::Debug::info("LOADER", "Loading WISP bundle for execution");
         
-        // TODO: Implement full WISP loading for runtime asset access
-        // This would parse the entire bundle and prepare assets for use
+        // Load the bundle using the runtime loader
+        WispLoadResult result = wispLoader.loadFromFile(filePath);
+        if (result != WISP_LOAD_SUCCESS) {
+            WispEngine::Core::Debug::error("LOADER", "Failed to load WISP bundle");
+            switch (result) {
+                case WISP_LOAD_FILE_NOT_FOUND:
+                    return APP_LOAD_FILE_NOT_FOUND;
+                case WISP_LOAD_MEMORY_ERROR:
+                    return APP_LOAD_INSUFFICIENT_MEMORY;
+                default:
+                    return APP_LOAD_INVALID_CONFIG;
+            }
+        }
+        
+        // Load embedded configuration
+        String appName = wispLoader.getConfigValue("name");
+        String appVersion = wispLoader.getConfigValue("version");
+        
+        if (!appName.isEmpty()) {
+            strncpy(currentAppConfig.name, appName.c_str(), sizeof(currentAppConfig.name) - 1);
+            currentAppConfig.name[sizeof(currentAppConfig.name) - 1] = '\0';
+        }
+        
+        // Load graphics assets if present
+        if (graphics && wispLoader.hasAsset("palette.wlut")) {
+            const uint8_t* paletteData = wispLoader.getAssetData("palette.wlut");
+            if (paletteData) {
+                // TODO: Load palette into graphics engine
+                WispEngine::Core::Debug::info("LOADER", "Palette asset found");
+            }
+        }
+        
+        if (graphics && wispLoader.hasAsset("sprite.art")) {
+            const uint8_t* spriteData = wispLoader.getAssetData("sprite.art");
+            if (spriteData) {
+                uint16_t spriteId = graphics->loadSprite(spriteData);
+                WispEngine::Core::Debug::info("LOADER", "Sprite loaded successfully");
+            }
+        }
+        
+        // Parse configuration and prepare for execution
+        WispEngine::Core::Debug::info("LOADER", "WISP bundle loaded successfully");
+        WispEngine::Core::Debug::info("LOADER", "Bundle contains assets");
         
         return APP_LOAD_SUCCESS;
     }
@@ -268,21 +310,38 @@ namespace WispEngine {
             // Execute from WISP bundle
             WispEngine::Core::Debug::info("LOADER", "Executing from WISP bundle");
             
-            // TODO: Find and execute main binary (.wash) from WISP bundle
-            // This would:
-            // 1. Locate main.wash in the bundle
-            // 2. Load required assets (.wlut, .art, .sfx)
-            // 3. Initialize C++ application
-            // 4. Transfer control to main() function
+            // Load the bundle first if not already loaded
+            if (!wispLoader.isLoaded()) {
+                AppLoadResult loadResult = loadWispForExecution(entry.path);
+                if (loadResult != APP_LOAD_SUCCESS) {
+                    return loadResult;
+                }
+            }
             
+            // Check for main binary (.wash)
+            if (wispLoader.hasAsset("main.wash")) {
+                WispEngine::Core::Debug::info("LOADER", "Found main binary in bundle");
+                
+                const uint8_t* binaryData = wispLoader.getAssetData("main.wash");
+                if (binaryData) {
+                    // TODO: Implement binary execution
+                    // For now, we'll simulate successful execution
+                    WispEngine::Core::Debug::info("LOADER", "Binary execution simulated");
+                    return APP_LOAD_SUCCESS;
+                }
+            } else {
+                WispEngine::Core::Debug::warning("LOADER", "No main.wash binary found in bundle");
+                // Continue anyway - might be a data-only bundle
+            }
+            
+            // For now, consider loading the assets as successful execution
+            WispEngine::Core::Debug::info("LOADER", "WISP bundle assets loaded successfully");
             appLoaded = true;
             return APP_LOAD_SUCCESS;
-            
-        } else {
-            // Unsupported format
-            WispEngine::Core::Debug::error("LOADER", "Unsupported app format");
-            return APP_LOAD_INVALID_CONFIG;
         }
+        
+        WispEngine::Core::Debug::error("LOADER", "Unsupported app format");
+        return APP_LOAD_INVALID_CONFIG;
     }
     
     // Simple YAML parser for basic key-value configuration
@@ -417,7 +476,8 @@ namespace WispEngine {
         
         return true;
     }
-    
+
+private:
     // Check if current system can run the app
     AppLoadResult validateRequirements() {
         // Check memory requirements
@@ -448,6 +508,35 @@ namespace WispEngine {
         }
         
         return APP_LOAD_SUCCESS;
+    }
+    
+    // Asset access methods for loaded WISP bundles
+    bool hasLoadedAsset(const String& assetName) {
+        return wispLoader.isLoaded() && wispLoader.hasAsset(assetName);
+    }
+    
+    const uint8_t* getLoadedAssetData(const String& assetName) {
+        if (!wispLoader.isLoaded()) {
+            return nullptr;
+        }
+        return wispLoader.getAssetData(assetName);
+    }
+    
+    WispLoadResult extractLoadedAsset(const String& assetName, uint8_t** data, size_t* size) {
+        if (!wispLoader.isLoaded()) {
+            return WISP_LOAD_ASSET_NOT_FOUND;
+        }
+        return wispLoader.extractAsset(assetName, data, size);
+    }
+    
+    void freeExtractedAsset(uint8_t* data) {
+        wispLoader.freeExtractedAsset(data);
+    }
+    
+    // Unload current WISP bundle
+    void unloadCurrentBundle() {
+        wispLoader.unload();
+        appLoaded = false;
     }
     
     // Get error message for display

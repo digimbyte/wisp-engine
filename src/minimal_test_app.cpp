@@ -2,6 +2,7 @@
 #ifdef PLATFORM_C6
 
 #include "engine/minimal/minimal_engine.h"
+#include "engine/minimal/minimal_api_wrapper.h"
 
 using namespace WispEngine::Minimal;
 

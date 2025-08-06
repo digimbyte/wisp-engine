@@ -1,8 +1,6 @@
 // particle_canvas.h
 #pragma once
-#include <stdint.h>
-#include <string.h>
-#include "../../system/esp32_common.h"
+#include "engine_common.h"
 
 #define MAX_PARTICLES 64
 #define TRAIL_LENGTH 4

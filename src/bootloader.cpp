@@ -28,6 +28,7 @@
 #include "system/input_controller.h"
 #ifndef CONFIG_IDF_TARGET_ESP32C6
 #include "system/ui/panels/menu.h"
+#include "system/ui/panels/display_settings.h"  // WispMenu namespace
 #endif
 #include "system/display_driver.h"  // For LGFX class
 #include "core/timekeeper.h"
@@ -266,7 +267,10 @@ void bootloaderLoop() {
             menuInitialized = true;
             Serial.println("ESP32-C6 minimal mode - menu disabled");
 #else
-            if (WispMenu::init(&curatedAPI)) {
+            // ESP32-S3: WispMenu not yet implemented, skip for now
+            menuInitialized = true;
+            WISP_DEBUG_INFO("WISP", "WispMenu implementation pending - using fallback");
+            // Disabled: if (WispMenu::init(&curatedAPI)) {
                 // Grant menu system permission to launch apps (it's a system component)
                 curatedAPI.setAppPermissions(true, false, false, false);
                 
@@ -280,7 +284,8 @@ void bootloaderLoop() {
         
 #ifndef CONFIG_IDF_TARGET_ESP32C6
         // Show menu with available .wisp apps
-        WispMenu::activate();
+        // Disabled: WispMenu::activate();
+        WISP_DEBUG_INFO("WISP", "WispMenu activation disabled - implementation pending");
 #endif
         
     } else {

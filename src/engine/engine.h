@@ -2,6 +2,9 @@
 // Organized micro-folder architecture for ESP32-C6 embedded gaming
 #pragma once
 
+// Common engine includes and definitions
+#include "engine_common.h"
+
 // Clean namespace definitions first
 #include "namespaces.h"
 
@@ -10,7 +13,6 @@
 #include "core/config.h"
 #include "core/timing.h"
 #include "core/resource_manager.h"
-#include "../system/debug_esp32.h"
 
 // Graphics subsystem
 #include "graphics/engine.h"
@@ -23,11 +25,10 @@
 #include "graphics/particles.h"
 
 // Audio subsystem
-#include "audio/engine.h"
+#include "audio/audio_engine.h"
 
 // Physics and math
 #include "physics/engine.h"
-#include "../utils/math/math.h"
 
 // Entity management
 #include "entities/system.h"
@@ -47,46 +48,24 @@
 // Namespace integration bridge
 #include "namespace_integration.h"
 
-// Namespace for the entire engine
+// Unified Engine API
+#include "wisp_engine_api.h"
+#include "app/loader.h"
+#include "app/loop.h"
+#include "app/loop_manager.h"
+#include "app/curated_api.h"
+
+// Namespace integration bridge
+#include "namespace_integration.h"
+
+// Convenience aliases for common types (avoiding conflicts with unified API)
 namespace WispEngine {
-    // Engine initialization and management
-    class Engine {
-    public:
-        // Initialize all subsystems
-        static bool initialize();
-        
-        // Clean shutdown
-        static void shutdown();
-        
-        // Get subsystem instances
-        static GraphicsEngine* getGraphics();
-        static AudioEngine* getAudio();
-        static PhysicsEngine* getPhysics();
-        static EntitySystem* getEntities();
-        static PartitionedDatabase* getDatabase();
-        
-        // Engine state
-        static bool isInitialized();
-        static const char* getVersion();
-    };
-    
-    // Convenience aliases for common operations
     using Vec2 = WispVec2;
     using PaletteColor = uint8_t;  // Palette index
     using SpriteID = uint16_t;
     using EntityID = uint16_t;
     using DatabaseKey = uint32_t;
 }
-
-// Version information
-#define WISP_ENGINE_VERSION_MAJOR 1
-#define WISP_ENGINE_VERSION_MINOR 0
-#define WISP_ENGINE_VERSION_PATCH 0
-#define WISP_ENGINE_VERSION "1.0.0"
-
-// Quick initialization macro for apps
-#define WISP_ENGINE_INIT() WispEngine::Engine::initialize()
-#define WISP_ENGINE_SHUTDOWN() WispEngine::Engine::shutdown()
 
 // Performance monitoring
 #ifdef WISP_DEBUG

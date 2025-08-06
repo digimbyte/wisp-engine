@@ -1,5 +1,6 @@
 // minimal_engine.cpp - Implementation of ultra-lean engine for ESP32-C6
 #include "minimal_engine.h"
+#include "../engine_common.h"
 #include "../../system/display_driver.h"
 #include "../../core/timekeeper.h"  // For get_millis()
 #include <esp_heap_caps.h>

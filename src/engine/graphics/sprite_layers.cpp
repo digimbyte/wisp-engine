@@ -1,7 +1,7 @@
 // engine/sprite_layers.cpp
 #include "engine.h"  // For full GraphicsEngine definition - include first
 #include "sprite_layers.h"
-#include "../../system/esp32_common.h"
+#include "../engine_common.h"
 // Using manual sorting for ESP-IDF compatibility
 
 using namespace WispEngine::Graphics;

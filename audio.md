@@ -483,3 +483,59 @@ Exported .wcryseq = drop-in ROM file for ESP playback
 Cries are not audio clips.
 Cries are compact control tracks that animate 4 fixed synth channels over time.
 ESP32 renders them in real time, using less RAM than even short ADPCM clips.
+
+
+🎼 BGM (Background Music) – Lowest overhead, lowest quality
+✅ Format: IMA ADPCM (block-based)
+Compression: ~4:1 vs PCM
+CPU Load: Extremely low
+RAM Usage: Low (block decode)
+Read Model: Sequential block reads from flash or SD
+Best container: .bgm (custom format described earlier)
+
+🔹 Why this is ideal:
+Streams directly from storage, no decompression upfront
+
+Can decode per 128–256 sample blocks
+
+Even long BGM tracks (~1–2 minutes) stay under 100–200KB
+
+Quality is lo-fi but passable (better than GBA's tone channels)
+
+Recommended Config:
+
+Mono
+
+8–16kHz sample rate
+
+256-byte blocks (or sector-aligned for SD)
+
+
+🎯 SFX (Sound Effects) – Higher quality, but short
+✅ Format: IMA ADPCM (again, but higher rate)
+Same as BGM, but with:
+
+Higher sample rate (e.g. 16kHz–22kHz)
+
+Shorter duration (1–3s typical)
+
+🔹 Why reuse ADPCM:
+Same decoder shared across engine
+
+Low CPU, low RAM, fast to preload
+
+Can reside fully in RAM for ultra-low-latency triggering
+
+You avoid WAV/PCM bulk but retain fast playback
+
+Optionally:
+
+Use raw PCM only for critical 1-shot SFX (e.g. 100–300ms UI sounds)
+
+Keep those in ROM/RAM for instant access
+
+🧠 Summary: Format Strategy
+Layer	Format	Sample Rate	Storage	Notes
+BGM	IMA ADPCM	8–12kHz	Streamed	Mono, low bitrate, lo-fi OK
+SFX	IMA ADPCM	16–22kHz	RAM or streamed	Snappier, higher quality
+Cry	midi-like	Synth-only	<300B	Rendered live (no audio file)

@@ -3,8 +3,8 @@
 #pragma once
 
 // Use centralized engine header for namespace organization
-#include "../../wisp_engine.h"
-#include "../../system/display_driver.h"  // Multi-board LGFX display driver
+#include "../wisp_engine.h"
+#include "engine_common.h"  // Includes display_driver.h
 
 #include <LovyanGFX.hpp>
 #include <string>

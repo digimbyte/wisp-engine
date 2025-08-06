@@ -1,8 +1,7 @@
 // engine/wisp_sprite_layers.h - ESP32-C6/S3 Sprite Layer System using ESP-IDF
 // Depth-sorted sprite rendering with memory optimization for ESP32
 #pragma once
-#include "../../system/esp32_common.h"  // Pure ESP-IDF native headers
-#include "../../utils/math/math.h"
+#include "../engine_common.h"
 #include <string>
 
 // Forward declarations

@@ -1,7 +1,7 @@
 // Wisp Engine Document Database System - ESP32-C6/S3 using ESP-IDF
 // Document-based storage with collections and structured data
 #pragma once
-#include "../../system/esp32_common.h"
+#include "engine_common.h"
 #include <esp_attr.h>
 #include <cstdint>  // For uint8_t types
 #include <cstring>  // For string functions

@@ -13,14 +13,15 @@ from pathlib import Path
 class WispROMBuilder:
     MAGIC_WISP = 0x50534957  # "WISP" in little-endian
     
+    # Asset types matching unified src/system/asset_types.h
     ASSET_TYPES = {
-        '.wlut': 1,  # Palette
-        '.art': 2,   # Sprite
-        '.json': 6,  # Config
-        '.ash': 7,   # Source
-        '.wash': 8,  # Binary
-        '.sfx': 4,   # Audio
-        '.dat': 6    # Data
+        '.wlut': 0x01,  # ASSET_PALETTE
+        '.art': 0x02,   # ASSET_SPRITE  
+        '.sfx': 0x04,   # ASSET_AUDIO
+        '.json': 0x06,  # ASSET_CONFIG
+        '.ash': 0x07,   # ASSET_SOURCE
+        '.wash': 0x08,  # ASSET_BINARY
+        '.dat': 0x06    # ASSET_CONFIG (default)
     }
     
     def __init__(self):
@@ -37,7 +38,7 @@ class WispROMBuilder:
             
         # Determine asset type from extension
         ext = os.path.splitext(file_path)[1].lower()
-        asset_type = self.ASSET_TYPES.get(ext, 6)  # Default to data
+        asset_type = self.ASSET_TYPES.get(ext, 0x06)  # Default to ASSET_CONFIG
         
         with open(file_path, 'rb') as f:
             data = f.read()

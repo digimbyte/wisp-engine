@@ -96,13 +96,48 @@
 #define TOUCH_RESOLUTION_Y           240          // Touch Y resolution
 
 // === CONNECTIVITY SPECIFICATIONS ===
-#define WIFI_STANDARD               "WiFi 6"       // 802.11ax support
-#define WIFI_BANDS                  "2.4GHz"       // 2.4GHz band primary
+// NOTE: ESP32-S3 connectivity varies by module variant
+// Some modules (like ESP32-S3-WROOM) have WiFi/Bluetooth
+// Others (like ESP32-S3 basic modules) may only have wired connectivity
+#define WIFI_STANDARD               "WiFi 6"       // 802.11ax support (when available)
+#define WIFI_BANDS                  "2.4GHz"       // 2.4GHz band primary (when available)
 #define WIFI_BANDWIDTH_MHZ          40             // Up to 40MHz channel bandwidth
 #define WIFI_PROTOCOLS              "ax/b/g/n"     // Supported 802.11 protocols
-#define BLUETOOTH_VERSION           "5.0 LE"       // Bluetooth 5 Low Energy
-#define BLUETOOTH_CLASSIC           true           // Classic Bluetooth support
+#define BLUETOOTH_VERSION           "5.0 LE"       // Bluetooth 5 Low Energy (when available)
+#define BLUETOOTH_CLASSIC           true           // Classic Bluetooth support (when available)
 #define USB_SUPPORT                 "Full-Speed"   // Full-speed USB OTG
+
+// === FEATURE AVAILABILITY FLAGS ===
+// Conditional compilation based on ESP32-S3 module variant
+// Define these in platformio.ini or build configuration for your specific board
+
+#ifndef WISP_HAS_WIFI
+    #define WISP_HAS_WIFI           0              // Default: No WiFi (most basic ESP32-S3 modules)
+#endif
+
+#ifndef WISP_HAS_BLUETOOTH  
+    #define WISP_HAS_BLUETOOTH      0              // Default: No Bluetooth (most basic ESP32-S3 modules)
+#endif
+
+#ifndef WISP_HAS_BLUETOOTH_CLASSIC
+    #define WISP_HAS_BLUETOOTH_CLASSIC 0          // Default: No Bluetooth Classic
+#endif
+
+#ifndef WISP_HAS_WIFI_DIRECT
+    #define WISP_HAS_WIFI_DIRECT    0              // Default: No WiFi Direct/P2P
+#endif
+
+#ifndef WISP_HAS_EXTERNAL_STORAGE
+    #define WISP_HAS_EXTERNAL_STORAGE 0            // Default: No external storage
+#endif
+
+// ESP32-S3-WROOM-1/2 and similar modules with wireless capabilities:
+// To enable WiFi/Bluetooth for ESP32-S3-WROOM modules, add to platformio.ini:
+// build_flags = 
+//   -DWISP_HAS_WIFI=1
+//   -DWISP_HAS_BLUETOOTH=1
+//   -DWISP_HAS_BLUETOOTH_CLASSIC=1
+//   -DWISP_HAS_WIFI_DIRECT=1
 
 // === POWER SPECIFICATIONS ===
 #define POWER_VOLTAGE_MIN_V         2.8            // Minimum operating voltage

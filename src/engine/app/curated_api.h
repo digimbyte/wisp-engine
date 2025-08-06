@@ -1,6 +1,6 @@
 // engine/curated_api.h
 #pragma once
-#include "../../system/esp32_common.h"
+#include "engine_common.h"
 #include "api_limits.h"
 #include "../graphics/engine.h"
 #include "../core/resource_manager.h"
@@ -369,6 +369,10 @@ inline bool WispCuratedAPI::checkDrawQuota() {
 
 inline bool WispCuratedAPI::checkEntityQuota() {
     return quota.canAllocateEntity();
+}
+
+inline bool WispCuratedAPI::checkAudioQuota() {
+    return quota.canPlayAudio();
 }
 
 inline void WispCuratedAPI::recordError(const String& error) {

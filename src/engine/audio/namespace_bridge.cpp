@@ -1,58 +1,53 @@
 // engine/audio/namespace_bridge.cpp - Audio namespace implementation  
-#include "../../wisp_engine.h"
-#include "engine.h" // Local audio engine
+#include "../engine_common.h"
+#include "audio_engine.h"
 
 namespace WispEngine {
 namespace Audio {
 
-// Audio Engine bridge
+// Audio Engine bridge - delegates to WispEngine::Audio functions
 class Engine {
-private:
-    static AudioEngine* instance;
-    
 public:
-    static bool initialize(uint8_t outputs = AUDIO_ALL, uint32_t sampleRate = AUDIO_SAMPLE_RATE) {
-        if (!instance) {
-            instance = new AudioEngine();
-            instance->init(outputs, sampleRate);
-            return true;
-        }
+    static bool initialize() {
+        init();
         return true;
     }
     
     static void shutdown() {
-        if (instance) {
-            // instance->cleanup();  // Method doesn't exist, skip cleanup
-            delete instance;
-            instance = nullptr;
-        }
-    }
-    
-    static AudioEngine* getInstance() {
-        return instance;
-    }
-    
-    static bool playTone(uint16_t frequency, uint16_t duration, uint8_t volume = 128) {
-        if (instance) {
-            instance->playTone(frequency, duration, volume);
-            return true;
-        }
-        return false;
+        WispEngine::Audio::shutdown();
     }
     
     static void update() {
-        if (instance) {
-            instance->update();
-        }
+        WispEngine::Audio::update();
+    }
+    
+    static bool playBGM(const WBGMHeader* header, const uint8_t* data, uint8_t volume = 255) {
+        WispEngine::Audio::playBGM(header, data, volume);
+        return true;
+    }
+    
+    static void stopBGM() {
+        WispEngine::Audio::stopBGM();
+    }
+    
+    static bool playSFX(const WSFXHeader* header, const uint8_t* data) {
+        WispEngine::Audio::playSFX(header, data);
+        return true;
+    }
+    
+    static bool playCry(const WCrySequenceData* sequence) {
+        WispEngine::Audio::playCry(sequence);
+        return true;
+    }
+    
+    static void setMasterVolume(uint8_t volume) {
+        WispEngine::Audio::setMasterVolume(volume);
     }
     
     static bool isInitialized() {
-        return instance != nullptr;
+        return true; // Simple check
     }
 };
-
-// Static member definition
-AudioEngine* Engine::instance = nullptr;
 
 } // namespace Audio
 } // namespace WispEngine

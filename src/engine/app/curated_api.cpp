@@ -514,3 +514,52 @@ bool WispCuratedAPI::validateResourceHandle(ResourceHandle resource) {
     // TODO: Implement resource validation
     return resource != 0; // Simple validation for now
 }
+
+// === AUDIO API IMPLEMENTATIONS ===
+
+ResourceHandle WispCuratedAPI::loadAudio(const std::string& filePath) {
+    if (!checkAudioQuota()) {
+        recordError("Audio quota exceeded");
+        return 0;
+    }
+    
+    // TODO: Implement audio loading through engine
+    recordError("loadAudio not fully implemented yet");
+    return 0; // Invalid handle for now
+}
+
+void WispCuratedAPI::unloadAudio(ResourceHandle handle) {
+    if (handle == 0) return;
+    
+    // TODO: Implement audio unloading through engine
+    recordError("unloadAudio not fully implemented yet");
+}
+
+bool WispCuratedAPI::playAudio(ResourceHandle audio, const WispAudioParams& params) {
+    if (!checkAudioQuota()) {
+        recordError("Audio quota exceeded");
+        return false;
+    }
+    
+    if (!validateResourceHandle(audio)) {
+        recordError("Invalid audio handle");
+        return false;
+    }
+    
+    quota.startAudio();
+    
+    // TODO: Forward to WispEngine::Audio system
+    // WispEngine::Audio::playBGM(...) or WispEngine::Audio::playSFX(...)
+    recordError("playAudio not fully implemented yet");
+    return false;
+}
+
+void WispCuratedAPI::stopAudio(ResourceHandle audio) {
+    if (!validateResourceHandle(audio)) {
+        recordError("Invalid audio handle");
+        return;
+    }
+    
+    // TODO: Forward to WispEngine::Audio::stopBGM() or stopAllSFX()
+    recordError("stopAudio not fully implemented yet");
+}

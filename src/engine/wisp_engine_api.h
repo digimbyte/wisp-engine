@@ -3,7 +3,7 @@
 #include "engine_common.h"
 #include "graphics/engine.h"
 #include "audio/audio_engine.h"
-#include "database/partitioned_system.h"
+#include "database/doc_database.h"
 #include "core/engine.h"
 
 namespace WispEngine {
@@ -78,7 +78,7 @@ public:
     /**
      * Get database system instance
      */
-    static WispPartitionedDB* getDatabase() {
+    static DocDatabase* getDatabase() {
         return databaseEngine;
     }
     
@@ -99,7 +99,7 @@ public:
 private:
     static bool initialized;
     static GraphicsEngine* graphicsEngine;
-    static WispPartitionedDB* databaseEngine;
+    static DocDatabase* databaseEngine;
     
     static bool initializeCore() {
         // Core system initialization
@@ -118,8 +118,14 @@ private:
     static bool initializeDatabase() {
         // Initialize database system
         if (!databaseEngine) {
-            databaseEngine = new WispPartitionedDB();
-            return databaseEngine->init();
+            databaseEngine = new DocDatabase();
+            // Use board-specific default database memory size
+#ifdef WISP_DB_DEFAULT_SIZE_BYTES
+            return databaseEngine->initialize(WISP_DB_DEFAULT_SIZE_BYTES) == WISP_SUCCESS;
+#else
+            // Fallback for unknown platforms
+            return databaseEngine->initialize(16384) == WISP_SUCCESS;
+#endif
         }
         return true;
     }
@@ -137,6 +143,7 @@ private:
     
     static void shutdownDatabase() {
         if (databaseEngine) {
+            databaseEngine->shutdown();
             delete databaseEngine;
             databaseEngine = nullptr;
         }
@@ -146,7 +153,7 @@ private:
 // Static member declarations
 bool Engine::initialized = false;
 GraphicsEngine* Engine::graphicsEngine = nullptr;
-WispPartitionedDB* Engine::databaseEngine = nullptr;
+DocDatabase* Engine::databaseEngine = nullptr;
 
 } // namespace WispEngine
 

@@ -35,8 +35,8 @@ public:
         api = apiPtr; 
     }
     
-    // App lifecycle - apps MUST implement these
-    virtual bool init() = 0;        // Initialize app resources
+    // App lifecycle - apps MUST implement these  
+    virtual bool init(const WispEngine::AppInitData& data) = 0;  // Initialize with system access
     virtual void update() = 0;      // Update game logic (called every frame)
     virtual void render() = 0;      // Render graphics (called every frame)
     virtual void cleanup() = 0;     // Clean up when app is unloaded
@@ -59,13 +59,13 @@ public:
     uint32_t getRunTime() const { return get_millis() - startTime; }
     
     // Called by engine - apps should not call these
-    bool internalInit() {
+    bool internalInit(const WispEngine::AppInitData& data) {
         if (initialized) return true;
         
         startTime = get_millis();
         frameCount = 0;
         
-        bool result = init();
+        bool result = init(data);
         if (result) {
             initialized = true;
             active = true;

@@ -4,12 +4,8 @@
 #include "esp32_common.h"
 #include <string>
 
-// Include board-specific debug pin definitions
-#ifdef PLATFORM_S3
-    #include "../../boards/esp32-s3_config.h"
-#elif defined(PLATFORM_C6)
-    #include "../../boards/esp32-c6_config.h"
-#endif
+// Include auto-configuring board header
+#include "board_auto_config.h"
 
 enum WispLogLevel {
     LOG_ERROR = 0,

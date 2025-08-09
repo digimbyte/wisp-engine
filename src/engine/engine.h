@@ -34,7 +34,7 @@
 #include "entities/system.h"
 
 // Database and persistence
-#include "database/partitioned_system.h"
+#include "database/doc_database.h"
 #include "database/save_system.h"
 
 // Application framework

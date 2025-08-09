@@ -299,6 +299,33 @@ public:
     bool isInEmergencyMode() const { return emergencyMode; }
     float getPerformanceRating() const; // 0.0 = terrible, 1.0 = perfect
     
+    // === BLUETOOTH API ===
+    // Bluetooth communication (capability-aware with error handling)
+    bool isBluetoothSupported();
+    bool isBluetoothEnabled();
+    bool enableBluetooth(const std::string& deviceName = "WispEngine");
+    void disableBluetooth();
+    
+    // BLE (Bluetooth Low Energy) functions - ESP32-C6/S3
+    bool startBLEAdvertising(const std::string& deviceName, const std::string& serviceUUID = "");
+    void stopBLEAdvertising();
+    bool sendBLEData(const std::string& data);
+    std::string receiveBLEData();
+    bool isBLEConnected();
+    
+    // BTE (Bluetooth Classic) functions - ESP32-S3 only
+    bool startBTEServer(const std::string& deviceName);
+    void stopBTEServer();
+    bool sendBTEData(const std::string& data);
+    std::string receiveBTEData();
+    bool isBTEConnected();
+    
+    // Generic Bluetooth functions (auto-detect BLE/BTE)
+    bool sendBluetoothData(const std::string& data);
+    std::string receiveBluetoothData();
+    bool isBluetoothConnected();
+    std::string getBluetoothStatus();
+    
     // === RESTRICTED FUNCTIONS ===
     // These functions require special permission or are limited
     bool requestNetworkAccess();       // Must be explicitly granted

@@ -416,21 +416,23 @@ inline void WispBootloader::renderMainMenu() {
     centerText("WISP ENGINE", 20, 0xFFFF);
     centerText("Main Menu", 40, 0x7BEF);
     
-    int startY = 80;
-    int itemHeight = 25;
+    const int appAreaY = 70;
+    const int appAreaHeight = 90;
+    const int settingsY = appAreaY + appAreaHeight + 20;
+    const int settingsHeight = 35;
     
-    // Show available apps
-    if (!availableApps.empty()) {
-        drawMenuItem("Launch: " + availableApps[selectedAppIndex].name, 0, startY, menuSelection == 0);
+    // App selection area
+    if (appCount > 0) {
+        renderAppSelectionArea(appAreaY, appAreaHeight, menuSelection == 0);
     } else {
-        drawMenuItem("No Apps Found", 0, startY, false);
+        renderNoAppsMessage(appAreaY, appAreaHeight);
     }
     
-    // Menu options
-    drawMenuItem("Display Settings", 1, startY + itemHeight, menuSelection == 1);
-    drawMenuItem("Audio Settings", 2, startY + itemHeight * 2, menuSelection == 2);
-    drawMenuItem("Network Settings", 3, startY + itemHeight * 3, menuSelection == 3);
-    drawMenuItem("System Settings", 4, startY + itemHeight * 4, menuSelection == 4);
+    // Settings button
+    renderSettingsButton(settingsY, settingsHeight, menuSelection == 1);
+    
+    // Navigation instructions
+    renderMainMenuInstructions();
 }
 
 inline void WispBootloader::drawMenuItem(const std::string& text, int index, int y, bool selected) {

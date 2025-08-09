@@ -2,6 +2,7 @@
 #pragma once
 #include "../../../engine/app/curated_api.h"
 #include "../../esp32_common.h"
+#include "../../system/settings_manager.h"
 #include "menu.h"
 #include <string>
 
@@ -210,36 +211,65 @@ private:
         api->print(buffer);
         
         // Apply VSync setting
-        api->print("Applied VSync: " + String(vsyncEnabled ? "ON" : "OFF"));
+        ESP_LOGI("DisplaySettings", "Applied VSync: %s", vsyncEnabled ? "ON" : "OFF");
     }
     
     void saveSettings() {
-        // Save to persistent storage
-        char valueStr[16];
-        snprintf(valueStr, sizeof(valueStr), "%d", brightness);
-        api->saveData("display.brightness", valueStr);
-        snprintf(valueStr, sizeof(valueStr), "%d", colorProfile);
-        api->saveData("display.colorProfile", valueStr);
-        snprintf(valueStr, sizeof(valueStr), "%d", vsyncEnabled);
-        api->saveData("display.vsync", valueStr);
-        snprintf(valueStr, sizeof(valueStr), "%d", screenSaver);
-        api->saveData("display.screenSaver", valueStr);
+        // Save settings to centralized SettingsManager
+        using namespace WispEngine::System;
         
-        api->print("Display settings saved");
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Map display settings to SettingsManager
+            settingsManager.setScreenBrightness(brightness);
+            // Note: colorProfile, vsyncEnabled, screenSaver could be extended in SettingsManager
+            
+            // Save to persistent storage
+            SettingsError result = settingsManager.saveSettings();
+            if (result == SettingsError::SUCCESS) {
+                ESP_LOGI("DisplaySettings", "Display settings saved successfully");
+            } else {
+                ESP_LOGE("DisplaySettings", "Failed to save display settings: %s", 
+                        settingsManager.getErrorString(result).c_str());
+            }
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("DisplaySettings", "Exception saving display settings: %s", e.what());
+        }
     }
     
     void loadSettings() {
-        // Load from persistent storage
-        brightness = api->loadData("display.brightness", "255").toInt();
-        colorProfile = api->loadData("display.colorProfile", "0").toInt();
-        vsyncEnabled = api->loadData("display.vsync", "1").toInt();
-        screenSaver = api->loadData("display.screenSaver", "10").toInt();
+        // Load settings from centralized SettingsManager
+        using namespace WispEngine::System;
         
-        // Validate ranges
-        brightness = constrain(brightness, 50, 255);
-        colorProfile = constrain(colorProfile, 0, 3);
-        vsyncEnabled = constrain(vsyncEnabled, 0, 1);
-        screenSaver = constrain(screenSaver, 0, 60);
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Load display settings from SettingsManager
+            brightness = settingsManager.getScreenBrightness();
+            
+            // Default values for settings not yet in SettingsManager
+            colorProfile = 0;     // Standard
+            vsyncEnabled = 1;     // Enabled
+            screenSaver = 10;     // 10 minutes
+            
+            // Validate ranges
+            brightness = constrain(brightness, 50, 255);
+            colorProfile = constrain(colorProfile, 0, 3);
+            vsyncEnabled = constrain(vsyncEnabled, 0, 1);
+            screenSaver = constrain(screenSaver, 0, 60);
+            
+            ESP_LOGI("DisplaySettings", "Display settings loaded from SettingsManager");
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("DisplaySettings", "Failed to load display settings: %s", e.what());
+            // Use defaults on error
+            brightness = 255;
+            colorProfile = 0;
+            vsyncEnabled = 1;
+            screenSaver = 10;
+        }
     }
     
     void renderPreview() {

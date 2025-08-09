@@ -4,30 +4,20 @@
 
 #include "menu.h"
 #include "../../system/definitions.h"
+#include "../../system/settings_manager.h"
 #include "../../esp32_common.h"
 #include <esp_system.h>
 #include <esp_partition.h>
 #include <string>
 #include "esp_spiffs.h"
+#include "esp_pm.h"
 #include "soc/rtc.h"
 #include <sys/stat.h>
 
 class SystemSettingsPanel : public MenuPanel {
 private:
     struct SystemSettings {
-        uint8_t cpuFrequenc        if (settings.sleepTimeout < 60) {
-            char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%u seconds", settings.sleepTimeout);
-            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
-        } else if (settings.sleepTimeout < 3600) {
-            char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%u minutes", settings.sleepTimeout / 60);
-            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
-        } else {
-            char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%u hours", settings.sleepTimeout / 3600);
-            gfx->drawText(buffer, SCREEN_WIDTH / 2, barY + barHeight + 10, true);
-        }      // 0=80MHz, 1=160MHz, 2=240MHz
+        uint8_t cpuFrequency = 2;       // 0=80MHz, 1=160MHz, 2=240MHz
         uint8_t sleepMode = 1;          // 0=none, 1=light, 2=deep
         uint32_t sleepTimeout = 300;    // Seconds
         bool enableDeepSleep = true;
@@ -362,9 +352,8 @@ private:
         // Power consumption estimate
         const char* powerEstimates[] = {"~50mA", "~80mA", "~120mA"};
         char buffer[32];
-        snprintf(buffer, sizeof(buffer), "Est. Power: %u", powerEstimates[settings.cpuFrequency]);
-        gfx->drawText(buffer, 
-                     SCREEN_WIDTH / 2, 125, true);
+        snprintf(buffer, sizeof(buffer), "Est. Power: %s", powerEstimates[settings.cpuFrequency]);
+        gfx->drawText(buffer, SCREEN_WIDTH / 2, 125, true);
     }
     
     void renderPowerProfileConfig() {
@@ -511,7 +500,9 @@ private:
             case STORAGE_INFO: {
                 size_t total = 0, used = 0;
                 esp_spiffs_info(NULL, &total, &used);
-                return String(used / 1024) + "/" + String(total / 1024) + "KB";
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "%d/%dKB", used / 1024, total / 1024);
+                return std::string(buffer);
             }
                 
             case FIRMWARE_INFO:
@@ -595,30 +586,38 @@ private:
     
     void applyCpuFrequency() {
         uint32_t frequencies[] = {80, 160, 240};
-        setCpuFrequencyMhz(frequencies[settings.cpuFrequency]);
+        // ESP-IDF native CPU frequency setting
+        rtc_cpu_freq_config_t freq_config;
+        if (rtc_clk_cpu_freq_mhz_to_config(frequencies[settings.cpuFrequency], &freq_config)) {
+            rtc_clk_cpu_freq_set_config(&freq_config);
+        }
     }
     
     void applyPowerProfile() {
-        // Apply power profile settings
+        // Apply power profile settings using ESP-IDF power management
+        esp_pm_config_esp32_t pm_config;
+        
         switch (settings.powerProfile) {
             case 0: // Performance
-                setCpuFrequencyMhz(240);
-                esp_pm_config_esp32_t pm_config = {
-                    .max_freq_mhz = 240,
-                    .min_freq_mhz = 240,
-                    .light_sleep_enable = false
-                };
-                esp_pm_configure(&pm_config);
+                pm_config.max_freq_mhz = 240;
+                pm_config.min_freq_mhz = 240;
+                pm_config.light_sleep_enable = false;
                 break;
                 
             case 1: // Balanced
-                setCpuFrequencyMhz(160);
+                pm_config.max_freq_mhz = 240;
+                pm_config.min_freq_mhz = 80;
+                pm_config.light_sleep_enable = true;
                 break;
                 
             case 2: // Power Save
-                setCpuFrequencyMhz(80);
+                pm_config.max_freq_mhz = 160;
+                pm_config.min_freq_mhz = 40;
+                pm_config.light_sleep_enable = true;
                 break;
         }
+        
+        esp_pm_configure(&pm_config);
     }
     
     void applySleepMode() {
@@ -633,18 +632,22 @@ private:
     }
     
     void performFactoryReset() {
-        // Clear all settings
-        // Preferences prefs;
-        // prefs.begin("system", false);
-        // prefs.clear();
-        // prefs.end();
+        using namespace WispEngine::System;
         
-        // Clear other preference namespaces
-        // (display, audio, network, etc.)
+        try {
+            // Reset SettingsManager to defaults
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            settingsManager.resetToDefaults();
+            
+            ESP_LOGI("SystemSettings", "Settings reset to defaults");
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("SystemSettings", "Error during factory reset: %s", e.what());
+        }
         
         // Format SPIFFS using ESP-IDF
         esp_vfs_spiffs_unregister(NULL);
-        esp_partition_t* partition = (esp_partition_t*)esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+        const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
         if (partition) {
             esp_partition_erase_range(partition, 0, partition->size);
         }
@@ -659,37 +662,64 @@ private:
     }
     
     void loadSettings() {
-        // Load from persistent storage
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("system", false);
-        // settings.cpuFrequency = prefs.getUChar("cpuFreq", 2);
-        // settings.sleepMode = prefs.getUChar("sleepMode", 1);
-        // settings.sleepTimeout = prefs.getUInt("sleepTimeout", 300);
-        // settings.enableDeepSleep = prefs.getBool("deepSleep", true);
-        // settings.enableWatchdog = prefs.getBool("watchdog", true);
-        // settings.logLevel = prefs.getUChar("logLevel", 2);
-        // settings.enableSerial = prefs.getBool("serial", true);
-        // settings.powerProfile = prefs.getUChar("powerProfile", 1);
-        // settings.enableOTA = prefs.getBool("ota", true);
-        // prefs.end();
+        // Load settings from centralized SettingsManager
+        using namespace WispEngine::System;
+        
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Map available SettingsManager values to our local structure
+            settings.enableSerial = true; // Could be extended in SettingsManager
+            settings.enableOTA = true;    // Could be extended in SettingsManager
+            
+            // System settings that could map to SettingsManager
+            std::string deviceName = settingsManager.getDeviceName();
+            bool autoSleep = settingsManager.getAutoSleepEnabled();
+            uint16_t sleepMinutes = settingsManager.getAutoSleepMinutes();
+            
+            // Convert sleep minutes to seconds for our internal structure
+            if (autoSleep && sleepMinutes > 0) {
+                settings.sleepTimeout = sleepMinutes * 60;
+                settings.sleepMode = 1; // Light sleep
+            } else {
+                settings.sleepTimeout = 0; // Never
+                settings.sleepMode = 0;   // None
+            }
+            
+            ESP_LOGI("SystemSettings", "System settings loaded from SettingsManager");
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("SystemSettings", "Failed to load system settings: %s", e.what());
+            // Use defaults on error
+        }
     }
     
     void saveSettings() {
-        // Save to persistent storage
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("system", false);
-        // prefs.putUChar("cpuFreq", settings.cpuFrequency);
-        // prefs.putUChar("sleepMode", settings.sleepMode);
-        // prefs.putUInt("sleepTimeout", settings.sleepTimeout);
-        // prefs.putBool("deepSleep", settings.enableDeepSleep);
-        // prefs.putBool("watchdog", settings.enableWatchdog);
-        // prefs.putUChar("logLevel", settings.logLevel);
-        // prefs.putBool("serial", settings.enableSerial);
-        // prefs.putUChar("powerProfile", settings.powerProfile);
-        // prefs.putBool("ota", settings.enableOTA);
-        // prefs.end();
+        // Save settings to centralized SettingsManager
+        using namespace WispEngine::System;
+        
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Map our settings to SettingsManager where possible
+            bool autoSleep = (settings.sleepTimeout > 0);
+            uint16_t sleepMinutes = autoSleep ? (settings.sleepTimeout / 60) : 30;
+            
+            settingsManager.setAutoSleepEnabled(autoSleep);
+            settingsManager.setAutoSleepMinutes(sleepMinutes);
+            
+            // Save to persistent storage
+            SettingsError result = settingsManager.saveSettings();
+            if (result == SettingsError::SUCCESS) {
+                ESP_LOGI("SystemSettings", "System settings saved successfully");
+            } else {
+                ESP_LOGE("SystemSettings", "Failed to save system settings: %s", 
+                        settingsManager.getErrorString(result).c_str());
+            }
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("SystemSettings", "Exception saving system settings: %s", e.what());
+        }
         
         // Apply settings immediately
         applySystemSettings();

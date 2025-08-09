@@ -4,6 +4,7 @@
 
 #include "menu.h"
 #include "../../system/definitions.h"
+#include "../../system/settings_manager.h"
 #include <string>
 
 class AudioSettingsPanel : public MenuPanel {
@@ -339,38 +340,56 @@ private:
     }
     
     void loadSettings() {
-        // Load from persistent storage
-        // This would use SPIFFS or preferences library
-        // For now, use defaults
+        // Load settings from centralized SettingsManager
+        using namespace WispEngine::System;
         
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("audio", false);
-        // settings.masterVolume = prefs.getUChar("masterVol", 80);
-        // settings.effectsVolume = prefs.getUChar("effectsVol", 75);
-        // settings.musicVolume = prefs.getUChar("musicVol", 70);
-        // settings.enablePiezo = prefs.getBool("piezo", true);
-        // settings.enableI2S = prefs.getBool("i2s", false);
-        // settings.toneQuality = prefs.getUChar("quality", 2);
-        // settings.enableHaptics = prefs.getBool("haptics", true);
-        // settings.hapticStrength = prefs.getUChar("hapticStr", 50);
-        // prefs.end();
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Map SettingsManager audio settings to our local structure
+            settings.masterVolume = (settingsManager.getVolumeLevel() * 100) / 255;  // Convert 0-255 to 0-100
+            settings.effectsVolume = settings.masterVolume; // Use master volume as base
+            settings.musicVolume = settings.masterVolume;
+            
+            // Audio system settings
+            settings.enablePiezo = settingsManager.getAudioEnabled();
+            settings.enableI2S = false; // Default, could be extended in SettingsManager later
+            settings.toneQuality = 2;   // Default high quality
+            settings.enableHaptics = true; // Could be extended in SettingsManager
+            settings.hapticStrength = 50;  // Could be extended in SettingsManager
+            
+            ESP_LOGI("AudioSettings", "Audio settings loaded from SettingsManager");
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("AudioSettings", "Failed to load audio settings: %s", e.what());
+            // Use defaults on error
+        }
     }
     
     void saveSettings() {
-        // Save to persistent storage
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("audio", false);
-        // prefs.putUChar("masterVol", settings.masterVolume);
-        // prefs.putUChar("effectsVol", settings.effectsVolume);
-        // prefs.putUChar("musicVol", settings.musicVolume);
-        // prefs.putBool("piezo", settings.enablePiezo);
-        // prefs.putBool("i2s", settings.enableI2S);
-        // prefs.putUChar("quality", settings.toneQuality);
-        // prefs.putBool("haptics", settings.enableHaptics);
-        // prefs.putUChar("hapticStr", settings.hapticStrength);
-        // prefs.end();
+        // Save settings to centralized SettingsManager
+        using namespace WispEngine::System;
+        
+        try {
+            SettingsManager& settingsManager = SettingsManager::getInstance();
+            
+            // Convert our 0-100 volume to SettingsManager's 0-255 range
+            uint8_t volumeLevel = (settings.masterVolume * 255) / 100;
+            settingsManager.setVolumeLevel(volumeLevel);
+            settingsManager.setAudioEnabled(settings.enablePiezo);
+            
+            // Save to persistent storage
+            SettingsError result = settingsManager.saveSettings();
+            if (result == SettingsError::SUCCESS) {
+                ESP_LOGI("AudioSettings", "Audio settings saved successfully");
+            } else {
+                ESP_LOGE("AudioSettings", "Failed to save audio settings: %s", 
+                        settingsManager.getErrorString(result).c_str());
+            }
+            
+        } catch (const std::exception& e) {
+            ESP_LOGE("AudioSettings", "Exception saving audio settings: %s", e.what());
+        }
         
         // Apply settings to audio system
         applyAudioSettings();

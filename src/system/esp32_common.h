@@ -82,7 +82,8 @@ inline esp_err_t ledcSetup(uint8_t channel, double freq, uint8_t resolution) {
         .duty_resolution = (ledc_timer_bit_t)resolution,
         .timer_num = (ledc_timer_t)(channel / 2),
         .freq_hz = (uint32_t)freq,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false
     };
     esp_err_t ret = ledc_timer_config(&timer_config);
     if (ret != ESP_OK) return ret;
@@ -94,7 +95,9 @@ inline esp_err_t ledcSetup(uint8_t channel, double freq, uint8_t resolution) {
         .intr_type = LEDC_INTR_DISABLE,
         .timer_sel = (ledc_timer_t)(channel / 2),
         .duty = 0,
-        .hpoint = 0
+        .hpoint = 0,
+        .flags = { .output_invert = 0 },
+        .sleep_mode = LEDC_SLEEP_MODE_DISABLED,
     };
     return ledc_channel_config(&channel_config);
 }

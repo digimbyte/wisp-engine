@@ -1,5 +1,82 @@
-.pio
+# Build directories
+build/
+build-*/
+.pio/
+sdkconfig
+sdkconfig.old
+
+# IDE files
 .vscode/.browse.c_cpp.db*
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.log
+*.tmp
+*.bak
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.sym
+*.lss
+*.eep
+
+# Platform-specific
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Dependencies
+node_modules/
+*.pyc
+__pycache__/
+
+# Generated files
+*.generated.*
+version.h
+build_info.h
+
+# Test outputs
+test_results/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Documentation builds
+docs/_build/
+docs/doxygen/
+
+# Temporary files
+*.tmp
+*.temp
+temp_*
+tmp_*
+
+# OS generated files
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Package files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Local configuration
+local.ini
+local_config.*
+.env
+.env.local

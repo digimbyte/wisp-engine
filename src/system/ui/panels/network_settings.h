@@ -4,6 +4,8 @@
 
 #include "menu.h"
 #include "../../system/definitions.h"
+#include "../../system/bluetooth_manager.h"
+#include "../../system/settings_manager.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -30,6 +32,7 @@ private:
         uint8_t wifiPower = 20;         // WiFi TX power (0-20)
         bool enableMDNS = true;
         std::string deviceName = "wisp-engine";
+        bool bluetoothAudioStreaming = false;
     } settings;
     
     enum NetworkMenuState {
@@ -41,6 +44,7 @@ private:
         AUTO_CONNECT,
         BLUETOOTH_STATUS,
         BLUETOOTH_TOGGLE,
+        BLUETOOTH_AUDIO,
         HOTSPOT_STATUS,
         HOTSPOT_TOGGLE,
         HOTSPOT_CONFIG,
@@ -69,6 +73,7 @@ private:
         "Auto Connect",
         "Bluetooth Status",
         "Toggle Bluetooth",
+        "Bluetooth Audio",
         "Hotspot Status",
         "Toggle Hotspot",
         "Hotspot Config",
@@ -206,6 +211,10 @@ private:
                 toggleBluetooth();
                 break;
                 
+            case BLUETOOTH_AUDIO:
+                inConfigMode = true;
+                break;
+                
             case HOTSPOT_TOGGLE:
                 settings.enableHotspot = !settings.enableHotspot;
                 toggleHotspot();
@@ -290,6 +299,10 @@ private:
                 
             case DEVICE_NAME:
                 renderDeviceNameConfiguration();
+                break;
+                
+            case BLUETOOTH_AUDIO:
+                renderBluetoothAudioConfig();
                 break;
                 
             default:
@@ -398,6 +411,65 @@ private:
         gfx->drawText("BACK: Return to menu", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12, true);
     }
     
+    void renderBluetoothAudioConfig() {
+        auto* gfx = api->graphics();
+        
+        gfx->drawText("Bluetooth Audio Configuration", 10, 50, false);
+        
+#ifdef WISP_HAS_BTE
+        // Check if Bluetooth is enabled
+        if (!settings.enableBluetooth) {
+            gfx->setTextColor(COLOR_ORANGE);
+            gfx->drawText("Bluetooth is disabled", 10, 80, false);
+            gfx->drawText("Enable Bluetooth first", 10, 95, false);
+            
+            gfx->setTextColor(COLOR_LIGHT_GRAY);
+            gfx->drawText("BACK: Return to menu", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12, true);
+            return;
+        }
+        
+        // Check for Bluetooth Classic support
+        gfx->drawText("Bluetooth Classic: Available", 10, 75, false);
+        
+        // Simulated device connection status
+        bool deviceConnected = false; // TODO: Check actual BT connection
+        if (deviceConnected) {
+            gfx->setTextColor(COLOR_GREEN);
+            gfx->drawText("Device: Connected", 10, 95, false);
+            gfx->drawText("Name: Unknown Audio Device", 10, 110, false); // TODO: Get device name
+            
+            // Audio streaming toggle
+            gfx->setTextColor(COLOR_WHITE);
+            if (settings.bluetoothAudioStreaming) {
+                gfx->setTextColor(COLOR_GREEN);
+                gfx->drawText("[X] Audio Streaming", 10, 130, false);
+            } else {
+                gfx->drawText("[ ] Audio Streaming", 10, 130, false);
+            }
+            
+            gfx->setTextColor(COLOR_LIGHT_GRAY);
+            gfx->drawText("SELECT: Toggle Streaming | BACK: Exit", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12, true);
+        } else {
+            gfx->setTextColor(COLOR_ORANGE);
+            gfx->drawText("Device: Not Connected", 10, 95, false);
+            gfx->drawText("Pair a Bluetooth audio device", 10, 110, false);
+            gfx->drawText("to enable audio streaming", 10, 125, false);
+            
+            gfx->setTextColor(COLOR_LIGHT_GRAY);
+            gfx->drawText("BACK: Return to menu", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12, true);
+        }
+#else
+        // ESP32-C6 or board without Bluetooth Classic support
+        gfx->setTextColor(COLOR_RED);
+        gfx->drawText("Bluetooth Classic: Not Supported", 10, 75, false);
+        gfx->drawText("This board only supports BLE", 10, 95, false);
+        gfx->drawText("Audio streaming requires BT Classic", 10, 110, false);
+        
+        gfx->setTextColor(COLOR_LIGHT_GRAY);
+        gfx->drawText("BACK: Return to menu", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 12, true);
+#endif
+    }
+    
     void renderStatusIndicators() {
         auto* gfx = api->graphics();
         
@@ -449,6 +521,11 @@ private:
                 
             case BLUETOOTH_STATUS:
                 return settings.enableBluetooth ? "Enabled" : "Disabled";
+                
+            case BLUETOOTH_AUDIO: {
+                // Use BluetoothManager for status - efficient caching
+                return BluetoothManager::getInstance().getStatusString().c_str();
+            }
                 
             case HOTSPOT_STATUS:
                 return settings.enableHotspot ? "Active" : "Inactive";
@@ -548,6 +625,25 @@ private:
                 inConfigMode = false;
                 break;
                 
+            case BLUETOOTH_AUDIO:
+#ifdef WISP_HAS_BTE
+                if (settings.enableBluetooth) {
+                    // Toggle Bluetooth audio streaming if device is connected
+                    bool deviceConnected = false; // TODO: Check actual BT connection
+                    if (deviceConnected) {
+                        settings.bluetoothAudioStreaming = !settings.bluetoothAudioStreaming;
+                        // TODO: Start/stop actual audio streaming to BT device
+                        if (settings.bluetoothAudioStreaming) {
+                            // Start streaming audio to Bluetooth device
+                        } else {
+                            // Stop streaming audio to Bluetooth device
+                        }
+                    }
+                }
+#endif
+                inConfigMode = false;
+                break;
+                
             default:
                 inConfigMode = false;
                 break;
@@ -570,13 +666,8 @@ private:
     }
     
     void toggleBluetooth() {
-        if (settings.enableBluetooth) {
-            // Enable ESP-IDF Bluetooth Classic/BLE
-            // esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT);
-        } else {
-            // Disable ESP-IDF Bluetooth
-            // esp_bt_controller_disable();
-        }
+        // Use BluetoothManager for efficient BT handling
+        BluetoothManager::getInstance().setEnabled(settings.enableBluetooth);
     }
     
     void toggleHotspot() {
@@ -606,41 +697,79 @@ private:
     }
     
     void loadSettings() {
-        // Load from persistent storage
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("network", false);
-        // settings.ssid = prefs.getString("ssid", "");
-        // settings.password = prefs.getString("password", "");
-        // settings.autoConnect = prefs.getBool("autoConn", true);
-        // settings.enableBluetooth = prefs.getBool("bluetooth", true);
-        // settings.enableHotspot = prefs.getBool("hotspot", false);
-        // settings.hotspotName = prefs.getString("hsName", "WispEngine");
-        // settings.hotspotPassword = prefs.getString("hsPass", "wisp1234");
-        // settings.wifiPower = prefs.getUChar("wifiPwr", 20);
-        // settings.enableMDNS = prefs.getBool("mdns", true);
-        // settings.deviceName = prefs.getString("deviceName", "wisp-engine");
-        // prefs.end();
+        // Load settings from SettingsManager (handles flash storage automatically)
+        auto& settingsManager = WispEngine::System::SettingsManager::getInstance();
+        
+        // Load network settings
+        settings.ssid = settingsManager.getWiFiSSID();
+        settings.password = settingsManager.getWiFiPassword();
+        settings.autoConnect = settingsManager.getWiFiAutoConnect();
+        settings.wifiPower = settingsManager.getWiFiPower();
+        
+        // Load Bluetooth settings
+        settings.enableBluetooth = settingsManager.getBluetoothEnabled();
+        settings.bluetoothAudioStreaming = settingsManager.getBluetoothAudioStreaming();
+        
+        // Load hotspot settings
+        settings.enableHotspot = settingsManager.getHotspotEnabled();
+        settings.hotspotName = settingsManager.getHotspotName();
+        settings.hotspotPassword = settingsManager.getHotspotPassword();
+        
+        // Load system settings
+        settings.deviceName = settingsManager.getDeviceName();
+        settings.enableMDNS = settingsManager.getMDNSEnabled();
+        
+        // Handle any load errors gracefully
+        if (settingsManager.getLastError() != WispEngine::System::SettingsError::SUCCESS) {
+            // Settings load failed - show error or use current defaults
+            ESP_LOGW("Settings", "Settings load error: %s", 
+                    settingsManager.getErrorString(settingsManager.getLastError()).c_str());
+        }
     }
     
     void saveSettings() {
-        // Save to persistent storage
-        // Example using Preferences:
-        // Preferences prefs;
-        // prefs.begin("network", false);
-        // prefs.putString("ssid", settings.ssid);
-        // prefs.putString("password", settings.password);
-        // prefs.putBool("autoConn", settings.autoConnect);
-        // prefs.putBool("bluetooth", settings.enableBluetooth);
-        // prefs.putBool("hotspot", settings.enableHotspot);
-        // prefs.putString("hsName", settings.hotspotName);
-        // prefs.putString("hsPass", settings.hotspotPassword);
-        // prefs.putUChar("wifiPwr", settings.wifiPower);
-        // prefs.putBool("mdns", settings.enableMDNS);
-        // prefs.putString("deviceName", settings.deviceName);
-        // prefs.end();
+        // Save settings using SettingsManager (handles flash storage automatically)
+        auto& settingsManager = WispEngine::System::SettingsManager::getInstance();
         
-        // Apply settings
+        // Save network settings
+        settingsManager.setWiFiSSID(settings.ssid);
+        settingsManager.setWiFiPassword(settings.password);
+        settingsManager.setWiFiAutoConnect(settings.autoConnect);
+        settingsManager.setWiFiPower(settings.wifiPower);
+        
+        // Save Bluetooth settings
+        settingsManager.setBluetoothEnabled(settings.enableBluetooth);
+        settingsManager.setBluetoothAudioStreaming(settings.bluetoothAudioStreaming);
+        
+        // Save hotspot settings
+        settingsManager.setHotspotEnabled(settings.enableHotspot);
+        settingsManager.setHotspotName(settings.hotspotName);
+        settingsManager.setHotspotPassword(settings.hotspotPassword);
+        
+        // Save system settings
+        settingsManager.setDeviceName(settings.deviceName);
+        settingsManager.setMDNSEnabled(settings.enableMDNS);
+        
+        // Commit all changes to flash storage
+        auto result = settingsManager.saveSettings();
+        if (result != WispEngine::System::SettingsError::SUCCESS) {
+            // Handle save errors gracefully
+            if (result == WispEngine::System::SettingsError::FLASH_READ_ONLY) {
+                ESP_LOGW("Settings", "Flash is read-only - settings not saved");
+                // TODO: Show user notification that flash is read-only
+            } else if (result == WispEngine::System::SettingsError::OUT_OF_SPACE) {
+                ESP_LOGW("Settings", "Flash storage full - settings not saved");
+                // TODO: Show user notification about storage space
+            } else {
+                ESP_LOGE("Settings", "Settings save error: %s", 
+                        settingsManager.getErrorString(result).c_str());
+                // TODO: Show generic save error to user
+            }
+        } else {
+            ESP_LOGI("Settings", "Network settings saved successfully");
+        }
+        
+        // Apply settings to network systems
         applyNetworkSettings();
     }
     

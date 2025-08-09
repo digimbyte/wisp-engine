@@ -4,6 +4,7 @@
 #include "bgm_looper.h"
 #include "cry_synth_node.h"
 #include <memory>
+#include <algorithm>
 
 namespace WispEngine {
 namespace Audio {

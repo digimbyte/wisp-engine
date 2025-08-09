@@ -1,0 +1,20 @@
+# CMakeLists.txt for Wisp Engine System Component
+idf_component_register(
+    SRCS 
+        "system_init.cpp"
+        "led_controller.cpp"
+        "esp32_common.cpp"
+        "database_manager.cpp"
+    INCLUDE_DIRS 
+        "."
+        "../boards"
+    REQUIRES 
+        "esp_wifi" 
+        "esp_event" 
+        "nvs_flash"
+        "fatfs"
+        "driver"
+        "esp_flash"
+        "sdmmc"
+        "freertos"
+)

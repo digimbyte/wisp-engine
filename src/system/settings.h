@@ -2,19 +2,8 @@
 // Native ESP32 settings management with NVS and mbedTLS
 #pragma once
 
-// Include board-specific feature flags
-#ifdef PLATFORM_C6
-  #include "../boards/esp32-c6_config.h"
-#elif PLATFORM_S3
-  #include "../boards/esp32-s3_config.h"
-#else
-  // Default feature flags for unknown platforms
-  #define WISP_HAS_WIFI           0
-  #define WISP_HAS_BLUETOOTH      0
-  #define WISP_HAS_BLUETOOTH_CLASSIC 0
-  #define WISP_HAS_WIFI_DIRECT    0
-  #define WISP_HAS_EXTERNAL_STORAGE 0
-#endif
+// Include auto-configuring board header (configured by build script)
+#include "board_auto_config.h"
 
 #include "esp32_common.h"  // Pure ESP-IDF native headers
 #include "nvs_flash.h"

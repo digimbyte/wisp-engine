@@ -484,6 +484,304 @@ template bool WispCuratedAPI::setSaveField<int32_t>(const std::string& key, cons
 template bool WispCuratedAPI::setSaveField<uint32_t>(const std::string& key, const uint32_t& value);
 template bool WispCuratedAPI::setSaveField<float>(const std::string& key, const float& value);
 
+// === BLUETOOTH API IMPLEMENTATIONS ===
+
+bool WispCuratedAPI::isBluetoothSupported() {
+    // Include the board-specific Bluetooth configuration
+    #include "../connectivity/bluetooth_config.h"
+    
+    return WISP_HAS_ANY_BLUETOOTH;
+}
+
+bool WispCuratedAPI::isBluetoothEnabled() {
+    if (!isBluetoothSupported()) {
+        return false;
+    }
+    
+    // TODO: Check actual Bluetooth stack status
+    // For now, assume it matches hardware capability
+    return WISP_HAS_ANY_BLUETOOTH;
+}
+
+bool WispCuratedAPI::enableBluetooth(const std::string& deviceName) {
+    // Check network access permission
+    if (!appPermissions.canAccessNetwork) {
+        recordError("App does not have network access permission for Bluetooth");
+        return false;
+    }
+    
+    if (!isBluetoothSupported()) {
+        recordError(String("Bluetooth not supported on this board (") + String(WISP_BLUETOOTH_TYPE_STRING) + String(")"));
+        return false;
+    }
+    
+    // Forward to BluetoothManager with appropriate type detection
+    #include "../connectivity/bluetooth_config.h"
+    #include "../../system/services/bt.h"
+    
+    if (BluetoothManager::begin(String(deviceName.c_str()))) {
+        print(String("Bluetooth enabled: ") + String(deviceName) + String(" (") + String(WISP_BLUETOOTH_DESCRIPTION) + String(")"));
+        return true;
+    } else {
+        recordError("Failed to initialize Bluetooth");
+        return false;
+    }
+}
+
+void WispCuratedAPI::disableBluetooth() {
+    if (!isBluetoothSupported()) {
+        // Silently return - no error since there's nothing to disable
+        return;
+    }
+    
+    #include "../../system/services/bt.h"
+    BluetoothManager::stop();
+    print("Bluetooth disabled");
+}
+
+bool WispCuratedAPI::startBLEAdvertising(const std::string& deviceName, const std::string& serviceUUID) {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BLE) {
+        recordError("BLE not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return false;
+    }
+    
+    if (!appPermissions.canAccessNetwork) {
+        recordError("App does not have network access permission for BLE");
+        return false;
+    }
+    
+    // TODO: Implement BLE advertising through BluetoothManager
+    recordError("BLE advertising not fully implemented yet");
+    return false;
+}
+
+void WispCuratedAPI::stopBLEAdvertising() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BLE) {
+        // Silently return - no error since BLE not available
+        return;
+    }
+    
+    // TODO: Stop BLE advertising
+    print("BLE advertising stopped");
+}
+
+bool WispCuratedAPI::sendBLEData(const std::string& data) {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BLE) {
+        recordError("BLE not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return false;
+    }
+    
+    if (data.empty()) {
+        recordError("Cannot send empty BLE data");
+        return false;
+    }
+    
+    if (data.length() > 244) { // BLE MTU limit minus headers
+        recordError("BLE data too large (max 244 bytes)");
+        return false;
+    }
+    
+    // TODO: Send data via BLE GATT characteristic
+    recordError("BLE data transmission not fully implemented yet");
+    return false;
+}
+
+std::string WispCuratedAPI::receiveBLEData() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BLE) {
+        recordError("BLE not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return "";
+    }
+    
+    // TODO: Receive data from BLE GATT characteristic
+    return "";
+}
+
+bool WispCuratedAPI::isBLEConnected() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BLE) {
+        return false;
+    }
+    
+    #include "../../system/services/bt.h"
+    return BluetoothManager::isReady();
+}
+
+bool WispCuratedAPI::startBTEServer(const std::string& deviceName) {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BTE) {
+        recordError("Bluetooth Classic not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return false;
+    }
+    
+    if (!appPermissions.canAccessNetwork) {
+        recordError("App does not have network access permission for Bluetooth Classic");
+        return false;
+    }
+    
+    #include "../../system/services/bt.h"
+    
+    if (BluetoothManager::begin(String(deviceName.c_str()))) {
+        print(String("Bluetooth Classic server started: ") + String(deviceName));
+        return true;
+    } else {
+        recordError("Failed to start Bluetooth Classic server");
+        return false;
+    }
+}
+
+void WispCuratedAPI::stopBTEServer() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BTE) {
+        // Silently return - no error since BTE not available
+        return;
+    }
+    
+    #include "../../system/services/bt.h"
+    BluetoothManager::stop();
+    print("Bluetooth Classic server stopped");
+}
+
+bool WispCuratedAPI::sendBTEData(const std::string& data) {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BTE) {
+        recordError("Bluetooth Classic not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return false;
+    }
+    
+    if (data.empty()) {
+        recordError("Cannot send empty Bluetooth Classic data");
+        return false;
+    }
+    
+    #include "../../system/services/bt.h"
+    
+    if (!BluetoothManager::isReady()) {
+        recordError("Bluetooth Classic not connected");
+        return false;
+    }
+    
+    BluetoothManager::send(String(data.c_str()));
+    return true;
+}
+
+std::string WispCuratedAPI::receiveBTEData() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BTE) {
+        recordError("Bluetooth Classic not supported on this board (board supports: " + String(WISP_BLUETOOTH_TYPE_STRING) + ")");
+        return "";
+    }
+    
+    #include "../../system/services/bt.h"
+    
+    if (!BluetoothManager::isReady()) {
+        return "";
+    }
+    
+    String data = BluetoothManager::readLine();
+    return std::string(data.c_str());
+}
+
+bool WispCuratedAPI::isBTEConnected() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_BTE) {
+        return false;
+    }
+    
+    #include "../../system/services/bt.h"
+    return BluetoothManager::isReady();
+}
+
+bool WispCuratedAPI::sendBluetoothData(const std::string& data) {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_ANY_BLUETOOTH) {
+        recordError("No Bluetooth support on this board");
+        return false;
+    }
+    
+    // Auto-detect and use available Bluetooth type
+    if (WISP_HAS_BTE) {
+        return sendBTEData(data);
+    } else if (WISP_HAS_BLE) {
+        return sendBLEData(data);
+    }
+    
+    recordError("No Bluetooth type available for data transmission");
+    return false;
+}
+
+std::string WispCuratedAPI::receiveBluetoothData() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_ANY_BLUETOOTH) {
+        recordError("No Bluetooth support on this board");
+        return "";
+    }
+    
+    // Auto-detect and use available Bluetooth type
+    if (WISP_HAS_BTE) {
+        return receiveBTEData();
+    } else if (WISP_HAS_BLE) {
+        return receiveBLEData();
+    }
+    
+    return "";
+}
+
+bool WispCuratedAPI::isBluetoothConnected() {
+    #include "../connectivity/bluetooth_config.h"
+    
+    if (!WISP_HAS_ANY_BLUETOOTH) {
+        return false;
+    }
+    
+    // Check connection status for available Bluetooth types
+    if (WISP_HAS_BTE && isBTEConnected()) {
+        return true;
+    }
+    
+    if (WISP_HAS_BLE && isBLEConnected()) {
+        return true;
+    }
+    
+    return false;
+}
+
+std::string WispCuratedAPI::getBluetoothStatus() {
+    #include "../connectivity/bluetooth_config.h"
+    #include "../../system/services/bt.h"
+    
+    if (!WISP_HAS_ANY_BLUETOOTH) {
+        return "Bluetooth not supported on this board";
+    }
+    
+    String status = "Bluetooth (";
+    status += String(WISP_BLUETOOTH_TYPE_STRING);
+    status += "): ";
+    
+    if (isBluetoothEnabled()) {
+        status += BluetoothManager::getStatusReport();
+    } else {
+        status += "disabled";
+    }
+    
+    return std::string(status.c_str());
+}
+
 // === MISSING GRAPHICS API IMPLEMENTATIONS ===
 
 ResourceHandle WispCuratedAPI::loadSprite(const std::string& filePath) {

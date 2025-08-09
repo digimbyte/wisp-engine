@@ -190,12 +190,12 @@ public:
     void printPerformanceReport() {
         ESP_LOGI("WISP", "=== Frame Rate Performance ===");
         ESP_LOGI("WISP", "Target FPS: %d", static_cast<uint8_t>(currentTargetFPS));
-        ESP_LOGI("WISP", "Current FPS: %.1f", averageFPS);
+        ESP_LOGI("WISP", "Current FPS: %lu", (unsigned long)averageFPS);
         ESP_LOGI("WISP", "Target Frame Time: %lu μs", (unsigned long)frameTimeUs);
         ESP_LOGI("WISP", "Average Frame Time: %lu μs", (unsigned long)averageFrameTime);
-        ESP_LOGI("WISP", "Frame Time Variance: %.2f", getFrameTimeVariance());
+        ESP_LOGI("WISP", "Frame Time Variance: %lu", (unsigned long)getFrameTimeVariance());
         ESP_LOGI("WISP", "Total Frames: %lu", (unsigned long)totalFrames);
-        ESP_LOGI("WISP", "Dropped Frames: %lu (%.1f%%)", (unsigned long)droppedFrames, getFrameDropPercentage());
+        ESP_LOGI("WISP", "Dropped Frames: %lu (%lu%%)", (unsigned long)droppedFrames, (unsigned long)getFrameDropPercentage());
         
         if (isPerformanceGood()) {
             ESP_LOGI("WISP", "Performance: Good");

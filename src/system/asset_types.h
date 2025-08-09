@@ -18,8 +18,10 @@ enum AssetType : uint8_t {
     ASSET_CONFIG = 0x06,     // JSON configuration
     ASSET_SOURCE = 0x07,     // .ash files (uncompiled C++)
     ASSET_BINARY = 0x08,     // .wash files (compiled code)
-    ASSET_LEVEL = 0x09,      // Game level data
-    ASSET_DEPTH = 0x0A       // Depth map data
+    ASSET_LAYOUT = 0x09,     // Scene layout data (game levels/interfaces)
+    ASSET_PANEL = 0x0A,      // Panel data within layouts
+    ASSET_DEPTH = 0x0B,      // Depth map data for 2.5D per-pixel rendering
+    ASSET_LEVEL = 0x0C       // Legacy level data (for backward compatibility)
 };
 
 // File Format Magic Numbers

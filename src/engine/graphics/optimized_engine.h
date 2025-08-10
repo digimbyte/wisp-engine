@@ -4,6 +4,7 @@
 #include "engine_common.h"  // Pure ESP-IDF native headers
 #include <LovyanGFX.hpp>
 #include <algorithm>  // For std::min/max
+#include "sprite_batch_system.h"  // 16x16 chunk batching system
 
 // ESP32-optimized graphics engine
 // Designed for 320x172 display with minimal memory footprint
@@ -402,11 +403,29 @@ public:
         Serial.println(spriteId);
     }
     
+    // === BATCH PROCESSING INTEGRATION ===
+    
+    // Load sprite using batch processing system
+    uint8_t loadBatchedSprite(const uint8_t* rawSpriteData, uint32_t dataSize, SpriteArtType artType);
+    
+    // Add batched sprite with flip support
+    bool addBatchedSprite(uint16_t batchedSpriteId, OptimizedLayer layer, int16_t x, int16_t y, 
+                         SpriteFlipMode flipMode = FLIP_NONE, uint8_t priority = 128);
+    
+    // Render batched sprite directly to tile buffer
+    void renderBatchedSpriteToTile(uint16_t batchedSpriteId, int16_t tileStartX, int16_t tileStartY,
+                                  int16_t spriteX, int16_t spriteY, SpriteFlipMode flipMode);
+    
+    // Render individual chunk to tile buffer
+    void renderChunkToTileBuffer(const SpriteChunk* chunk, int16_t tileStartX, int16_t tileStartY,
+                               int16_t chunkWorldX, int16_t chunkWorldY, SpriteFlipMode flipMode);
+    
     // Performance monitoring
     uint32_t getRenderTimeUs() const { return renderTime; }
     uint16_t getSpritesRendered() const { return spritesRendered; }
     uint8_t getLoadedSpriteCount() const { return loadedSpriteCount; }
     uint8_t getActiveSpriteCount() const { return activeSpriteCount; }
+    uint32_t getBatchedMemoryUsage() const;
     
     // Debug methods
     void printStats() {

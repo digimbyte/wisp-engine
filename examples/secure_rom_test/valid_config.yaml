@@ -1,0 +1,81 @@
+name: "Security Test Valid"
+version: "1.0.0"
+author: "Wisp Engine Security Test"
+description: "Valid ROM for testing security validation with proper asset assignments"
+
+# Performance requirements
+performance:
+  fps: 16
+  ram: 65536
+
+# System requirements
+system:
+  wifi: false
+  bluetooth: false
+  eeprom: true
+
+# Audio requirements
+audio:
+  outputs: ["piezo"]
+  sampleRate: 22050
+  channels: 2
+
+# Main entry points
+entry:
+  main: "main.wash"
+
+# Test entities with proper asset assignments
+entities:
+  - name: "test_player"
+    type: "player"
+    script: "player_behavior.wash"    # Has script -> should use npc.spr
+    sprite: "npc.spr"                 # Correct assignment for scripted entity
+    x: 64
+    y: 64
+    
+  - name: "test_collectible"
+    type: "item" 
+    sprite: "item.spr"                # No script -> correct assignment for simple entity
+    x: 128
+    y: 128
+    
+  - name: "test_enemy"
+    type: "enemy"
+    script: "enemy_ai.wash"           # Has script -> should use npc.spr
+    sprite: "npc.spr"                 # Correct assignment for scripted entity
+    x: 32
+    y: 96
+
+# UI elements with proper asset assignments  
+ui_elements:
+  - name: "play_button"
+    type: "button"
+    sprite: "light.png"               # UI element -> correct assignment (selected state)
+    x: 160
+    y: 200
+    
+  - name: "settings_button"
+    type: "button"
+    sprite: "dark.png"                # UI element -> correct assignment (unselected state)
+    x: 160
+    y: 220
+
+# Scene layout
+scenes:
+  - layout: "main_scene"
+    background: "void.spr"            # Fallback background
+    panels:
+      - name: "gameplay_panel"
+        width: 320
+        height: 240
+
+# Asset preload configuration
+assets:
+  preload:
+    - "npc.spr"
+    - "item.spr"
+    - "light.png"
+    - "dark.png"
+    - "void.spr"
+  streaming:
+    - "background_music.sfx"

@@ -26,9 +26,9 @@ def analyze_image(image_path):
         img = Image.open(image_path)
         width, height = img.size
         
-        # Convert to RGB if not already
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
+        # Preserve RGBA if it has transparency, otherwise convert to RGB
+        if img.mode not in ['RGB', 'RGBA']:
+            img = img.convert('RGBA' if 'transparency' in img.info else 'RGB')
             
         print(f"Image: {width}×{height} pixels")
         
@@ -64,40 +64,74 @@ def analyze_image(image_path):
         return None, None
 
 def convert_to_lut_64x64(img):
-    """Convert image to 64×64 LUT format"""
+    """Convert image to 64×64 LUT format with RGB|null support"""
     # Resize to 64×64 if needed
     if img.size != (64, 64):
         print(f"Resizing from {img.size} to 64×64")
         img = img.resize((64, 64), Image.Resampling.LANCZOS)
     
-    pixels = np.array(img)
-    lut_data = []
+    # Handle both RGB and RGBA modes
+    if img.mode == 'RGBA':
+        pixels = np.array(img)
+        lut_data = []
+        
+        # Process pixels, but reserve last 5 positions for magic colors
+        for y in range(64):
+            for x in range(64):
+                # Skip last 5 pixels (positions 4091-4095) - they'll be magic colors
+                if y == 63 and x >= 59:  # Last row, last 5 pixels
+                    continue
+                    
+                r, g, b, a = pixels[y, x]
+                if a <= 127:  # 50% alpha cutoff - pixel is transparent
+                    lut_data.append(0x1000)  # Transparent entry (magic number)
+                else:
+                    # RGB pixel -> convert to RGB565
+                    rgb565 = rgb888_to_rgb565(r, g, b)
+                    lut_data.append(rgb565)
+    else:
+        # RGB mode - no transparency, convert all pixels to RGB565
+        pixels = np.array(img)
+        lut_data = []
+        
+        # Process pixels, but reserve last 5 positions for magic colors
+        for y in range(64):
+            for x in range(64):
+                # Skip last 5 pixels (positions 4091-4095) - they'll be magic colors
+                if y == 63 and x >= 59:  # Last row, last 5 pixels
+                    continue
+                    
+                r, g, b = pixels[y, x]
+                rgb565 = rgb888_to_rgb565(r, g, b)
+                lut_data.append(rgb565)
     
-    for y in range(64):
-        for x in range(64):
-            r, g, b = pixels[y, x]
-            rgb565 = rgb888_to_rgb565(r, g, b)
-            lut_data.append(rgb565)
+    # Add magic channel colors as the last 5 entries
+    magic_colors = [0x1000, 0x1001, 0x1002, 0x1003, 0x1004]  # Channels 0-4
+    lut_data.extend(magic_colors)
+    print(f"Added magic channel colors at positions {len(lut_data)-5}-{len(lut_data)-1}: {[hex(c) for c in magic_colors]}")
     
     return lut_data, 64, 64
 
 def convert_to_palette(img, max_colors):
     """Convert image to palette format with specified max colors"""
+    # Reserve space for magic colors (5 entries)
+    usable_colors = max_colors - 5
+    
     # Quantize to reduce colors if needed
     if img.mode != 'P':
-        img = img.quantize(colors=max_colors-1)  # -1 for transparent
+        img = img.quantize(colors=usable_colors-1)  # -1 for potential transparent
     
     # Get palette
     palette = img.getpalette()
     if not palette:
         # Create palette from unique colors
-        colors = img.getcolors(maxcolors=max_colors)
+        colors = img.getcolors(maxcolors=usable_colors)
         if not colors:
             print("Error: Too many colors in image")
             return None
         
-        palette_data = [0, 0, 0]  # Start with transparent (black)
-        for count, color in sorted(colors, key=lambda x: x[0], reverse=True)[:max_colors-1]:
+        palette_data = []
+        for count, color in sorted(colors, key=lambda x: x[0], reverse=True)[:usable_colors]:
             if isinstance(color, int):
                 # Grayscale
                 palette_data.extend([color, color, color])
@@ -105,8 +139,7 @@ def convert_to_palette(img, max_colors):
                 # RGB
                 palette_data.extend(color)
     else:
-        palette_data = [0, 0, 0]  # Transparent
-        palette_data.extend(palette[:max_colors*3-3])
+        palette_data = palette[:usable_colors*3]
     
     # Convert palette to RGB565
     rgb565_palette = []
@@ -116,11 +149,16 @@ def convert_to_palette(img, max_colors):
             rgb565 = rgb888_to_rgb565(r, g, b)
             rgb565_palette.append(rgb565)
     
-    # Pad to required size
-    while len(rgb565_palette) < max_colors:
+    # Pad regular colors to usable_colors size
+    while len(rgb565_palette) < usable_colors:
         rgb565_palette.append(0x0000)
     
-    return rgb565_palette[:max_colors]
+    # Add magic channel colors as the last 5 entries
+    magic_colors = [0x1000, 0x1001, 0x1002, 0x1003, 0x1004]  # Channels 0-4
+    rgb565_palette.extend(magic_colors)
+    print(f"Added magic channel colors at positions {len(rgb565_palette)-5}-{len(rgb565_palette)-1}: {[hex(c) for c in magic_colors]}")
+    
+    return rgb565_palette
 
 def generate_c_header(data, format_type, width=0, height=0, output_name="palette"):
     """Generate C header file"""
@@ -264,9 +302,48 @@ def main():
         data, width, height = convert_to_lut_64x64(img)
     elif format_type == "LUT_32x32":
         # Resize to 32×32
-        img_32 = img.resize((32, 32), Image.Resampling.LANCZOS) 
-        data, width, height = convert_to_lut_64x64(img_32)  # Reuse function
-        width, height = 32, 32
+        img_32 = img.resize((32, 32), Image.Resampling.LANCZOS)
+        # Convert to 32x32 format with magic colors
+        if img_32.mode == 'RGBA':
+            pixels = np.array(img_32)
+            lut_data = []
+            
+            # Process pixels, but reserve last 5 positions for magic colors
+            for y in range(32):
+                for x in range(32):
+                    # Skip last 5 pixels (positions 1019-1023) - they'll be magic colors
+                    if y == 31 and x >= 27:  # Last row, last 5 pixels
+                        continue
+                        
+                    r, g, b, a = pixels[y, x]
+                    if a <= 127:  # 50% alpha cutoff - pixel is transparent
+                        lut_data.append(0x1000)  # Transparent entry (magic number)
+                    else:
+                        # RGB pixel -> convert to RGB565
+                        rgb565 = rgb888_to_rgb565(r, g, b)
+                        lut_data.append(rgb565)
+        else:
+            # RGB mode - no transparency, convert all pixels to RGB565
+            pixels = np.array(img_32)
+            lut_data = []
+            
+            # Process pixels, but reserve last 5 positions for magic colors
+            for y in range(32):
+                for x in range(32):
+                    # Skip last 5 pixels (positions 1019-1023) - they'll be magic colors
+                    if y == 31 and x >= 27:  # Last row, last 5 pixels
+                        continue
+                        
+                    r, g, b = pixels[y, x]
+                    rgb565 = rgb888_to_rgb565(r, g, b)
+                    lut_data.append(rgb565)
+        
+        # Add magic channel colors as the last 5 entries
+        magic_colors = [0x1000, 0x1001, 0x1002, 0x1003, 0x1004]  # Channels 0-4
+        lut_data.extend(magic_colors)
+        print(f"Added magic channel colors at positions {len(lut_data)-5}-{len(lut_data)-1}: {[hex(c) for c in magic_colors]}")
+        
+        data, width, height = lut_data, 32, 32
     elif format_type == "PALETTE_16":
         data = convert_to_palette(img, 16)
         width = height = 0

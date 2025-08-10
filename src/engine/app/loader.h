@@ -12,6 +12,7 @@
 #include "../system/wisp_asset_types.h"
 #include "../namespaces.h"  // For WispEngine::Core::Debug
 #include "wisp_runtime_loader.h"  // WISP bundle runtime loading
+#include "../graphics/magic_channel_system.h"
 #include <dirent.h>
 #include <stdio.h>
 
@@ -127,6 +128,9 @@ namespace WispEngine {
             
             // WISP runtime loader for asset access
             WispRuntimeLoader wispLoader;
+            
+            // Magic channel animation system
+            MagicChannelSystem magicChannelSystem;
     
             // Build app database by scanning SD card and reading headers
             void buildAppDatabase() {
@@ -274,6 +278,12 @@ namespace WispEngine {
         if (!appName.isEmpty()) {
             strncpy(currentAppConfig.name, appName.c_str(), sizeof(currentAppConfig.name) - 1);
             currentAppConfig.name[sizeof(currentAppConfig.name) - 1] = '\0';
+        }
+        
+        // Set up magic channel system with asset loader reference
+        magicChannelSystem.setAssetLoader(&wispLoader);
+        if (graphics) {
+            graphics->magicChannels = &magicChannelSystem;
         }
         
         // Load graphics assets if present
@@ -602,10 +612,15 @@ private:
         return false;
     }
     
-    // Update LUT animations based on app frame tick
+    // Update LUT animations and magic channels based on app frame tick
     void updateLUTAnimations() {
         if (graphics && graphics->isUsingEnhancedLUT()) {
             graphics->updateLUTForFrame(lastFrameTick);
+        }
+        
+        // Update magic channels
+        if (magicChannelSystem.isEnabled()) {
+            magicChannelSystem.updateChannelsForFrame(lastFrameTick);
         }
     }
         };  // class Loader

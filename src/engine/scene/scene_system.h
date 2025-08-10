@@ -299,6 +299,13 @@ public:
     // === ENTITY MANAGEMENT ===
     uint16_t addEntity(uint8_t layoutIndex, uint8_t panelIndex, uint16_t spriteId, 
                       int16_t x, int16_t y, EntityBehavior behavior = EntityBehavior::STATIC);
+    
+    // NEW: Secure entity creation with UUID authority integration
+    uint32_t addEntitySecure(uint8_t layoutIndex, uint8_t panelIndex, 
+                           const String& entityType, uint16_t spriteId, 
+                           int16_t x, int16_t y, const String& scriptName = "",
+                           EntityBehavior behavior = EntityBehavior::STATIC);
+    
     bool removeEntity(uint16_t entityId);
     SceneEntity* findEntity(uint16_t entityId);
     bool setEntityPosition(uint16_t entityId, int16_t x, int16_t y);

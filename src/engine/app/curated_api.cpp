@@ -4,6 +4,7 @@
 
 // Include the header AFTER other includes to avoid namespace conflicts
 #include "curated_api.h"
+#include "loader.h"  // For accessing the app loader and magic channel system
 
 // Use fully qualified names to avoid namespace nesting issues
 
@@ -195,6 +196,131 @@ bool WispCuratedAPI::setSaveField(const std::string& key, const T& value) {
 }
 
 bool WispCuratedAPI::setSaveString(const std::string& key, const std::string& value) {
+    if (!g_SaveSystem) {
+        recordError(String("Save system not initialized"));
+        return false;
+    }
+    
+    // TODO: Fix conversion from std::string to char*
+    // return g_SaveSystem->setStringField(key.c_str(), value.c_str());
+    recordError(String("String field setting not yet implemented"));
+    return false;
+}
+
+// ====================================================================
+// MAGIC CHANNEL ANIMATION API IMPLEMENTATIONS
+// ====================================================================
+
+bool WispCuratedAPI::setupMagicChannelAnimation(uint8_t channelNumber, const char* wlutAssetName) {
+    if (channelNumber >= MAGIC_CHANNEL_COUNT) {
+        recordError(String("Invalid channel number: ") + String(channelNumber));
+        return false;
+    }
+    
+    if (!wlutAssetName || strlen(wlutAssetName) == 0) {
+        recordError(String("WLUT asset name cannot be empty"));
+        return false;
+    }
+    
+    // Warn if configuring channel 0 (primary transparency)
+    if (channelNumber == 0) {
+        printWarning(String("Configuring channel 0 (primary transparency) is discouraged. ") +
+                    String("This may cause unexpected transparency behavior. ") +
+                    String("Consider using channels 1-4 for color animations."));
+    }
+    
+    // Access the magic channel system through the app loader
+    // Note: This assumes there's a global app loader instance
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return false;
+    }
+    
+    bool success = g_AppLoader->magicChannelSystem.setupChannelFromWLUT(channelNumber, wlutAssetName);
+    if (!success) {
+        recordError(String("Failed to setup magic channel ") + String(channelNumber) + String(" with WLUT: ") + String(wlutAssetName));
+        return false;
+    }
+    
+    print(String("Magic channel ") + String(channelNumber) + String(" configured with WLUT: ") + String(wlutAssetName));
+    return true;
+}
+
+void WispCuratedAPI::disableMagicChannel(uint8_t channelNumber) {
+    if (channelNumber >= MAGIC_CHANNEL_COUNT) {
+        recordError(String("Invalid channel number: ") + String(channelNumber));
+        return;
+    }
+    
+    // Access the magic channel system through the app loader
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return;
+    }
+    
+    g_AppLoader->magicChannelSystem.disableChannel(channelNumber);
+    print(String("Magic channel ") + String(channelNumber) + String(" disabled"));
+}
+
+void WispCuratedAPI::clearMagicChannel(uint8_t channelNumber) {
+    if (channelNumber >= MAGIC_CHANNEL_COUNT) {
+        recordError(String("Invalid channel number: ") + String(channelNumber));
+        return;
+    }
+    
+    // Access the magic channel system through the app loader
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return;
+    }
+    
+    g_AppLoader->magicChannelSystem.clearChannel(channelNumber);
+    print(String("Magic channel ") + String(channelNumber) + String(" cleared (reset to magic number)"));
+}
+
+uint16_t WispCuratedAPI::getMagicChannelColor(uint8_t channelNumber) {
+    if (channelNumber >= MAGIC_CHANNEL_COUNT) {
+        recordError(String("Invalid channel number: ") + String(channelNumber));
+        return 0x1000; // Default transparent
+    }
+    
+    // Access the magic channel system through the app loader
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return 0x1000; // Default transparent
+    }
+    
+    return g_AppLoader->magicChannelSystem.getChannelColor(channelNumber);
+}
+
+void WispCuratedAPI::setMagicChannelsEnabled(bool enabled) {
+    // Access the magic channel system through the app loader
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return;
+    }
+    
+    g_AppLoader->magicChannelSystem.setEnabled(enabled);
+    print(String("Magic channels ") + String(enabled ? "enabled" : "disabled"));
+}
+
+void WispCuratedAPI::debugPrintMagicChannels() {
+    // Access the magic channel system through the app loader
+    extern WispEngine::App::Loader* g_AppLoader;
+    if (!g_AppLoader) {
+        recordError(String("App loader not available"));
+        return;
+    }
+    
+    g_AppLoader->magicChannelSystem.printChannelStatus();
+}
+
+bool WispCuratedAPI::setSaveBlob(const std::string& key, const void* data, size_t size) {
     if (!g_SaveSystem) {
         recordError(String("Save system not initialized"));
         return false;

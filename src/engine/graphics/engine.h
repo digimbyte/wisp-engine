@@ -10,6 +10,7 @@
 #include <string>
 #include "renderer.h"
 #include "lut_system.h"
+#include "magic_channel_system.h"
 #include "../../../exports/lut_palette_data.h"
 
 // Implement Graphics namespace
@@ -75,6 +76,9 @@ public:
     // Enhanced LUT system instance
     EnhancedLUTSystem enhancedLUT;
     
+    // Magic channel animation system
+    MagicChannelSystem* magicChannels;
+    
     // Sprite management
     Sprite sprites[MAX_SPRITES];
     uint16_t loadedSpriteCount;
@@ -90,6 +94,7 @@ public:
         loadedSpriteCount = 0;
         lutLoaded = false;
         useEnhancedLUT = true;  // Default to enhanced LUT system
+        magicChannels = nullptr;  // Will be set by app loader
         
         // Initialize render context
         renderCtx.depthBuffer = (uint8_t*)malloc(SCREEN_BUFFER_SIZE);
@@ -136,6 +141,11 @@ public:
     void updateLUTForFrame(uint32_t currentFrameTick) {
         if (useEnhancedLUT) {
             enhancedLUT.updateSlotsForFrame(currentFrameTick);
+        }
+        
+        // Update magic channels
+        if (magicChannels && magicChannels->isEnabled()) {
+            magicChannels->updateChannelsForFrame(currentFrameTick);
         }
     }
     
@@ -308,6 +318,11 @@ public:
                     uint8_t lutY = colorIndex / SPRITE_LUT_SIZE;
                     uint16_t baseColor = colorLUT[lutY * SPRITE_LUT_SIZE + lutX];
                     finalColor = baseColor;
+                }
+                
+                // Apply magic channel resolution if available
+                if (magicChannels && magicChannels->isEnabled()) {
+                    finalColor = magicChannels->resolveMagicColor(finalColor);
                 }
                 
                 // Apply palette color modification if available

@@ -5,6 +5,7 @@
 #include "../graphics/engine.h"
 #include "../core/resource_manager.h"
 #include "../database/save_system.h"
+#include "../graphics/magic_channel_system.h"
 #include <string>
 
 // Forward declarations
@@ -181,6 +182,31 @@ public:
     WispVec2 getScreenSize() const;
     WispVec2 worldToScreen(WispVec2 worldPos) const;
     WispVec2 screenToWorld(WispVec2 screenPos) const;
+    
+    // === MAGIC CHANNEL ANIMATION API ===
+    // Configure a magic channel to animate using colors from a WLUT asset
+    // channelNumber: 0-4 (corresponding to magic colors 0x1000-0x1004)
+    // NOTE: Channel 0 is the primary transparency channel - changing it is discouraged
+    //       but allowed if developers specifically need custom transparency effects
+    // wlutAssetName: Name of WLUT asset in the current WISP bundle
+    // Returns true if successful
+    bool setupMagicChannelAnimation(uint8_t channelNumber, const char* wlutAssetName);
+    
+    // Disable a magic channel completely (stops animation, reverts to transparent)
+    void disableMagicChannel(uint8_t channelNumber);
+    
+    // Clear a magic channel (reset to default magic number, but keeps animation enabled)
+    // This is useful for temporarily resetting a channel while preserving its WLUT configuration
+    void clearMagicChannel(uint8_t channelNumber);
+    
+    // Get current color for a magic channel
+    uint16_t getMagicChannelColor(uint8_t channelNumber);
+    
+    // Enable/disable the magic channel system
+    void setMagicChannelsEnabled(bool enabled);
+    
+    // Print debug info about magic channel status
+    void debugPrintMagicChannels();
     
     // === AUDIO API ===
     ResourceHandle loadAudio(const std::string& filePath);

@@ -1,0 +1,174 @@
+name: "Memory Stress Test"
+version: "1.0.0"
+author: "Wisp Engine Security Test"
+description: "Large ROM for testing memory adaptation and fallback systems"
+
+# High memory requirements to trigger fallbacks
+performance:
+  fps: 16
+  ram: 196608  # 192KB - close to ESP32-C6 limit
+
+# System requirements
+system:
+  wifi: false
+  bluetooth: false
+  eeprom: true
+
+# Audio requirements (high quality to use more memory)
+audio:
+  outputs: ["piezo", "i2s"]
+  sampleRate: 44100
+  channels: 8
+  streaming: true
+
+# Main entry points
+entry:
+  main: "main.wash"
+
+# Many entities to stress memory
+entities:
+  - name: "player1"
+    type: "player"
+    script: "player_behavior.wash"
+    sprite: "npc.spr"
+    x: 32
+    y: 32
+  - name: "player2"
+    type: "player"
+    script: "player_behavior.wash"
+    sprite: "npc.spr"
+    x: 64
+    y: 32
+  - name: "enemy1"
+    type: "enemy"
+    script: "enemy_ai.wash"
+    sprite: "npc.spr"
+    x: 96
+    y: 32
+  - name: "enemy2"
+    type: "enemy"
+    script: "enemy_ai.wash"
+    sprite: "npc.spr"
+    x: 128
+    y: 32
+  - name: "enemy3"
+    type: "enemy"
+    script: "enemy_ai.wash"
+    sprite: "npc.spr"
+    x: 160
+    y: 32
+
+  # Many simple entities
+  - name: "coin1"
+    type: "item"
+    sprite: "item.spr"
+    x: 32
+    y: 64
+  - name: "coin2"
+    type: "item"
+    sprite: "item.spr"
+    x: 64
+    y: 64
+  - name: "coin3"
+    type: "item"
+    sprite: "item.spr"
+    x: 96
+    y: 64
+  - name: "coin4"
+    type: "item"
+    sprite: "item.spr"
+    x: 128
+    y: 64
+  - name: "coin5"
+    type: "item"
+    sprite: "item.spr"
+    x: 160
+    y: 64
+  - name: "coin6"
+    type: "item"
+    sprite: "item.spr"
+    x: 192
+    y: 64
+  - name: "coin7"
+    type: "item"
+    sprite: "item.spr"
+    x: 224
+    y: 64
+  - name: "coin8"
+    type: "item"
+    sprite: "item.spr"
+    x: 256
+    y: 64
+
+# Many UI elements to stress UI validation
+ui_elements:
+  - name: "button1"
+    type: "button"
+    sprite: "light.png"
+    x: 32
+    y: 200
+  - name: "button2"
+    type: "button"
+    sprite: "dark.png"
+    x: 64
+    y: 200
+  - name: "button3"
+    type: "button"
+    sprite: "light.png"
+    x: 96
+    y: 200
+  - name: "button4"
+    type: "button"
+    sprite: "dark.png"
+    x: 128
+    y: 200
+  - name: "button5"
+    type: "button"
+    sprite: "light.png"
+    x: 160
+    y: 200
+  - name: "button6"
+    type: "button"
+    sprite: "dark.png"
+    x: 192
+    y: 200
+
+# Multiple scenes to increase memory usage
+scenes:
+  - layout: "level1"
+    background: "void.spr"
+    panels:
+      - name: "gameplay_panel1"
+        width: 320
+        height: 240
+  - layout: "level2"
+    background: "large_background.spr"  # Large background asset
+    panels:
+      - name: "gameplay_panel2"
+        width: 320
+        height: 240
+  - layout: "level3"
+    background: "large_background.spr"
+    panels:
+      - name: "gameplay_panel3"
+        width: 320
+        height: 240
+
+# Large asset list to stress memory
+assets:
+  preload:
+    - "npc.spr"
+    - "item.spr"
+    - "light.png"
+    - "dark.png"
+    - "void.spr"
+    - "large_background.spr"
+    - "large_sprite_sheet.spr"
+    - "animation_frames.spr"
+  streaming:
+    - "background_music_high_quality.sfx"
+    - "sound_effects_pack.sfx"
+    - "voice_samples.sfx"
+  cached:
+    - "ui_elements_pack.spr"
+    - "particle_effects.spr"

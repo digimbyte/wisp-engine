@@ -32,6 +32,13 @@ constexpr uint32_t MAGIC_WSFX = 0x58465357;  // 'WSFX' - Audio
 constexpr uint32_t MAGIC_WASH = 0x48534157;  // 'WASH' - Source code
 constexpr uint32_t MAGIC_WBIN = 0x4E494257;  // 'WBIN' - Compiled binary
 
+// Magic Color Values (reserved range: 0x1000-0x100F)
+constexpr uint16_t CHANNEL_0_COLOR = 0x1000;  // Channel 0 - Special function 0 (commonly transparent)
+constexpr uint16_t CHANNEL_1_COLOR = 0x1001;  // Channel 1 - Special function 1
+constexpr uint16_t CHANNEL_2_COLOR = 0x1002;  // Channel 2 - Special function 2
+constexpr uint16_t CHANNEL_3_COLOR = 0x1003;  // Channel 3 - Special function 3
+constexpr uint16_t CHANNEL_4_COLOR = 0x1004;  // Channel 4 - Special function 4
+
 // Palette/LUT Format Types
 enum PaletteFormat : uint32_t {
     LUT_64x64 = 0x4C555436,    // 'LUT6' - 64×64 lookup table
@@ -123,6 +130,29 @@ inline bool isCompatibleWithProfile(AssetType type, PaletteFormat format, const 
         return usage <= maxUsage;
     }
     return true; // Other asset types are always compatible
+}
+
+// Magic color helper functions
+inline bool isMagicColor(uint16_t color) {
+    return (color >= 0x1000 && color <= 0x100F);
+}
+
+// All magic colors render as transparent by default
+// They are only used for special runtime functions that can update their appearance
+inline bool isTransparentColor(uint16_t color) {
+    return isMagicColor(color); // All magic colors are transparent by default
+}
+
+// Check if a color is specifically the primary transparency channel
+inline bool isPrimaryTransparentColor(uint16_t color) {
+    return (color == CHANNEL_0_COLOR);
+}
+
+inline uint8_t getMagicChannel(uint16_t color) {
+    if (isMagicColor(color)) {
+        return static_cast<uint8_t>(color - 0x1000);
+    }
+    return 0xFF; // Invalid channel
 }
 
 } // namespace WispAssets

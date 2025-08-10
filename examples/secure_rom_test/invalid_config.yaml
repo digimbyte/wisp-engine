@@ -1,0 +1,80 @@
+name: "Security Test Invalid"
+version: "1.0.0"
+author: "Wisp Engine Security Test"
+description: "Invalid ROM for testing security violation detection"
+
+# Performance requirements
+performance:
+  fps: 16
+  ram: 65536
+
+# System requirements  
+system:
+  wifi: false
+  bluetooth: false
+
+# Main entry points
+entry:
+  main: "main.wash"
+
+# Test entities with INTENTIONALLY WRONG asset assignments
+entities:
+  - name: "scripted_player"
+    type: "player"
+    script: "player_behavior.wash"    # Has script -> should use npc.spr
+    sprite: "item.spr"                # WRONG! Scripted entity using item.spr
+    x: 64
+    y: 64
+    
+  - name: "simple_collectible"
+    type: "item"
+    sprite: "npc.spr"                 # WRONG! Simple entity using npc.spr (no script)
+    x: 128
+    y: 128
+    
+  - name: "scripted_enemy"
+    type: "enemy"
+    script: "enemy_ai.wash"           # Has script -> should use npc.spr  
+    sprite: "light.png"               # WRONG! Scripted entity using UI asset
+    x: 32
+    y: 96
+
+# UI elements with WRONG asset assignments
+ui_elements:
+  - name: "fake_button"
+    type: "button"
+    sprite: "npc.spr"                 # WRONG! UI element using entity sprite
+    x: 160
+    y: 200
+    
+  - name: "bad_menu_item"
+    type: "menu_item"
+    sprite: "item.spr"                # WRONG! UI element using entity sprite
+    x: 160
+    y: 220
+
+# Non-UI entities trying to use UI assets
+entities_with_ui_violations:
+  - name: "entity_using_ui"
+    type: "player"
+    sprite: "dark.png"                # WRONG! Non-UI entity using UI asset
+    x: 200
+    y: 100
+
+# Scene layout
+scenes:
+  - layout: "main_scene"
+    background: "void.spr"
+    panels:
+      - name: "gameplay_panel"
+        width: 320
+        height: 240
+
+# Asset references (for building ROM)
+assets:
+  preload:
+    - "npc.spr"
+    - "item.spr" 
+    - "light.png"
+    - "dark.png"
+    - "void.spr"
